@@ -403,6 +403,16 @@ function canActivateEffect(cardInstance) {
     const others = gameState.play.filter((_, i) => i !== playIdx);
     if (others.length === 0) return false;
   }
+  // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
+  const hasTerrainRes = (act.ressources || []).some(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.some(t => t === 'Terrain');
+  });
+  if (hasTerrainRes) {
+    const playIdx = gameState.play.indexOf(cardInstance);
+    const terrains = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type === 'Terrain');
+    if (terrains.length === 0) return false;
+  }
   return true;
 }
 
@@ -425,13 +435,37 @@ function stageActivateEffect(playIndex) {
 
   // Effet avec sacrifice : ouvre un modal pour choisir la carte à défausser
   if (act.sacrifice) {
-    // Les cartes candidats = toutes les cartes en jeu SAUF celle-ci
     const candidates = gameState.play.filter((_, i) => i !== playIndex);
     if (candidates.length === 0) {
       addLog(`❌ Aucune carte disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
     }
     showSacrificeModal(playIndex, act, candidates);
+    return;
+  }
+
+  // Effet Exploitant : ressources de type "Terrain" → choisir un Terrain en jeu
+  const hasTerrainResource = (act.ressources || []).some(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.some(t => t === 'Terrain');
+  });
+  if (hasTerrainResource) {
+    const terrains = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type === 'Terrain');
+    if (terrains.length === 0) {
+      addLog(`❌ Aucun Terrain en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
+      return;
+    }
+    showTerrainChoiceModal(playIndex, act, terrains);
+    return;
+  }
+
+  // Effet Domestique : ressources au choix parmi plusieurs types (ex: [Or, Bois, Pierre])
+  const hasMultiTypeResource = (act.ressources || []).some(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.length > 1;
+  });
+  if (hasMultiTypeResource) {
+    showResourceChoiceModal(playIndex, act);
     return;
   }
 
@@ -517,6 +551,138 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
   });
 
   addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> — en attente de confirmation (${resStr}).`);
+  updateUI();
+}
+
+// ── EXPLOITANT : choisir un Terrain en jeu pour copier sa production ──
+function showTerrainChoiceModal(playIndex, act, terrains) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+
+  let html = `<p style="margin-bottom:12px;">Choisissez un <strong>Terrain</strong> dont vous voulez copier la production :</p>`;
+  terrains.forEach(ci => {
+    const f = getFaceData(ci);
+    const actualIdx = gameState.play.indexOf(ci);
+    const emoji = getCardEmoji(f.type, f.nom);
+    const resInfo = (f.ressources || []).length
+      ? f.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return `+${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+        }).join(' ')
+      : '(aucune production)';
+    html += `<button onclick="confirmTerrainChoice(${playIndex}, ${actualIdx})" class="sacrifice-choice-btn">
+      <span class="sacrifice-emoji">${emoji}</span>
+      <span class="sacrifice-info">
+        <strong>${f.nom}</strong>
+        <span class="sacrifice-type">${f.type}</span>
+        <span class="sacrifice-res">${resInfo}</span>
+      </span>
+    </button>`;
+  });
+
+  window._pendingTerrainPlayIndex = playIndex;
+  window._pendingTerrainAct = act;
+  $('#terrainChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('terrainChoiceModal')).show();
+}
+
+function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
+  bootstrap.Modal.getInstance(document.getElementById('terrainChoiceModal'))?.hide();
+  window._pendingTerrainPlayIndex = null;
+  window._pendingTerrainAct = null;
+
+  const exploitantCard = gameState.play[exploitantPlayIndex];
+  const terrainCard    = gameState.play[terrainPlayIndex];
+  const terrainFace    = getFaceData(terrainCard);
+  const exploitantName = getFaceData(exploitantCard).nom;
+
+  // Copier la production réelle du terrain (pas ses effets)
+  const resourcesGained = {};
+  (terrainFace.ressources || []).forEach(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    const key = normalizeRes(types[0]);
+    if (key) resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+  });
+
+  // Retirer l'Exploitant du jeu (le terrain reste en jeu)
+  gameState.play.splice(exploitantPlayIndex, 1);
+
+  const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ') || '(rien)';
+
+  gameState.staging.push({
+    cardInstance: exploitantCard,
+    action: 'activate',
+    resourcesGained,
+    fameGained: 0,
+    newFace: null,
+    cout: [],
+    terrainName: terrainFace.nom
+  });
+
+  addLog(`🟢 <span class="log-card">${exploitantName}</span> exploite <span class="log-card">${terrainFace.nom}</span> — ${resStr} en attente.`);
+  updateUI();
+}
+
+// ── DOMESTIQUE : choisir 1 ressource parmi plusieurs types ──
+function showResourceChoiceModal(playIndex, act) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+
+  // Collecter tous les types disponibles au choix
+  const choices = [];
+  (act.ressources || []).forEach(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    types.forEach(t => {
+      if (!choices.find(c => c.type === t)) choices.push({ type: t, quantite: r.quantite });
+    });
+  });
+
+  let html = `<p style="margin-bottom:14px;">Choisissez <strong>1 ressource</strong> à obtenir :</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">`;
+  choices.forEach((c, i) => {
+    const icon = RESOURCE_ICONS[normalizeRes(c.type)] || c.type;
+    html += `<button onclick="confirmResourceChoice(${playIndex}, ${i})" class="bandit-reward-btn" style="min-width:80px;font-size:1rem;">
+      ${icon}<br><span style="font-size:0.65rem;">${c.type}</span>
+    </button>`;
+  });
+  html += '</div>';
+
+  window._pendingResourceChoices = choices;
+  window._pendingResourcePlayIndex = playIndex;
+  window._pendingResourceAct = act;
+  $('#resourceChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('resourceChoiceModal')).show();
+}
+
+function confirmResourceChoice(playIndex, choiceIdx) {
+  bootstrap.Modal.getInstance(document.getElementById('resourceChoiceModal'))?.hide();
+  const choices = window._pendingResourceChoices || [];
+  const act     = window._pendingResourceAct;
+  window._pendingResourceChoices   = null;
+  window._pendingResourcePlayIndex = null;
+  window._pendingResourceAct       = null;
+
+  const chosen = choices[choiceIdx];
+  if (!chosen) return;
+
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+  const key = normalizeRes(chosen.type);
+  const resourcesGained = { [key]: chosen.quantite };
+
+  gameState.play.splice(playIndex, 1);
+  const resStr = `+${chosen.quantite}${RESOURCE_ICONS[key]||chosen.type}`;
+
+  gameState.staging.push({
+    cardInstance,
+    action: 'activate',
+    resourcesGained,
+    fameGained: 0,
+    newFace: null,
+    cout: act.cout || []
+  });
+
+  addLog(`🟢 <span class="log-card">${fd.nom}</span> — ${resStr} en attente de confirmation.`);
   updateUI();
 }
 
@@ -1076,7 +1242,8 @@ function buildStagingCardHTML(entry, stagingIndex) {
     const resParts = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`);
     const coutParts = (entry.cout||[]).map(c => `-${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`);
     const promoStr = entry.newFace ? ` → face ${entry.newFace}` : '';
-    actionSummary = ([...coutParts, ...resParts].join('  ') || '—') + promoStr;
+    const terrainStr = entry.terrainName ? `⚑ ${entry.terrainName}` : '';
+    actionSummary = (terrainStr ? terrainStr + '<br>' : '') + ([...coutParts, ...resParts].join('  ') || '—') + promoStr;
   } else {
     const parts = Object.entries(resourcesGained).map(([k,v]) => `+${v} ${RESOURCE_ICONS[k]||k}`);
     actionSummary = parts.length ? parts.join('  ') : '—';
