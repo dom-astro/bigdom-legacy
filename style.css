@@ -437,6 +437,11 @@ body.light-mode .face-choice-header .modal-title { color: #7a5200; }
 /* ============================================================
    SACRIFICE CHOICE MODAL
    ============================================================ */
+/* Carte sacrifice dans la zone d'attente */
+.staging-sacrifice-wrapper { opacity: 0.85; }
+.staging-sacrifice-card { cursor: default !important; }
+.staging-sacrifice-card:hover { transform: none !important; }
+
 .sacrifice-choice-btn {
   display: flex; align-items: center; gap: 12px;
   width: 100%; font-family: 'Cinzel', serif; font-size: 0.76rem;
