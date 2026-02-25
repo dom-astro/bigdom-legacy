@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kingdom Legacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+
+<div class="game-container">
+
+  <!-- HEADER -->
+  <div class="game-header">
+    <div class="game-title">⚔ Kingdom Legacy ⚔</div>
+    <div class="game-subtitle">Forge your kingdom, write your legend</div>
+    <div class="header-divider"></div>
+    <div class="round-badge" id="roundBadge">Manche 1 — Tour 1</div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="resource-bar">
+    <div class="resource-item">
+      <span class="resource-icon">🪙</span>
+      <span class="resource-name">Or</span>
+      <span class="resource-count" id="res-or">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-icon">🪵</span>
+      <span class="resource-name">Bois</span>
+      <span class="resource-count" id="res-bois">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-icon">🪨</span>
+      <span class="resource-name">Pierre</span>
+      <span class="resource-count" id="res-pierre">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-icon">⚙️</span>
+      <span class="resource-name">Métal</span>
+      <span class="resource-count" id="res-metal">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-icon">⚔️</span>
+      <span class="resource-name">Épée</span>
+      <span class="resource-count" id="res-epee">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-icon">🛒</span>
+      <span class="resource-name">Troc</span>
+      <span class="resource-count" id="res-troc">0</span>
+    </div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="game-layout">
+
+    <!-- DRAW DECK (left) -->
+    <div class="side-zone">
+      <div class="zone-title">📚 Pioche</div>
+      <div class="card-stack-area" id="drawZone">
+        <div class="deck-stack" id="deckVisual">
+          <div class="deck-shadow"></div>
+          <div class="deck-shadow"></div>
+          <div class="card-back" id="topDeckCard" style="cursor:pointer;" onclick="drawCards(4)" title="Cliquer pour piocher 4 cartes"></div>
+        </div>
+        <div class="deck-info" id="deckCount">10 cartes</div>
+      </div>
+    </div>
+
+    <!-- PLAY AREA (center) -->
+    <div class="play-zone">
+      <div class="phase-indicator">
+        <span class="phase-badge" id="phaseLabel">⚡ Choisissez une action</span>
+      </div>
+      <div class="zone-title">🏰 Zone de Jeu</div>
+      <div class="play-area">
+        <div class="play-cards-container" id="playArea">
+          <div class="play-area-empty" id="emptyPlayArea">
+            <span class="empty-icon">🏰</span>
+            <span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span>
+          </div>
+        </div>
+        <div class="action-panel">
+          <button class="btn-medieval btn-produce" onclick="drawCards(4)" id="btnDraw">
+            📜 Jouer (4 cartes)
+          </button>
+          <button class="btn-medieval btn-advance" onclick="drawCards(2)" id="btnAdvance">
+            ⚡ Avancer (+2)
+          </button>
+          <button class="btn-medieval btn-pass" onclick="endTurn()">
+            ⏭ Passer
+          </button>
+          <button class="btn-medieval btn-new-round" onclick="newRound()">
+            🔄 Nouvelle Manche
+          </button>
+        </div>
+        <div class="game-log" id="gameLog"></div>
+      </div>
+    </div>
+
+    <!-- DISCARD (right) -->
+    <div class="side-zone">
+      <div class="zone-title">🗑 Défausse</div>
+      <div class="card-stack-area" id="discardZone">
+        <div id="discardVisual" style="display:none;">
+          <div class="card-front" id="topDiscardCard" style="cursor:pointer;" onclick="showDiscardPile()"></div>
+        </div>
+        <div id="discardEmpty" style="text-align:center; color:rgba(200,150,12,0.2);">
+          <div style="font-size:2rem; margin-bottom:6px;">📄</div>
+          <div style="font-family:'Cinzel',serif; font-size:0.65rem; letter-spacing:1px;">VIDE</div>
+        </div>
+        <div class="deck-info" id="discardCount">0 cartes</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="zone-title" style="margin-top:12px;">📊 Statistiques</div>
+      <div class="stats-panel">
+        <div class="stat-item">
+          <span class="stat-label">Pioche</span>
+          <span class="stat-value" id="statDeck">10</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">En jeu</span>
+          <span class="stat-value" id="statPlay">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Défausse</span>
+          <span class="stat-value" id="statDiscard">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tour</span>
+          <span class="stat-value" id="statTurn">1</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Manche</span>
+          <span class="stat-value" id="statRound">1</span>
+        </div>
+        <div class="fame-display">
+          <div class="fame-label">⭐ Gloire</div>
+          <div class="fame-score" id="fameScore">0</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end game-layout -->
+
+</div>
+
+<!-- CARD DETAIL MODAL -->
+<div class="modal fade" id="cardModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="modalCardName">—</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modalCardBody"></div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-sm btn-warning" id="modalProduceBtn" onclick="produceFromModal()">Produire</button>
+        <button type="button" class="btn btn-sm btn-success" id="modalUpgradeBtn" onclick="upgradeFromModal()">Promouvoir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DISCARD PILE MODAL -->
+<div class="modal fade" id="discardModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:#1a1208; border:2px solid var(--border-ornate);">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif; color:var(--gold-light);">🗑 Défausse</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="discardPileGrid" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CARD DATA from JSON files
+// ============================================================
+const ALL_CARDS = [
+  {
+    "numero": 1, "faces": [
+      { "face": 1, "nom": "Herbes Sauvages", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Plaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "effet": {"type":"Activable","ressources":[{"type":"Or","quantite":2}]}, "promotion": {"face":3,"cout":[{"type":"Or","quantite":3}]} },
+      { "face": 3, "nom": "Terres cultivées", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":3}]} },
+      { "face": 4, "nom": "Grange", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":2}], "victoire": 3, "effet": {"type":"Passif","description":"Reste en jeu"} }
+    ]
+  },
+  {
+    "numero": 2, "faces": [
+      { "face": 1, "nom": "Herbes Sauvages", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Plaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "effet": {"type":"Activable","ressources":[{"type":"Or","quantite":2}]}, "promotion": {"face":3,"cout":[{"type":"Or","quantite":3}]} },
+      { "face": 3, "nom": "Terres cultivées", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":3}]} },
+      { "face": 4, "nom": "Grange", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":2}], "victoire": 3, "effet": {"type":"Passif","description":"Reste en jeu"} }
+    ]
+  },
+  {
+    "numero": 3, "faces": [
+      { "face": 1, "nom": "Herbes Sauvages", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Plaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "effet": {"type":"Activable","ressources":[{"type":"Or","quantite":2}]}, "promotion": {"face":3,"cout":[{"type":"Or","quantite":3}]} },
+      { "face": 3, "nom": "Terres cultivées", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":3}]} },
+      { "face": 4, "nom": "Grange", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":2}], "victoire": 3, "effet": {"type":"Passif","description":"Reste en jeu"} }
+    ]
+  },
+  {
+    "numero": 4, "faces": [
+      { "face": 1, "nom": "Herbes Sauvages", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Plaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "effet": {"type":"Activable","ressources":[{"type":"Or","quantite":2}]}, "promotion": {"face":3,"cout":[{"type":"Or","quantite":3}]} },
+      { "face": 3, "nom": "Terres cultivées", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":3}]} },
+      { "face": 4, "nom": "Grange", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":2}], "victoire": 3, "effet": {"type":"Passif","description":"Reste en jeu"} }
+    ]
+  },
+  {
+    "numero": 5, "faces": [
+      { "face": 1, "nom": "Montagnes Lointaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Zone Rocheuse", "type": "Terrain", "ressources": [{"type":["Pierre"],"quantite":1}], "effet": {"type":"Activable","cout":[{"type":"Or","quantite":1}],"ressources":[{"type":"Pierre","quantite":2}]}, "promotion": {"face":3,"cout":[{"type":"Bois","quantite":2},{"type":"Or","quantite":2}]} },
+      { "face": 3, "nom": "Carrière", "type": "Terrain", "ressources": [{"type":["Pierre"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":2},{"type":"Or","quantite":2}]} },
+      { "face": 4, "nom": "Mine Peu Profonde", "type": "Bâtiment", "ressources": [{"type":["Pierre"],"quantite":1},{"type":["Métal"],"quantite":1}], "victoire": 3, "effet": {"type":"Destruction","cartes":[84,85]} }
+    ]
+  },
+  {
+    "numero": 6, "faces": [
+      { "face": 1, "nom": "Montagnes Lointaines", "type": "Terrain", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Or","quantite":2}]} },
+      { "face": 2, "nom": "Zone Rocheuse", "type": "Terrain", "ressources": [{"type":["Pierre"],"quantite":1}], "effet": {"type":"Activable","cout":[{"type":"Or","quantite":1}],"ressources":[{"type":"Pierre","quantite":2}]}, "promotion": {"face":3} },
+      { "face": 3, "nom": "Carrière", "type": "Terrain", "ressources": [{"type":["Pierre"],"quantite":2}], "promotion": {"face":4,"cout":[{"type":"Bois","quantite":2},{"type":"Or","quantite":2}]} },
+      { "face": 4, "nom": "Mine Peu Profonde", "type": "Bâtiment", "ressources": [{"type":["Pierre"],"quantite":1},{"type":["Métal"],"quantite":1}], "victoire": 3, "effet": {"type":"Destruction","cartes":[84,85]} }
+    ]
+  },
+  {
+    "numero": 7, "faces": [
+      { "face": 1, "nom": "Forêt", "type": "Terrain", "ressources": [{"type":["Bois"],"quantite":1}], "promotion": {"face":4,"cout":[{"type":"Pierre","quantite":2}]}, "effet": {"type":"Activable","ressources":[{"type":["Bois"],"quantite":3}],"promotion":{"face":2}} },
+      { "face": 2, "nom": "Coupe Rase", "type": "Terrain", "promotions": [{"face":1,"cout":[{"type":"Or","quantite":1}]},{"face":3,"cout":[{"type":"Pierre","quantite":1},{"type":"Bois","quantite":1},{"type":"Or","quantite":2}]}] },
+      { "face": 3, "nom": "Cabane de Bûcheron", "type": "Bâtiment", "ressources": [{"type":["Bois"],"quantite":2}], "victoire": 2 },
+      { "face": 4, "nom": "Puit Sacré", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":1}], "victoire": 2, "effet": {"type":"Destruction","cartes":[82,83]} }
+    ]
+  },
+  {
+    "numero": 8, "faces": [
+      { "face": 1, "nom": "Forêt", "type": "Terrain", "ressources": [{"type":["Bois"],"quantite":1}], "promotion": {"face":4,"cout":[{"type":"Pierre","quantite":2}]}, "effet": {"type":"Activable","ressources":[{"type":["Bois"],"quantite":3}],"promotion":{"face":2}} },
+      { "face": 2, "nom": "Coupe Rase", "type": "Terrain", "promotions": [{"face":1,"cout":[{"type":"Or","quantite":1}]},{"face":3,"cout":[{"type":"Pierre","quantite":1},{"type":"Bois","quantite":1},{"type":"Or","quantite":2}]}] },
+      { "face": 3, "nom": "Cabane de Bûcheron", "type": "Bâtiment", "ressources": [{"type":["Bois"],"quantite":2}], "victoire": 2 },
+      { "face": 4, "nom": "Puit Sacré", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":1}], "victoire": 2, "effet": {"type":"Destruction","cartes":[82,83]} }
+    ]
+  },
+  {
+    "numero": 9, "faces": [
+      { "face": 1, "nom": "Quartier Général", "type": "Bâtiment", "ressources": [{"type":["Or"],"quantite":1}], "promotion": {"face":2,"cout":[{"type":"Pierre","quantite":3},{"type":"Bois","quantite":3}]} },
+      { "face": 2, "nom": "Hôtel de Ville", "type": "Bâtiment", "victoire": 3, "ressources": [{"type":["Epée"],"quantite":1}], "promotions": [{"face":3,"cout":[{"type":"Bois","quantite":2},{"type":"Pierre","quantite":4}]}] },
+      { "face": 3, "nom": "Donjon", "type": "Bâtiment", "ressources": [{"type":["Epée"],"quantite":1}], "victoire": 7, "promotion": {"face":4,"cout":[{"type":"Métal","quantite":1},{"type":"Bois","quantite":2},{"type":"Pierre","quantite":6}]} },
+      { "face": 4, "nom": "Château", "type": "Bâtiment", "ressources": [{"type":["Epée"],"quantite":1}], "victoire": 12 }
+    ]
+  },
+  {
+    "numero": 10, "faces": [
+      { "face": 1, "nom": "Commerçante", "type": "Personne", "effet": {"type":"Activable","cout":[{"type":"Or","quantite":1}],"ressources":[{"type":["Bois"],"quantite":1}]}, "promotions": [{"face":2,"cout":[{"type":"Or","quantite":3}]}] },
+      { "face": 2, "nom": "Bazar", "type": "Bâtiment", "victoire": 1, "effet": {"type":"Activable","cout":[{"type":"Or","quantite":1}],"ressources":[{"type":["Or","Bois"],"quantite":1}]}, "promotions": [{"face":3,"cout":[{"type":"Or","quantite":3}]}] },
+      { "face": 3, "nom": "Marché", "type": "Bâtiment", "victoire": 3, "effet": {"type":"Activable","cout":[{"type":"Or","quantite":1}],"ressources":[{"type":["Or","Bois","Pierre"],"quantite":1}]}, "promotions": [{"face":4,"cout":[{"type":"Or","quantite":5}]}] },
+      { "face": 4, "nom": "Festival", "type": "Evènement", "victoire": 4, "ressources": [{"type":["Or","Bois","Pierre","Métal"],"quantite":2}] }
+    ]
+  }
+];
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', Troc:'🛒' };
+const TYPE_ICONS = { Terrain:'🌿', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉' };
+
+let gameState = {
+  deck: [],        // array of { cardDef, currentFace }
+  play: [],
+  discard: [],
+  resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
+  fame: 0,
+  round: 1,
+  turn: 1,
+  turnStarted: false,
+  selectedCardIndex: null,  // for modal
+};
+
+function initGame() {
+  // Build deck: each card starts at face 1
+  let deck = ALL_CARDS.map(card => ({ cardDef: card, currentFace: 1 }));
+  // Shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  gameState.deck = deck;
+  gameState.play = [];
+  gameState.discard = [];
+  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
+  gameState.fame = 0;
+  gameState.round = 1;
+  gameState.turn = 1;
+  gameState.turnStarted = false;
+  
+  updateUI();
+  addLog('⚜ Que votre royaume prospère ! La partie commence.', true);
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function drawCards(n) {
+  if (gameState.deck.length === 0) {
+    addLog('La pioche est vide ! Commencez une nouvelle manche.', false);
+    return;
+  }
+  const toDraw = Math.min(n, gameState.deck.length);
+  // Clear resources when new cards enter play
+  if (gameState.play.length > 0 || gameState.turnStarted) {
+    clearResources();
+  }
+  gameState.turnStarted = true;
+  for (let i = 0; i < toDraw; i++) {
+    const card = gameState.deck.shift();
+    gameState.play.push(card);
+  }
+  const word = toDraw === 1 ? 'carte' : 'cartes';
+  addLog(`📜 Vous jouez ${toDraw} ${word}.`, false);
+  updateUI();
+}
+
+function clearResources() {
+  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
+}
+
+function produceCard(playIndex) {
+  const cardInstance = gameState.play[playIndex];
+  const faceData = getFaceData(cardInstance);
+  if (!faceData.ressources || faceData.ressources.length === 0) {
+    addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
+    return;
+  }
+  // Gain resources
+  faceData.ressources.forEach(r => {
+    const types = r.type;
+    const t = types[0]; // take first if multiple
+    const key = normalizeRes(t);
+    if (key && gameState.resources[key] !== undefined) {
+      gameState.resources[key] += r.quantite;
+    }
+  });
+  // Discard the card
+  gameState.play.splice(playIndex, 1);
+  gameState.discard.push(cardInstance);
+  addLog(`✅ <span class="log-card">${faceData.nom}</span> produit et est défaussée.`);
+  updateUI();
+}
+
+function upgradeCard(playIndex) {
+  const cardInstance = gameState.play[playIndex];
+  const faceData = getFaceData(cardInstance);
+  const promo = faceData.promotion || (faceData.promotions && faceData.promotions[0]);
+  if (!promo) { addLog(`❌ <span class="log-card">${faceData.nom}</span> ne peut pas être promue davantage.`); return; }
+  
+  const cout = promo.cout || [];
+  // Check cost
+  for (const c of cout) {
+    const key = normalizeRes(c.type);
+    if ((gameState.resources[key] || 0) < c.quantite) {
+      addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${formatCost(cout)}`);
+      return;
+    }
+  }
+  // Pay cost
+  for (const c of cout) {
+    const key = normalizeRes(c.type);
+    gameState.resources[key] -= c.quantite;
+  }
+  // Upgrade
+  const oldFace = cardInstance.currentFace;
+  cardInstance.currentFace = promo.face;
+  const newFaceData = getFaceData(cardInstance);
+  
+  // Gain fame from building on upgrade
+  if (newFaceData.victoire) {
+    gameState.fame += newFaceData.victoire;
+    addLog(`⭐ Gloire gagnée: +${newFaceData.victoire} (Total: ${gameState.fame})`, true);
+  }
+
+  // Card is discarded after upgrade (golden rule #3)
+  gameState.play.splice(playIndex, 1);
+  gameState.discard.push(cardInstance);
+  
+  addLog(`🔼 <span class="log-card">${getFaceName(cardInstance.cardDef, oldFace)}</span> → <span class="log-card">${newFaceData.nom}</span> ! Tour terminé.`, true);
+  endTurn();
+}
+
+function endTurn() {
+  // Discard all play cards
+  while (gameState.play.length > 0) {
+    const c = gameState.play.pop();
+    gameState.discard.push(c);
+  }
+  clearResources();
+  gameState.turnStarted = false;
+  gameState.turn++;
+  addLog(`— Fin du Tour ${gameState.turn - 1} —`);
+  updateUI();
+}
+
+function newRound() {
+  // Shuffle discard into deck
+  const all = [...gameState.play, ...gameState.discard];
+  gameState.play = [];
+  gameState.discard = [];
+  clearResources();
+  // Shuffle
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  gameState.deck = all;
+  gameState.turn = 1;
+  gameState.round++;
+  gameState.turnStarted = false;
+  addLog(`🔄 Manche ${gameState.round} commence ! La pioche est mélangée.`, true);
+  updateUI();
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function getFaceData(cardInstance) {
+  return cardInstance.cardDef.faces.find(f => f.face === cardInstance.currentFace) || cardInstance.cardDef.faces[0];
+}
+
+function getFaceName(cardDef, faceNum) {
+  const f = cardDef.faces.find(f => f.face === faceNum);
+  return f ? f.nom : '?';
+}
+
+function normalizeRes(t) {
+  const map = { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', Troc:'Troc' };
+  return map[t] || t;
+}
+
+function formatCost(cout) {
+  return cout.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)] || c.type}`).join(' + ');
+}
+
+function getCardEmoji(type, nom) {
+  const emojis = {
+    'Herbes Sauvages':'🌾', 'Plaines':'🌿', 'Terres cultivées':'🚜', 'Grange':'🏚️',
+    'Montagnes Lointaines':'⛰️', 'Zone Rocheuse':'🪨', 'Carrière':'⛏️', 'Mine Peu Profonde':'🪝',
+    'Forêt':'🌲', 'Coupe Rase':'🪓', 'Cabane de Bûcheron':'🏡', 'Puit Sacré':'⛲',
+    'Quartier Général':'⚑', 'Hôtel de Ville':'🏛️', 'Donjon':'🏰', 'Château':'🏯',
+    'Commerçante':'👩‍💼', 'Bazar':'🏪', 'Marché':'🛍️', 'Festival':'🎪'
+  };
+  return emojis[nom] || TYPE_ICONS[type] || '📄';
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function buildCardFrontHTML(cardInstance, playIndex) {
+  const face = getFaceData(cardInstance);
+  const promo = face.promotion || (face.promotions && face.promotions[0]);
+  const hasUpgrade = !!promo;
+  const hasResources = face.ressources && face.ressources.length > 0;
+
+  const resHTML = hasResources ? face.ressources.map(r => {
+    return r.type.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+  }).join('') : '';
+
+  const effectIcon = face.effet ? (
+    face.effet.type === 'Activable' ? '🟢' :
+    face.effet.type === 'Passif' ? '🔵' :
+    face.effet.type === 'Destruction' ? '🔴' : '⚡'
+  ) : '';
+
+  const upgradeInfo = hasUpgrade ? formatCost(promo.cout || []) : '';
+
+  return `
+    <div class="card-wrapper">
+      <div class="card card-front card-enter" onclick="openCardModal(${playIndex})" style="cursor:pointer;">
+        ${face.victoire ? `<div class="card-victory">★${face.victoire}</div>` : ''}
+        <div class="card-serial">#${cardInstance.cardDef.numero}</div>
+        <div class="card-name">${face.nom}</div>
+        <span class="card-type-badge type-${face.type.replace('â','a').replace('è','e')}">${face.type}</span>
+        <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
+        <div class="card-resources">${resHTML}</div>
+        ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
+        ${hasUpgrade ? `<div style="position:absolute;bottom:5px;left:4px;right:22px;font-size:0.42rem;color:var(--stone);font-family:'Cinzel',serif;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">▲ ${upgradeInfo}</div>` : ''}
+      </div>
+      <div class="card-actions">
+        ${hasResources ? `<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();produceCard(${playIndex})">⚒ Prod.</button>` : ''}
+        ${hasUpgrade ? `<button class="card-action-btn btn-upgrade-action" onclick="event.stopPropagation();upgradeCard(${playIndex})">▲ Prom.</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function buildDiscardTopHTML(cardInstance) {
+  const face = getFaceData(cardInstance);
+  return `
+    <div class="card-front" style="cursor:pointer; width:130px; height:185px; border-radius:10px; border:2px solid var(--border-ornate); background:linear-gradient(160deg,var(--parchment),var(--parchment-dark)); padding:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;">
+      <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:var(--stone);">#${cardInstance.cardDef.numero}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.6rem;font-weight:600;color:var(--ink);text-align:center;">${face.nom}</div>
+      <div style="font-size:2rem;margin:4px 0;">${getCardEmoji(face.type, face.nom)}</div>
+      <div style="font-style:italic;font-size:0.5rem;color:var(--stone);">${face.type}</div>
+    </div>
+  `;
+}
+
+function updateUI() {
+  // Update resource display
+  Object.entries(gameState.resources).forEach(([key, val]) => {
+    const id = 'res-' + key.toLowerCase().replace('é','e').replace('è','e');
+    $(`#${id}`).text(val);
+  });
+
+  // Update deck visual
+  const deckCount = gameState.deck.length;
+  $('#deckCount').text(`${deckCount} carte${deckCount !== 1 ? 's' : ''}`);
+  $('#statDeck').text(deckCount);
+  if (deckCount === 0) {
+    $('#deckVisual').hide();
+  } else {
+    $('#deckVisual').show();
+  }
+
+  // Update play area
+  const $play = $('#playArea');
+  if (gameState.play.length === 0) {
+    $('#emptyPlayArea').show();
+    $play.html('<div class="play-area-empty" id="emptyPlayArea"><span class="empty-icon">🏰</span><span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span></div>');
+  } else {
+    const cardsHTML = gameState.play.map((c, i) => buildCardFrontHTML(c, i)).join('');
+    $play.html(cardsHTML);
+  }
+  $('#statPlay').text(gameState.play.length);
+
+  // Update discard
+  const discardCount = gameState.discard.length;
+  $('#discardCount').text(`${discardCount} carte${discardCount !== 1 ? 's' : ''}`);
+  $('#statDiscard').text(discardCount);
+  if (discardCount === 0) {
+    $('#discardVisual').hide();
+    $('#discardEmpty').show();
+  } else {
+    $('#discardEmpty').hide();
+    $('#discardVisual').show();
+    $('#topDiscardCard').html(buildDiscardTopHTML(gameState.discard[gameState.discard.length - 1]));
+  }
+
+  // Update stats
+  $('#statTurn').text(gameState.turn);
+  $('#statRound').text(gameState.round);
+  $('#fameScore').text(gameState.fame);
+  $('#roundBadge').text(`Manche ${gameState.round} — Tour ${gameState.turn}`);
+
+  // Update draw button state
+  if (gameState.deck.length === 0) {
+    $('#btnDraw, #btnAdvance').prop('disabled', true).css('opacity', 0.5);
+  } else {
+    $('#btnDraw, #btnAdvance').prop('disabled', false).css('opacity', 1);
+  }
+}
+
+function addLog(msg, important = false) {
+  const cls = important ? 'log-entry log-important' : 'log-entry';
+  const $log = $('#gameLog');
+  $log.prepend(`<div class="${cls}">${msg}</div>`);
+}
+
+// ============================================================
+//  MODAL
+// ============================================================
+let modalCardIndex = null;
+
+function openCardModal(playIndex) {
+  modalCardIndex = playIndex;
+  const cardInstance = gameState.play[playIndex];
+  const face = getFaceData(cardInstance);
+  
+  $('#modalCardName').text(`${getCardEmoji(face.type, face.nom)} ${face.nom}`);
+  
+  let body = `<p><strong>Type:</strong> ${face.type} | <strong>Carte #${cardInstance.cardDef.numero}</strong></p>`;
+  
+  if (face.ressources && face.ressources.length > 0) {
+    const resStr = face.ressources.map(r => r.type.map(t => `${r.quantite}× ${RESOURCE_ICONS[normalizeRes(t)]||t} ${t}`).join(', ')).join('; ');
+    body += `<p><strong>Production:</strong> ${resStr}</p>`;
+  }
+  
+  if (face.victoire) body += `<p><strong>⭐ Gloire:</strong> ${face.victoire}</p>`;
+  
+  if (face.effet) {
+    body += `<p><strong>Effet (${face.effet.type}):</strong> `;
+    if (face.effet.description) body += face.effet.description;
+    if (face.effet.ressources) {
+      const r = face.effet.ressources;
+      const rStr = Array.isArray(r) ? r.map(x => `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(x.type)]||x.type}`).join(', ') : '';
+      body += rStr;
+    }
+    body += '</p>';
+  }
+  
+  const promo = face.promotion || (face.promotions && face.promotions[0]);
+  if (promo) {
+    const costStr = formatCost(promo.cout || []);
+    const nextFace = cardInstance.cardDef.faces.find(f => f.face === promo.face);
+    body += `<p><strong>Promotion →</strong> ${nextFace ? nextFace.nom : '?'}</p>`;
+    if (costStr) body += `<p><strong>Coût:</strong> ${costStr}</p>`;
+  }
+  
+  // Show all faces
+  body += `<hr><p style="font-size:0.8rem; color:#666;"><strong>Faces disponibles:</strong><br>`;
+  cardInstance.cardDef.faces.forEach(f => {
+    const isCurrent = f.face === cardInstance.currentFace;
+    body += `${isCurrent ? '▶ ' : ''}Face ${f.face}: <em>${f.nom}</em>${isCurrent ? ' (actuelle)' : ''}<br>`;
+  });
+  body += '</p>';
+  
+  $('#modalCardBody').html(body);
+  
+  const hasRes = face.ressources && face.ressources.length > 0;
+  const hasPromo = !!promo;
+  $('#modalProduceBtn').toggle(hasRes);
+  $('#modalUpgradeBtn').toggle(hasPromo);
+  
+  new bootstrap.Modal(document.getElementById('cardModal')).show();
+}
+
+function produceFromModal() {
+  if (modalCardIndex !== null) {
+    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+    produceCard(modalCardIndex);
+    modalCardIndex = null;
+  }
+}
+
+function upgradeFromModal() {
+  if (modalCardIndex !== null) {
+    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+    upgradeCard(modalCardIndex);
+    modalCardIndex = null;
+  }
+}
+
+function showDiscardPile() {
+  const $grid = $('#discardPileGrid');
+  $grid.empty();
+  gameState.discard.forEach(cardInstance => {
+    const face = getFaceData(cardInstance);
+    $grid.append(`
+      <div style="text-align:center;">
+        <div style="width:100px; height:145px; border-radius:8px; background:linear-gradient(160deg,var(--parchment),var(--parchment-dark)); border:2px solid var(--border-ornate); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px;">
+          <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${cardInstance.cardDef.numero}</div>
+          <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${face.nom}</div>
+          <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(face.type, face.nom)}</div>
+          <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${face.type}</div>
+        </div>
+      </div>
+    `);
+  });
+  new bootstrap.Modal(document.getElementById('discardModal')).show();
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+$(document).ready(function() {
+  initGame();
+});
+</script>
+</body>
+</html>
