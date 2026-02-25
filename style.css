@@ -435,6 +435,39 @@ body.light-mode .face-choice-header .modal-title { color: #7a5200; }
 .face-choice-fame   { font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700; color: var(--gold); }
 
 /* ============================================================
+   SACRIFICE CHOICE MODAL
+   ============================================================ */
+.sacrifice-choice-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; font-family: 'Cinzel', serif; font-size: 0.76rem;
+  padding: 10px 12px; margin-bottom: 8px;
+  background: rgba(80,55,10,0.55);
+  border: 2px solid #aa8800; border-radius: 8px;
+  color: #f5e6c8; cursor: pointer; text-align: left;
+  transition: all 0.2s;
+}
+.sacrifice-choice-btn:hover {
+  background: rgba(120,85,15,0.8);
+  border-color: #f0c040;
+  box-shadow: 0 0 12px rgba(200,150,12,0.4);
+  transform: translateX(3px);
+}
+body.light-mode .sacrifice-choice-btn {
+  background: rgba(220,185,80,0.35);
+  border-color: #aa8800;
+  color: #4a3000;
+}
+body.light-mode .sacrifice-choice-btn:hover {
+  background: rgba(220,185,80,0.6);
+  border-color: #cc9900;
+}
+.sacrifice-emoji { font-size: 1.6rem; flex-shrink: 0; }
+.sacrifice-info  { display: flex; flex-direction: column; gap: 2px; }
+.sacrifice-info strong { font-size: 0.78rem; }
+.sacrifice-type { font-size: 0.6rem; font-style: italic; opacity: 0.7; }
+.sacrifice-res  { font-size: 0.68rem; opacity: 0.85; }
+
+/* ============================================================
    ACTIVATION
    ============================================================ */
 .btn-activate-action { background: rgba(10,60,80,0.85) !important; border-color: #44bbdd !important; color: #aaeeff !important; font-weight: 700; }
