@@ -395,11 +395,19 @@ function canActivateEffect(cardInstance) {
   const act = effets.find(e => e.type === 'Activable');
   if (!act) return false;
   const projected = getProjectedResources();
-  return (act.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+  const costOk = (act.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+  if (!costOk) return false;
+  // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
+  if (act.sacrifice) {
+    const playIdx = gameState.play.indexOf(cardInstance);
+    const others = gameState.play.filter((_, i) => i !== playIdx);
+    if (others.length === 0) return false;
+  }
+  return true;
 }
 
 // Active l'effet activable : met en staging une action 'activate'
-// Gère les effets avec ou sans coût, et avec ou sans promotion forcée
+// Gère les effets avec ou sans coût, avec ou sans promotion forcée, avec ou sans sacrifice
 function stageActivateEffect(playIndex) {
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
@@ -414,6 +422,111 @@ function stageActivateEffect(playIndex) {
       return;
     }
   }
+
+  // Effet avec sacrifice : ouvre un modal pour choisir la carte à défausser
+  if (act.sacrifice) {
+    // Les cartes candidats = toutes les cartes en jeu SAUF celle-ci
+    const candidates = gameState.play.filter((_, i) => i !== playIndex);
+    if (candidates.length === 0) {
+      addLog(`❌ Aucune carte disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
+      return;
+    }
+    showSacrificeModal(playIndex, act, candidates);
+    return;
+  }
+
+  _doStageActivate(playIndex, act);
+}
+
+function showSacrificeModal(playIndex, act, candidates) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+
+  const resourcesGained = {};
+  (act.ressources || []).forEach(r => {
+    const key = normalizeRes(Array.isArray(r.type) ? r.type[0] : r.type);
+    resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+  });
+  const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
+
+  let html = `<p style="margin-bottom:12px;">
+    Choisissez une carte à <strong>défausser</strong> en échange de <strong>${resStr}</strong> :
+  </p>`;
+
+  candidates.forEach((ci, idx) => {
+    const f = getFaceData(ci);
+    const actualIdx = gameState.play.indexOf(ci);
+    const emoji = getCardEmoji(f.type, f.nom);
+    const resInfo = f.ressources && f.ressources.length
+      ? f.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return `${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])]||types[0]}`;
+        }).join(' ')
+      : '—';
+    html += `<button onclick="confirmSacrifice(${playIndex}, ${actualIdx})" class="sacrifice-choice-btn">
+      <span class="sacrifice-emoji">${emoji}</span>
+      <span class="sacrifice-info">
+        <strong>${f.nom}</strong>
+        <span class="sacrifice-type">${f.type}</span>
+        <span class="sacrifice-res">${resInfo}</span>
+      </span>
+    </button>`;
+  });
+
+  window._pendingSacrificePlayIndex = playIndex;
+  window._pendingSacrificeAct = act;
+  $('#sacrificeChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+
+  const act = window._pendingSacrificeAct;
+  window._pendingSacrificePlayIndex = null;
+  window._pendingSacrificeAct = null;
+
+  // On retire la carte Plaines du jeu (playIndex peut avoir changé si sacrifice < plaines)
+  // On retire d'abord la carte sacrifice (index plus sûr à utiliser en premier)
+  const plainesCard = gameState.play[plainesPlayIndex];
+  const sacrificeCard = gameState.play[sacrificePlayIndex];
+  const sacrificeName = getFaceData(sacrificeCard).nom;
+
+  // Retirer les deux cartes du jeu dans le bon ordre (grand index en premier)
+  const idxs = [plainesPlayIndex, sacrificePlayIndex].sort((a,b) => b - a);
+  idxs.forEach(i => gameState.play.splice(i, 1));
+
+  // Défausser la carte sacrifice immédiatement
+  gameState.discard.push(sacrificeCard);
+
+  // Calculer les ressources gagnées
+  const resourcesGained = {};
+  (act.ressources || []).forEach(r => {
+    const key = normalizeRes(Array.isArray(r.type) ? r.type[0] : r.type);
+    resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+  });
+
+  const plainesName = getFaceData(plainesCard).nom;
+  const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
+
+  // Mettre les Plaines en staging avec le sacrifice déjà résolu
+  gameState.staging.push({
+    cardInstance: plainesCard,
+    action: 'activate',
+    resourcesGained,
+    fameGained: 0,
+    newFace: null,
+    cout: act.cout || [],
+    sacrificedName: sacrificeName
+  });
+
+  addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — ${resStr} en attente.`);
+  updateUI();
+}
+
+function _doStageActivate(playIndex, act) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
 
   // Ressources gagnées par l'effet
   const resourcesGained = {};
@@ -431,7 +544,7 @@ function stageActivateEffect(playIndex) {
     action: 'activate',
     resourcesGained,
     fameGained: 0,
-    newFace,           // null = pas de promotion, sinon face cible
+    newFace,
     cout: act.cout || []
   });
 
@@ -702,7 +815,8 @@ function confirmTurn() {
       } else {
         // Activation simple : carte défaussée, plus utilisable ce tour
         gameState.discard.push(cardInstance);
-        addLog(`✅ <span class="log-card">${oldName}</span> — effet activé et défaussée. ${resStr}`);
+        const sacrificeStr = entry.sacrificedName ? ` + <span class="log-card">${entry.sacrificedName}</span> sacrifiée` : '';
+        addLog(`✅ <span class="log-card">${oldName}</span>${sacrificeStr} — effet activé. ${resStr}`);
       }
 
     } else if (action === 'upgrade') {
