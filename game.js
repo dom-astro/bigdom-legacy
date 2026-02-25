@@ -774,12 +774,27 @@ function cancelStaging(stagingIndex) {
   const entry = gameState.staging[stagingIndex];
   gameState.staging.splice(stagingIndex, 1);
   gameState.play.push(entry.cardInstance);
-  let msg = `↩ <span class="log-card">${getFaceData(entry.cardInstance).nom}</span> — action annulée.`;
+  const cardName = getFaceData(entry.cardInstance).nom;
+  let msg = `↩ <span class="log-card">${cardName}</span> — action annulée.`;
+
+  // Pour une activation avec coût/gain : préciser ce qui est restitué/retiré
+  if (entry.action === 'activate') {
+    const coutParts = (entry.cout || []).map(c =>
+      `+${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`
+    );
+    const gainParts = Object.entries(entry.resourcesGained).map(([k,v]) =>
+      `-${v}${RESOURCE_ICONS[k]||k}`
+    );
+    const all = [...coutParts, ...gainParts];
+    if (all.length) msg += ` (${all.join(' ')})`;
+  }
+
   // Si l'activation avait un sacrifice, remettre la carte sacrifiée en jeu également
   if (entry.sacrificeCardInstance) {
     gameState.play.push(entry.sacrificeCardInstance);
-    msg += ` <span class="log-card">${getFaceData(entry.sacrificeCardInstance).nom}</span> récupérée.`;
+    msg += ` — <span class="log-card">${getFaceData(entry.sacrificeCardInstance).nom}</span> récupérée.`;
   }
+
   addLog(msg);
   updateUI();
 }
@@ -945,7 +960,7 @@ function getCardEmoji(type, nom) {
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
     'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
     'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👷',
-    'Colline':'⛰️','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
+    'Colinne':'⛰️','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯','Falaises de l\'Est':'🏔️',
     'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍎',
     'Lac':'🏊','MChalet du Pêcheur':'🏠','Bateau de Pêche':'⛵','Phare':'🗼',
