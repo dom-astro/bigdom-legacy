@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kingdom Legacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" title="Changer de thème">
+  <span class="theme-toggle-icon" id="themeIcon">☀️</span>
+  <span id="themeLabel">Mode Clair</span>
+</button>
+
+
+<div class="game-container">
+
+  <!-- HEADER -->
+  <div class="game-header">
+    <div class="game-title">⚔ Kingdom Legacy ⚔</div>
+    <div class="game-subtitle">Forge your kingdom, write your legend</div>
+    <div class="header-divider"></div>
+    <div class="round-badge" id="roundBadge">Manche 1 — Tour 1</div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="resource-bar">
+    <div class="resource-item"><span class="resource-icon">🪙</span><span class="resource-name">Or</span><span class="resource-count" id="res-or">0</span></div>
+    <div class="resource-item"><span class="resource-icon">🪵</span><span class="resource-name">Bois</span><span class="resource-count" id="res-bois">0</span></div>
+    <div class="resource-item"><span class="resource-icon">🪨</span><span class="resource-name">Pierre</span><span class="resource-count" id="res-pierre">0</span></div>
+    <div class="resource-item"><span class="resource-icon">⚙️</span><span class="resource-name">Métal</span><span class="resource-count" id="res-metal">0</span></div>
+    <div class="resource-item"><span class="resource-icon">⚔️</span><span class="resource-name">Épée</span><span class="resource-count" id="res-epee">0</span></div>
+    <div class="resource-item"><span class="resource-icon">🛒</span><span class="resource-name">Troc</span><span class="resource-count" id="res-troc">0</span></div>
+  </div>
+
+  <!-- ZONE PERMANENTE -->
+  <div class="permanent-zone-wrapper">
+    <div class="zone-title" style="margin-bottom:6px;">🏛 Cartes Permanentes <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(restent en jeu chaque tour)</span></div>
+    <div class="permanent-cards-container" id="permanentArea">
+      <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;letter-spacing:1px;padding:8px;">Aucune carte permanente</div>
+    </div>
+  </div>
+
+  <!-- ZONE DE STAGING (cachée par défaut) -->
+  <div class="staging-zone-wrapper" id="stagingZone" style="display:none;">
+    <div class="staging-zone-header">
+      <div class="staging-zone-title">⏳ Actions en attente de confirmation</div>
+      <button class="btn-confirm" id="btnConfirm" onclick="confirmTurn()">✔ Confirmer</button>
+    </div>
+    <div class="staging-cards-container" id="stagingArea"></div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="game-layout">
+
+    <!-- DRAW DECK (left) -->
+    <div class="side-zone">
+      <div class="zone-title">📚 Pioche</div>
+      <div class="card-stack-area" id="drawZone">
+        <div class="deck-stack" id="deckVisual">
+          <div class="deck-shadow"></div>
+          <div class="deck-shadow"></div>
+          <div class="card-back" id="topDeckCard" style="cursor:pointer;" onclick="drawCards(4)" title="Cliquer pour jouer 4 cartes"></div>
+        </div>
+        <div class="deck-info" id="deckCount">10 cartes</div>
+      </div>
+
+      <div class="zone-title" style="margin-top:12px;">📦 Boîte</div>
+      <div class="box-panel">
+        <div class="box-count" id="boxCount">📦 11 à découvrir</div>
+        <div class="box-next" id="nextDiscoverInfo">Prochaine: #11 &amp; #12</div>
+        <div style="font-size:0.55rem;color:var(--stone-light);font-style:italic;margin-top:4px;">2 cartes découvertes à chaque nouvelle manche</div>
+      </div>
+    </div>
+
+    <!-- PLAY AREA (center) -->
+    <div class="play-zone">
+      <div class="phase-indicator">
+        <span class="phase-badge" id="phaseLabel">⚡ Choisissez une action</span>
+      </div>
+      <div class="zone-title">🏰 Zone de Jeu</div>
+      <div class="play-area">
+        <div class="play-cards-container" id="playArea">
+          <div class="play-area-empty">
+            <span class="empty-icon">🏰</span>
+            <span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span>
+          </div>
+        </div>
+        <div class="action-panel">
+          <button class="btn-medieval btn-produce" onclick="drawCards(4)" id="btnDraw">📜 Jouer (4 cartes)</button>
+          <button class="btn-medieval btn-advance" onclick="drawCards(2)" id="btnAdvance">⚡ Avancer (+2)</button>
+          <button class="btn-medieval btn-pass" onclick="endTurn()">⏭ Passer le Tour</button>
+          <button class="btn-medieval btn-new-round" onclick="newRound()">🔄 Nouvelle Manche</button>
+        </div>
+        <div class="game-log" id="gameLog"></div>
+      </div>
+    </div>
+
+    <!-- DISCARD (right) -->
+    <div class="side-zone">
+      <div class="zone-title">🗑 Défausse</div>
+      <div class="card-stack-area" id="discardZone">
+        <div id="discardVisual" style="display:none;">
+          <div class="card-front" id="topDiscardCard" style="cursor:pointer;" onclick="showDiscardPile()"></div>
+        </div>
+        <div id="discardEmpty" style="text-align:center;color:rgba(200,150,12,0.2);">
+          <div style="font-size:2rem;margin-bottom:6px;">📄</div>
+          <div style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:1px;">VIDE</div>
+        </div>
+        <div class="deck-info" id="discardCount">0 cartes</div>
+      </div>
+
+      <div class="zone-title" style="margin-top:12px;">📊 Statistiques</div>
+      <div class="stats-panel">
+        <div class="stat-item"><span class="stat-label">Royaume</span><span class="stat-value" id="statKingdom">10</span></div>
+        <div class="stat-item"><span class="stat-label">Pioche</span><span class="stat-value" id="statDeck">10</span></div>
+        <div class="stat-item"><span class="stat-label">En jeu</span><span class="stat-value" id="statPlay">0</span></div>
+        <div class="stat-item"><span class="stat-label">Défausse</span><span class="stat-value" id="statDiscard">0</span></div>
+        <div class="stat-item"><span class="stat-label">Tour</span><span class="stat-value" id="statTurn">1</span></div>
+        <div class="stat-item"><span class="stat-label">Manche</span><span class="stat-value" id="statRound">1</span></div>
+        <div class="fame-display">
+          <div class="fame-label">⭐ Gloire</div>
+          <div class="fame-score" id="fameScore">0</div>
+        </div>
+      </div>
+
+      <div class="zone-title" style="margin-top:12px;">📜 Rappel Règles</div>
+      <div class="rules-reminder">
+        <div class="rule-item">⚒ Prod. → zone d'attente</div>
+        <div class="rule-item">▲ Prom. → zone d'attente</div>
+        <div class="rule-item">✔ Confirmer → applique tout</div>
+        <div class="rule-item">✕ Annuler → remet en jeu</div>
+        <div class="rule-item">🔼 Promotion = fin de tour</div>
+        <div class="rule-item">🔄 Nouvelle manche = 2 découvertes</div>
+      </div>
+    </div>
+
+  </div><!-- end game-layout -->
+
+</div>
+
+<!-- CARD DETAIL MODAL -->
+<div class="modal fade" id="cardModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="modalCardName">—</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modalCardBody"></div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-sm btn-warning" id="modalProduceBtn" onclick="produceFromModal()">⚒ Produire</button>
+        <button type="button" class="btn btn-sm btn-success" id="modalUpgradeBtn" onclick="upgradeFromModal()">▲ Promouvoir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DISCARD PILE MODAL -->
+<div class="modal fade" id="discardModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:#1a1208;border:2px solid var(--border-ornate);">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:var(--gold-light);">🗑 Défausse</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="discardPileGrid" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FACE CHOICE MODAL -->
+<div class="modal fade" id="faceChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content face-choice-modal-content">
+      <div class="modal-header border-0 face-choice-header">
+        <h5 class="modal-title" id="faceChoiceCardName">Choisissez une identité</h5>
+      </div>
+      <div class="modal-body" id="faceChoiceBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DESTRUCTION CHOICE MODAL -->
+<div class="modal fade" id="destructionChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a0808,#100404);border:3px solid #cc4444;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#ff8888;">🔴 Effet Destruction — Choisir une cible</h5>
+      </div>
+      <div class="modal-body" id="destructionChoiceBody" style="font-family:'Crimson Text',serif;color:#ffcccc;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROMO CHOICE MODAL -->
+<div class="modal fade" id="promoChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a2408,#0e1804);border:3px solid #88cc44;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#ccff88;">▲ Choisir une promotion</h5>
+      </div>
+      <div class="modal-body" id="promoChoiceBody" style="font-family:'Crimson Text',serif;color:#ddeebb;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BANDIT CHOICE MODAL -->
+<div class="modal fade" id="banditChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#2a0808,#1a0404);border:3px solid #cc3333;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#ffaaaa;">🗡️ Bandit — Choisir une cible</h5>
+      </div>
+      <div class="modal-body" id="banditChoiceBody" style="font-family:'Crimson Text',serif;color:#ffcccc;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BANDIT REWARD MODAL -->
+<div class="modal fade" id="banditRewardModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a2a0a,#0e1a06);border:3px solid #44cc44;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#aaffaa;">⚔️ Vaincre le Bandit</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="banditRewardBody" style="font-family:'Crimson Text',serif;color:#ccffcc;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="cartes.js"></script>
+<script src="game.js"></script>
+<script>
+  // ── THÈME ──────────────────────────────────────────────────
+  function applyTheme(mode) {
+    if (mode === 'light') {
+      document.body.classList.add('light-mode');
+      document.getElementById('themeIcon').textContent = '🌙';
+      document.getElementById('themeLabel').textContent = 'Mode Sombre';
+    } else {
+      document.body.classList.remove('light-mode');
+      document.getElementById('themeIcon').textContent = '☀️';
+      document.getElementById('themeLabel').textContent = 'Mode Clair';
+    }
+    localStorage.setItem('kingdom-theme', mode);
+  }
+
+  function toggleTheme() {
+    const current = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+    applyTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  // Restaurer la préférence sauvegardée
+  const savedTheme = localStorage.getItem('kingdom-theme');
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    applyTheme('light');
+  }
+</script>
+</body>
+</html>
