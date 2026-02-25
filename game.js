@@ -146,6 +146,14 @@ function applyDealAnimations(existingNums, deckRect) {
     cardEl.classList.remove('card-enter');
     void cardEl.offsetWidth;
     cardEl.classList.add('card-enter');
+
+    // Retirer card-enter après la fin de l'animation pour libérer le hover
+    const totalDuration = (i * 220 + 1000) + 50; // delay + duration + marge
+    setTimeout(() => {
+      cardEl.classList.remove('card-enter');
+      cardEl.style.animationDelay    = '';
+      cardEl.style.animationDuration = '';
+    }, totalDuration);
   });
 }
 
@@ -1481,7 +1489,12 @@ function updateUI() {
   else
     $('#roundBadge').text(`Manche ${gameState.round} — Tour ${gameState.turn}`).css('color','');
 
-  $('#btnDraw,#btnAdvance').prop('disabled', gameState.deck.length===0).css('opacity', gameState.deck.length===0?0.5:1);
+  // Jouer : actif uniquement si pioche non vide ET tour pas encore commencé
+  const canDraw    = gameState.deck.length > 0 && !gameState.turnStarted;
+  // Avancer : actif uniquement si pioche non vide ET tour déjà commencé
+  const canAdvance = gameState.deck.length > 0 && gameState.turnStarted;
+  $('#btnDraw').prop('disabled', !canDraw).css('opacity', canDraw ? 1 : 0.4);
+  $('#btnAdvance').prop('disabled', !canAdvance).css('opacity', canAdvance ? 1 : 0.4);
 
   // Passer le tour : désactivé si aucune carte en jeu/staging à traiter
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
