@@ -47,7 +47,8 @@ const BEGIN_CARDS =
               "type": "Or",
               "quantite": 2
             }
-          ]
+          ],
+          "sacrifice": true
         },
         "promotion": {
           "face": 3,
@@ -150,7 +151,8 @@ const BEGIN_CARDS =
               "type": "Or",
               "quantite": 2
             }
-          ]
+          ],
+          "sacrifice": true
         },
         "promotion": {
           "face": 3,
@@ -253,7 +255,8 @@ const BEGIN_CARDS =
               "type": "Or",
               "quantite": 2
             }
-          ]
+          ],
+          "sacrifice": true
         },
         "promotion": {
           "face": 3,
@@ -356,7 +359,8 @@ const BEGIN_CARDS =
               "type": "Or",
               "quantite": 2
             }
-          ]
+          ],
+          "sacrifice": true
         },
         "promotion": {
           "face": 3,
@@ -435,8 +439,7 @@ const BEGIN_CARDS =
               "quantite": 2
             }
           ]
-        },
-        "description": "Des cimes enneigées scintillent à l'horizon. Peu de ressources s'en dégagent, mais les miners y voient un trésor caché."
+        }
       },
       {
         "face": 2,
@@ -557,8 +560,7 @@ const BEGIN_CARDS =
               "quantite": 2
             }
           ]
-        },
-        "description": "Des cimes enneigées scintillent à l'horizon. Peu de ressources s'en dégagent, mais les miners y voient un trésor caché."
+        }
       },
       {
         "face": 2,
@@ -693,8 +695,7 @@ const BEGIN_CARDS =
           "promotion": {
             "face": 2
           }
-        },
-        "description": "Une forêt dense aux arbres centenaires. Le bois y est abondant, mais on peut aussi l'abattre d'un coup pour en tirer tout le bois rapidement."
+        }
       },
       {
         "face": 2,
@@ -803,8 +804,7 @@ const BEGIN_CARDS =
           "promotion": {
             "face": 2
           }
-        },
-        "description": "Une forêt dense aux arbres centenaires. Le bois y est abondant, mais on peut aussi l'abattre d'un coup pour en tirer tout le bois rapidement."
+        }
       },
       {
         "face": 2,
@@ -903,8 +903,7 @@ const BEGIN_CARDS =
               "quantite": 3
             }
           ]
-        },
-        "description": "Un bâtiment administratif sobre mais fonctionnel, premier pilier de l'autorité royale. Il génère l'or nécessaire à l'expansion du royaume."
+        }
       },
       {
         "face": 2,
@@ -1051,8 +1050,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Une femme d'affaires avisée qui sait tirer profit de chaque échange. Moyennant une pièce d'or, elle vous procure du bois ou d'autres matériaux rares."
+        ]
       },
       {
         "face": 2,
@@ -1174,8 +1172,7 @@ const BEGIN_CARDS =
               "quantite": 3
             }
           ]
-        },
-        "description": "Une jungle touffue et mystérieuse où la végétation règne en maître. Difficile d'accès, elle peut néanmoins livrer son bois aux plus déterminés."
+        }
       },
       {
         "face": 2,
@@ -1283,8 +1280,7 @@ const BEGIN_CARDS =
               "quantite": 3
             }
           ]
-        },
-        "description": "Une rivière sinueuse traverse vos terres, apportant commerce et richesse à ceux qui savent en tirer parti."
+        }
       },
       {
         "face": 2,
@@ -1379,8 +1375,7 @@ const BEGIN_CARDS =
               "quantite": 1
             }
           ]
-        },
-        "description": "Un homme de peine habile et polyvalent. Selon le chemin qu'il emprunte, il deviendra un exploitant de terrain ou un domestique du palais."
+        }
       },
       {
         "face": 2,
@@ -1441,8 +1436,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Un brigand armé qui rôde autour de vos terres et bloque la production d'or d'une carte amie. Une épée suffit à s'en débarrasser et à récupérer des ressources."
+        ]
       },
       {
         "face": 2,
@@ -1486,8 +1480,7 @@ const BEGIN_CARDS =
               "quantite": 2
             }
           ]
-        },
-        "description": "Des cimes enneigées scintillent à l'horizon. Peu de ressources s'en dégagent, mais les miners y voient un trésor caché."
+        }
       },
       {
         "face": 2,
@@ -1624,8 +1617,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Un brigand armé qui rôde autour de vos terres et bloque la production d'or d'une carte amie. Une épée suffit à s'en débarrasser et à récupérer des ressources."
+        ]
       },
       {
         "face": 2,
@@ -1677,8 +1669,7 @@ const BEGIN_CARDS =
               "quantite": 1
             }
           ]
-        },
-        "description": "Une colline verdoyante offrant une vue dégagée sur le royaume. Modeste en or, elle peut être transformée en lieu de culte pour inspirer la foi du peuple."
+        }
       },
       {
         "face": 2,
@@ -1835,8 +1826,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Des falaises abruptes battues par les vents de l'est. Riches en pierre, elles peuvent devenir une forge ou une muraille selon la vision du seigneur."
+        ]
       },
       {
         "face": 2,
@@ -1958,8 +1948,7 @@ const BEGIN_CARDS =
           "promotion": {
             "face": 2
           }
-        },
-        "description": "Une forêt dense aux arbres centenaires. Le bois y est abondant, mais on peut aussi l'abattre d'un coup pour en tirer tout le bois rapidement."
+        }
       },
       {
         "face": 2,
@@ -2057,8 +2046,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Un marais boueux et peu hospitalier, dépourvu de ressources. Un investissement patient permettra d'en faire un jardin prospère."
+        ]
       },
       {
         "face": 2,
@@ -2162,8 +2150,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Un marais boueux et peu hospitalier, dépourvu de ressources. Un investissement patient permettra d'en faire un jardin prospère."
+        ]
       },
       {
         "face": 2,
@@ -2285,8 +2272,7 @@ const BEGIN_CARDS =
               }
             ]
           }
-        ],
-        "description": "Un lac paisible au cœur du territoire. Ses eaux reflètent le ciel et recèlent un or modeste, en attendant qu'un pêcheur vienne s'y établir."
+        ]
       },
       {
         "face": 2,
