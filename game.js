@@ -486,20 +486,17 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
   window._pendingSacrificePlayIndex = null;
   window._pendingSacrificeAct = null;
 
-  // On retire la carte Plaines du jeu (playIndex peut avoir changé si sacrifice < plaines)
-  // On retire d'abord la carte sacrifice (index plus sûr à utiliser en premier)
-  const plainesCard = gameState.play[plainesPlayIndex];
+  const plainesCard  = gameState.play[plainesPlayIndex];
   const sacrificeCard = gameState.play[sacrificePlayIndex];
   const sacrificeName = getFaceData(sacrificeCard).nom;
 
   // Retirer les deux cartes du jeu dans le bon ordre (grand index en premier)
-  const idxs = [plainesPlayIndex, sacrificePlayIndex].sort((a,b) => b - a);
+  const idxs = [plainesPlayIndex, sacrificePlayIndex].sort((a, b) => b - a);
   idxs.forEach(i => gameState.play.splice(i, 1));
 
-  // Défausser la carte sacrifice immédiatement
-  gameState.discard.push(sacrificeCard);
+  // La carte sacrifice est placée en staging (pas encore défaussée)
+  // Elle sera défaussée à la confirmation, ou remise en jeu si on annule les Plaines
 
-  // Calculer les ressources gagnées
   const resourcesGained = {};
   (act.ressources || []).forEach(r => {
     const key = normalizeRes(Array.isArray(r.type) ? r.type[0] : r.type);
@@ -509,7 +506,6 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
   const plainesName = getFaceData(plainesCard).nom;
   const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
 
-  // Mettre les Plaines en staging avec le sacrifice déjà résolu
   gameState.staging.push({
     cardInstance: plainesCard,
     action: 'activate',
@@ -517,10 +513,10 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
     fameGained: 0,
     newFace: null,
     cout: act.cout || [],
-    sacrificedName: sacrificeName
+    sacrificeCardInstance: sacrificeCard   // stocké ici, défaussé à la confirmation
   });
 
-  addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — ${resStr} en attente.`);
+  addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> — en attente de confirmation (${resStr}).`);
   updateUI();
 }
 
@@ -773,12 +769,18 @@ function _doStageUpgrade(playIndex, promo) {
   updateUI();
 }
 
-// Annule une entrée en staging et remet la carte dans play
+// Annule une entrée en staging et remet la/les carte(s) dans play
 function cancelStaging(stagingIndex) {
   const entry = gameState.staging[stagingIndex];
   gameState.staging.splice(stagingIndex, 1);
   gameState.play.push(entry.cardInstance);
-  addLog(`↩ <span class="log-card">${getFaceData(entry.cardInstance).nom}</span> — action annulée.`);
+  let msg = `↩ <span class="log-card">${getFaceData(entry.cardInstance).nom}</span> — action annulée.`;
+  // Si l'activation avait un sacrifice, remettre la carte sacrifiée en jeu également
+  if (entry.sacrificeCardInstance) {
+    gameState.play.push(entry.sacrificeCardInstance);
+    msg += ` <span class="log-card">${getFaceData(entry.sacrificeCardInstance).nom}</span> récupérée.`;
+  }
+  addLog(msg);
   updateUI();
 }
 
@@ -815,8 +817,14 @@ function confirmTurn() {
       } else {
         // Activation simple : carte défaussée, plus utilisable ce tour
         gameState.discard.push(cardInstance);
-        const sacrificeStr = entry.sacrificedName ? ` + <span class="log-card">${entry.sacrificedName}</span> sacrifiée` : '';
-        addLog(`✅ <span class="log-card">${oldName}</span>${sacrificeStr} — effet activé. ${resStr}`);
+        // Si une carte avait été mise en staging comme sacrifice, la défausser maintenant
+        if (entry.sacrificeCardInstance) {
+          gameState.discard.push(entry.sacrificeCardInstance);
+          const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
+          addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
+        } else {
+          addLog(`✅ <span class="log-card">${oldName}</span> — effet activé et défaussée. ${resStr}`);
+        }
       }
 
     } else if (action === 'upgrade') {
@@ -1063,7 +1071,24 @@ function buildStagingCardHTML(entry, stagingIndex) {
   const bgTop = isUpgrade ? '#1a3a1a' : isActivate ? '#0a2a3a' : '#2a2608';
   const label = isUpgrade ? '▲ PROMOTION' : isActivate ? '🟢 ACTIVATION' : '⚒ PRODUCTION';
 
+  // Carte sacrifice associée (si présente)
+  let sacrificeHTML = '';
+  if (entry.sacrificeCardInstance) {
+    const sf = getFaceData(entry.sacrificeCardInstance);
+    const sfEmoji = getCardEmoji(sf.type, sf.nom);
+    sacrificeHTML = `
+    <div class="staging-card-wrapper staging-sacrifice-wrapper" title="Carte sacrifiée — ne peut pas être annulée seule">
+      <div class="staging-card staging-sacrifice-card" style="border-color:#cc440040;background:linear-gradient(160deg,#2a0a0a,#0e0808);">
+        <div class="staging-label" style="color:#ff8888;">🔥 SACRIFICE</div>
+        <div class="staging-emoji">${sfEmoji}</div>
+        <div class="staging-name">${sf.nom}</div>
+        <div class="staging-summary" style="color:#ff8888;font-size:0.48rem;">lié aux Plaines</div>
+      </div>
+    </div>`;
+  }
+
   return `
+    ${sacrificeHTML}
     <div class="staging-card-wrapper">
       <div class="staging-card" style="border-color:${accentColor}40;background:linear-gradient(160deg,${bgTop},#0e0e08);">
         <div class="staging-label" style="color:${accentColor};">${label}</div>
