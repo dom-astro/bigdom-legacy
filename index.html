@@ -283,6 +283,54 @@
 
 <script src="cartes.js"></script>
 <script src="game.js"></script>
+<!-- CONFIRM END TURN MODAL -->
+<div class="modal fade" id="confirmEndTurnModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content confirm-modal-content">
+      <div class="confirm-modal-header">
+        <div class="confirm-modal-icon">⏭</div>
+        <h5 class="confirm-modal-title">Passer le Tour ?</h5>
+      </div>
+      <div class="confirm-modal-body">
+        <p>Toutes les cartes actuellement <strong>en jeu</strong> seront défaussées sans être utilisées.</p>
+        <div class="confirm-modal-warning">⚠ Cette action est irréversible.</div>
+      </div>
+      <div class="confirm-modal-footer">
+        <button class="confirm-modal-btn confirm-modal-btn-cancel" onclick="bootstrap.Modal.getInstance(document.getElementById('confirmEndTurnModal')).hide()">
+          ✕ Annuler
+        </button>
+        <button class="confirm-modal-btn confirm-modal-btn-ok" onclick="bootstrap.Modal.getInstance(document.getElementById('confirmEndTurnModal')).hide(); endTurn();">
+          ⏭ Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM NEW ROUND MODAL -->
+<div class="modal fade" id="confirmNewRoundModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content confirm-modal-content">
+      <div class="confirm-modal-header">
+        <div class="confirm-modal-icon">🔄</div>
+        <h5 class="confirm-modal-title">Nouvelle Manche ?</h5>
+      </div>
+      <div class="confirm-modal-body">
+        <div id="confirmNewRoundDetails"></div>
+        <div class="confirm-modal-warning">⚠ Cette action est irréversible.</div>
+      </div>
+      <div class="confirm-modal-footer">
+        <button class="confirm-modal-btn confirm-modal-btn-cancel" onclick="bootstrap.Modal.getInstance(document.getElementById('confirmNewRoundModal')).hide()">
+          ✕ Annuler
+        </button>
+        <button class="confirm-modal-btn confirm-modal-btn-ok" onclick="bootstrap.Modal.getInstance(document.getElementById('confirmNewRoundModal')).hide(); newRound();">
+          🔄 Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── THÈME ──────────────────────────────────────────────────
   function applyTheme(mode) {

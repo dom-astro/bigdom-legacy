@@ -478,3 +478,95 @@ body.light-mode .sacrifice-choice-btn:hover {
 .btn-activate-action { background: rgba(10,60,80,0.85) !important; border-color: #44bbdd !important; color: #aaeeff !important; font-weight: 700; }
 .btn-activate-action:not(.btn-upgrade-disabled):hover { background: rgba(15,80,110,0.95) !important; box-shadow: 0 0 8px rgba(68,187,221,0.5); }
 body.light-mode .btn-activate-action { background: rgba(30,100,140,0.65) !important; color: #fff !important; border-color: #2288aa !important; }
+
+/* ============================================================
+   MODAUX DE CONFIRMATION (Passer le tour / Nouvelle Manche)
+   ============================================================ */
+.confirm-modal-content {
+  background: linear-gradient(160deg, #1a1208, #100c06) !important;
+  border: 2px solid var(--border-ornate) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(139,105,20,0.2);
+}
+body.light-mode .confirm-modal-content {
+  background: linear-gradient(160deg, var(--parchment), var(--parchment-dark)) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.confirm-modal-header {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 20px 12px;
+  border-bottom: 1px solid rgba(139,105,20,0.3);
+  background: linear-gradient(180deg, rgba(139,105,20,0.12), transparent);
+}
+.confirm-modal-icon {
+  font-size: 2.4rem; margin-bottom: 8px;
+  filter: drop-shadow(0 0 10px rgba(200,150,12,0.5));
+}
+.confirm-modal-title {
+  font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700;
+  color: var(--gold-light); letter-spacing: 2px; text-transform: uppercase;
+  margin: 0; text-align: center;
+}
+body.light-mode .confirm-modal-title { color: #7a5200; }
+
+.confirm-modal-body {
+  padding: 18px 22px;
+  font-family: 'Crimson Text', serif; font-size: 0.95rem;
+  color: var(--parchment); line-height: 1.6;
+  text-align: center;
+}
+body.light-mode .confirm-modal-body { color: var(--ink); }
+.confirm-modal-body p { margin-bottom: 8px; }
+.confirm-modal-body strong { color: var(--gold-light); }
+body.light-mode .confirm-modal-body strong { color: #7a5200; }
+
+.confirm-modal-warning {
+  margin-top: 12px; padding: 7px 14px;
+  background: rgba(200,80,20,0.15); border: 1px solid rgba(200,80,20,0.35);
+  border-radius: 6px; font-size: 0.78rem;
+  color: #ffaa66; font-family: 'Cinzel', serif; letter-spacing: 1px;
+}
+body.light-mode .confirm-modal-warning {
+  background: rgba(180,80,0,0.1); border-color: rgba(180,80,0,0.3); color: #aa4400;
+}
+
+.confirm-modal-footer {
+  display: flex; gap: 10px; padding: 14px 20px 20px;
+  justify-content: center;
+  border-top: 1px solid rgba(139,105,20,0.2);
+}
+
+.confirm-modal-btn {
+  font-family: 'Cinzel', serif; font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 10px 22px; border-radius: 7px; border: 2px solid;
+  cursor: pointer; transition: all 0.2s; min-width: 120px;
+}
+.confirm-modal-btn-cancel {
+  background: rgba(60,40,20,0.6); border-color: rgba(139,105,20,0.5);
+  color: var(--stone-light);
+}
+.confirm-modal-btn-cancel:hover {
+  background: rgba(80,55,25,0.8); border-color: var(--gold);
+  color: var(--gold-light);
+}
+body.light-mode .confirm-modal-btn-cancel {
+  background: rgba(200,170,100,0.3); border-color: rgba(139,105,20,0.5);
+  color: #5a4020;
+}
+.confirm-modal-btn-ok {
+  background: linear-gradient(135deg, #1a5a1a, #0e3a0e);
+  border-color: #44cc44; color: #aaffaa;
+  box-shadow: 0 0 10px rgba(68,204,68,0.2);
+}
+.confirm-modal-btn-ok:hover {
+  background: linear-gradient(135deg, #246a24, #184018);
+  box-shadow: 0 0 18px rgba(68,204,68,0.45);
+  transform: translateY(-1px);
+}
+.confirm-modal-btn-ok:active { transform: translateY(0); }
+body.light-mode .confirm-modal-btn-ok {
+  background: linear-gradient(135deg, #2a8a2a, #1a6a1a); color: #fff;
+}

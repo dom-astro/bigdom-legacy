@@ -1040,26 +1040,27 @@ function confirmTurn() {
 // ============================================================
 //  FIN DE TOUR / NOUVELLE MANCHE
 // ============================================================
-// Demande confirmation avant de passer le tour
+// Demande confirmation avant de passer le tour — modal stylisé
 function confirmEndTurn() {
-  if (!confirm('⏭ Passer le tour ?\n\nToutes les cartes en jeu seront défaussées sans être utilisées.'))
-    return;
-  endTurn();
+  new bootstrap.Modal(document.getElementById('confirmEndTurnModal')).show();
 }
 
-// Demande confirmation avant nouvelle manche si des cartes restent
+// Demande confirmation avant nouvelle manche — modal stylisé
 function confirmNewRound() {
   const hasCardsLeft = gameState.play.length > 0 || gameState.deck.length > 0;
-  if (hasCardsLeft) {
-    const playCount = gameState.play.length;
-    const deckCount = gameState.deck.length;
-    let msg = '🔄 Commencer une Nouvelle Manche ?\n\n';
-    if (playCount > 0) msg += `• ${playCount} carte${playCount>1?'s':''} en jeu seront défaussées.\n`;
-    if (deckCount > 0) msg += `• ${deckCount} carte${deckCount>1?'s':''} dans la pioche seront perdues.\n`;
-    msg += '\nÊtes-vous sûr ?';
-    if (!confirm(msg)) return;
+  if (!hasCardsLeft) {
+    newRound();
+    return;
   }
-  newRound();
+  const playCount = gameState.play.length;
+  const deckCount = gameState.deck.length;
+  let html = '';
+  if (playCount > 0)
+    html += `<p>🃏 <strong>${playCount}</strong> carte${playCount>1?'s':''} en jeu seront défaussées.</p>`;
+  if (deckCount > 0)
+    html += `<p>📦 <strong>${deckCount}</strong> carte${deckCount>1?'s':''} dans la pioche seront perdues.</p>`;
+  $('#confirmNewRoundDetails').html(html);
+  new bootstrap.Modal(document.getElementById('confirmNewRoundModal')).show();
 }
 
 function endTurn() {
