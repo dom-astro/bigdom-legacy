@@ -385,8 +385,33 @@ body.light-mode .round-badge { color: #8a6200; }
 /* ============================================================
    ANIMATIONS
    ============================================================ */
-.card-enter { animation: cardEnter 0.3s ease-out; }
-@keyframes cardEnter { from { opacity:0; transform:translateY(-20px) scale(0.9); } to { opacity:1; transform:translateY(0) scale(1); } }
+/* Animation distribution poker — trajectoire depuis la pioche */
+.card-enter {
+  animation: cardDeal 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes cardDeal {
+  0% {
+    opacity: 0;
+    transform: translate(var(--deal-dx, -320px), var(--deal-dy, -200px))
+               rotate(var(--deal-rot, -22deg))
+               scale(0.7);
+    box-shadow: none;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    transform: translate(calc(var(--deal-dx, -320px) * 0.04),
+                         calc(var(--deal-dy, -200px) * 0.04))
+               rotate(calc(var(--deal-rot, -22deg) * -0.15))
+               scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
 @keyframes fadeIn    { from { opacity:0; transform:translateX(-5px); }            to { opacity:1; transform:translateX(0); } }
 
 /* ============================================================

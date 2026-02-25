@@ -82,12 +82,71 @@ function drawCards(n) {
   if (gameState.turnStarted && gameState.staging.length === 0) clearResources();
   gameState.turnStarted = true;
   const toDraw = Math.min(n, gameState.deck.length);
+
+  // Capturer la position de la pioche AVANT updateUI (elle peut disparaître si deck vide)
+  const deckEl = document.querySelector('#deckVisual .card-back');
+  const deckRect = deckEl ? deckEl.getBoundingClientRect() : null;
+
+  // Mémoriser les numéros des cartes déjà en jeu (elles ne doivent PAS s'animer)
+  const existingNums = new Set(gameState.play.map(ci => ci.cardDef.numero));
+  window._dealExistingNums = existingNums;
+
   for (let i = 0; i < toDraw; i++) gameState.play.push(gameState.deck.shift());
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
-  // Choix de face en premier (bloquant), puis bandits
   processPendingFaceChoices();
   if (!pendingFaceChoice) processPendingBandits();
   updateUI();
+  window._dealExistingNums = null;
+
+  // Masquer immédiatement les nouvelles cartes pour éviter le pré-affichage
+  const playAreaHide = document.getElementById('playArea');
+  if (playAreaHide) {
+    Array.from(playAreaHide.querySelectorAll('.card-wrapper[data-card-num]'))
+      .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)))
+      .forEach(w => { const c = w.querySelector('.card'); if (c) c.style.visibility = 'hidden'; });
+  }
+
+  // Un seul RAF : les cartes sont invisibles, les positions sont déjà dans le DOM
+  requestAnimationFrame(() => {
+    applyDealAnimations(existingNums, deckRect);
+  });
+}
+
+function applyDealAnimations(existingNums, deckRect) {
+  const playArea = document.getElementById('playArea');
+  if (!playArea) return;
+
+  const newWrappers = Array.from(playArea.querySelectorAll('.card-wrapper[data-card-num]'))
+    .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)));
+
+  newWrappers.forEach((wrapper, i) => {
+    const cardEl = wrapper.querySelector('.card');
+    if (!cardEl) return;
+
+    let dx = -320, dy = -200, rot = -22;
+    if (deckRect) {
+      const cardRect = cardEl.getBoundingClientRect();
+      const cardCx = cardRect.left + cardRect.width  / 2;
+      const cardCy = cardRect.top  + cardRect.height / 2;
+      const deckCx = deckRect.left + deckRect.width  / 2;
+      const deckCy = deckRect.top  + deckRect.height / 2;
+      dx = deckCx - cardCx;
+      dy = deckCy - cardCy;
+      rot = -20 - (i * 4);
+    }
+
+    // Rendre visible et lancer l'animation
+    cardEl.style.visibility = 'visible';
+    cardEl.style.setProperty('--deal-dx',  `${dx}px`);
+    cardEl.style.setProperty('--deal-dy',  `${dy}px`);
+    cardEl.style.setProperty('--deal-rot', `${rot}deg`);
+    cardEl.style.animationDelay    = `${i * 220}ms`;
+    cardEl.style.animationDuration = '1s';
+
+    cardEl.classList.remove('card-enter');
+    void cardEl.offsetWidth;
+    cardEl.classList.add('card-enter');
+  });
 }
 
 function clearResources() {
@@ -1227,8 +1286,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   }
 
   return `
-    <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}">
-      <div class="card card-front card-enter" onclick="openCardModal(${playIndex},'play')"
+    <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}" data-card-num="${cardInstance.cardDef.numero}">
+      <div class="card card-front" onclick="openCardModal(${playIndex},'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
