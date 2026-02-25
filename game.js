@@ -1040,6 +1040,28 @@ function confirmTurn() {
 // ============================================================
 //  FIN DE TOUR / NOUVELLE MANCHE
 // ============================================================
+// Demande confirmation avant de passer le tour
+function confirmEndTurn() {
+  if (!confirm('⏭ Passer le tour ?\n\nToutes les cartes en jeu seront défaussées sans être utilisées.'))
+    return;
+  endTurn();
+}
+
+// Demande confirmation avant nouvelle manche si des cartes restent
+function confirmNewRound() {
+  const hasCardsLeft = gameState.play.length > 0 || gameState.deck.length > 0;
+  if (hasCardsLeft) {
+    const playCount = gameState.play.length;
+    const deckCount = gameState.deck.length;
+    let msg = '🔄 Commencer une Nouvelle Manche ?\n\n';
+    if (playCount > 0) msg += `• ${playCount} carte${playCount>1?'s':''} en jeu seront défaussées.\n`;
+    if (deckCount > 0) msg += `• ${deckCount} carte${deckCount>1?'s':''} dans la pioche seront perdues.\n`;
+    msg += '\nÊtes-vous sûr ?';
+    if (!confirm(msg)) return;
+  }
+  newRound();
+}
+
 function endTurn() {
   // Remettre les cartes en staging dans play (si on passe sans confirmer)
   gameState.staging.forEach(entry => gameState.play.push(entry.cardInstance));
@@ -1400,6 +1422,11 @@ function updateUI() {
     $('#roundBadge').text(`Manche ${gameState.round} — Tour ${gameState.turn}`).css('color','');
 
   $('#btnDraw,#btnAdvance').prop('disabled', gameState.deck.length===0).css('opacity', gameState.deck.length===0?0.5:1);
+
+  // Passer le tour : désactivé si aucune carte en jeu/staging à traiter
+  const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
+  $('#btnPass').prop('disabled', !canPass).css('opacity', canPass ? 1 : 0.4)
+    .attr('title', canPass ? '' : 'Aucune carte à jouer');
 }
 
 function addLog(msg, important=false) {
