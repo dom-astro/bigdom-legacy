@@ -199,6 +199,7 @@ function initGame() {
   };
 
   updateUI();
+  setupDescTooltip();
   addLog('⚜ Que votre royaume prospère ! La partie commence.', true);
   addLog(`📦 ${gameState.deck.length} cartes en main | ${gameState.box.length} cartes à découvrir.`);
 }
@@ -1439,7 +1440,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
-        <div class="card-name" style="color:${nameColor}">${face.nom}${face.description ? `<div class="card-desc-tooltip">${face.description}</div>` : ''}</div>
+        <div class="card-name" style="color:${nameColor}" data-desc="${face.description ? face.description.replace(/"/g, '&quot;') : ''}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
@@ -1640,6 +1641,56 @@ function updateUI() {
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
   $('#btnPass').prop('disabled', !canPass).css('opacity', canPass ? 1 : 0.4)
     .attr('title', canPass ? '' : 'Aucune carte à jouer');
+}
+
+// ============================================================
+//  TOOLTIP DESCRIPTION — positionné en fixed, échappe aux overflow:hidden
+// ============================================================
+function setupDescTooltip() {
+  const tooltip = document.getElementById('cardDescTooltip');
+  if (!tooltip || tooltip._descSetup) return;
+  tooltip._descSetup = true;
+
+  document.addEventListener('mouseover', e => {
+    const nameEl = e.target.closest('.card-name[data-desc]');
+    if (!nameEl) return;
+    const desc = nameEl.dataset.desc;
+    if (!desc) return;
+
+    tooltip.textContent = desc;
+    tooltip.classList.add('visible');
+    positionTooltip(nameEl, tooltip);
+  });
+
+  document.addEventListener('mouseout', e => {
+    const nameEl = e.target.closest('.card-name[data-desc]');
+    if (!nameEl) return;
+    tooltip.classList.remove('visible');
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!tooltip.classList.contains('visible')) return;
+    const nameEl = e.target.closest('.card-name[data-desc]');
+    if (!nameEl) { tooltip.classList.remove('visible'); return; }
+    positionTooltip(nameEl, tooltip);
+  });
+}
+
+function positionTooltip(nameEl, tooltip) {
+  const rect = nameEl.getBoundingClientRect();
+  const tw = tooltip.offsetWidth || 190;
+  const th = tooltip.offsetHeight || 60;
+
+  // Centré au-dessus du nom
+  let left = rect.left + rect.width / 2 - tw / 2;
+  let top  = rect.top - th - 10;
+
+  // Garder dans la fenêtre
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  if (top < 8) top = rect.bottom + 10; // passer en dessous si pas de place
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
 }
 
 function addLog(msg, important=false) {
