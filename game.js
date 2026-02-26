@@ -1299,7 +1299,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
-        <div class="card-name" style="color:${nameColor}">${face.nom}</div>
+        <div class="card-name" style="color:${nameColor}">${face.nom}${face.description ? `<div class="card-desc-tooltip">${face.description}</div>` : ''}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
