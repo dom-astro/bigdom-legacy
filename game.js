@@ -239,15 +239,8 @@ function drawCards(n) {
   updateUI();
   window._dealExistingNums = null;
 
-  // Masquer immédiatement les nouvelles cartes pour éviter le pré-affichage
-  const playAreaHide = document.getElementById('playArea');
-  if (playAreaHide) {
-    Array.from(playAreaHide.querySelectorAll('.card-wrapper[data-card-num]'))
-      .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)))
-      .forEach(w => { const c = w.querySelector('.card'); if (c) c.style.visibility = 'hidden'; });
-  }
-
-  // Un seul RAF : les cartes sont invisibles, les positions sont déjà dans le DOM
+  // Les cartes nouvelles sont déjà cachées (visibility:hidden injecté dans buildCardFrontHTML)
+  // On lance l'animation au frame suivant pour que le layout soit calculé
   requestAnimationFrame(() => {
     applyDealAnimations(existingNums, deckRect);
   });
@@ -1434,10 +1427,14 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})">▲ Prom.</button>`);
   }
 
+  // Si cette carte vient d'être piochée, la cacher pour l'animation
+  const isNewCard = window._dealExistingNums && !window._dealExistingNums.has(cardInstance.cardDef.numero);
+  const hiddenStyle = isNewCard ? 'visibility:hidden;' : '';
+
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="openCardModal(${playIndex},'play')"
-           style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
+           style="${hiddenStyle}cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
         <div class="card-name" style="color:${nameColor}" data-desc="${face.description ? face.description.replace(/"/g, '&quot;') : ''}">${face.nom}</div>
