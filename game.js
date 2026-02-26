@@ -37,146 +37,6 @@ let gameState = {
   bandits: [],
 };
 
-
-// ============================================================
-//  SAUVEGARDE / RESTAURATION
-// ============================================================
-
-function saveGame() {
-  // Sérialiser une zone : tableau de { numero, currentFace }
-  const serializeZone = arr => arr.map(ci => ({
-    n: ci.cardDef.numero,
-    f: ci.currentFace
-  }));
-
-  // Sérialiser le staging (inclut les métadonnées d'action)
-  const serializeStaging = arr => arr.map(entry => {
-    const s = {
-      n: entry.cardInstance.cardDef.numero,
-      f: entry.cardInstance.currentFace,
-      action: entry.action,
-      resourcesGained: entry.resourcesGained,
-      fameGained: entry.fameGained,
-      newFace: entry.newFace,
-      cout: entry.cout,
-    };
-    if (entry.sacrificeCardInstance) {
-      s.sacrificeN = entry.sacrificeCardInstance.cardDef.numero;
-      s.sacrificeF = entry.sacrificeCardInstance.currentFace;
-    }
-    if (entry.terrainName) s.terrainName = entry.terrainName;
-    return s;
-  });
-
-  const save = {
-    version: 1,
-    date: new Date().toISOString(),
-    cardStateMap: { ...cardStateMap },
-    choiceNeeded: Array.from(choiceNeeded),
-    resources: { ...gameState.resources },
-    fame: gameState.fame,
-    round: gameState.round,
-    turn: gameState.turn,
-    turnStarted: gameState.turnStarted,
-    gameOver: gameState.gameOver,
-    nextDiscoverIndex: gameState.nextDiscoverIndex,
-    bandits: gameState.bandits,
-    deck:      serializeZone(gameState.deck),
-    play:      serializeZone(gameState.play),
-    discard:   serializeZone(gameState.discard),
-    permanent: serializeZone(gameState.permanent),
-    staging:   serializeStaging(gameState.staging),
-  };
-
-  const json = JSON.stringify(save, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const ts   = new Date().toISOString().slice(0,16).replace('T','-').replace(':','-');
-  a.href     = url;
-  a.download = `kingdom-legacy-save-${ts}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  addLog(`💾 Partie sauvegardée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
-}
-
-function loadGame() {
-  const input = document.createElement('input');
-  input.type  = 'file';
-  input.accept = '.json,application/json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const save = JSON.parse(ev.target.result);
-        restoreGame(save);
-      } catch(err) {
-        alert('❌ Fichier de sauvegarde invalide ou corrompu.');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-function restoreGame(save) {
-  if (!save || save.version !== 1) {
-    alert('❌ Format de sauvegarde incompatible.');
-    return;
-  }
-
-  // Recréer une instance à partir d'un objet sérialisé { n, f }
-  const deserialize = ({ n, f }) => {
-    const def = ALL_CARDS.find(c => c.numero === n);
-    if (!def) return null;
-    return { cardDef: def, currentFace: f };
-  };
-
-  cardStateMap = { ...save.cardStateMap };
-  choiceNeeded = new Set(save.choiceNeeded || []);
-
-  gameState.resources        = { ...save.resources };
-  gameState.fame             = save.fame;
-  gameState.round            = save.round;
-  gameState.turn             = save.turn;
-  gameState.turnStarted      = save.turnStarted;
-  gameState.gameOver         = save.gameOver;
-  gameState.nextDiscoverIndex = save.nextDiscoverIndex;
-  gameState.bandits          = save.bandits || [];
-
-  gameState.deck      = save.deck.map(deserialize).filter(Boolean);
-  gameState.play      = save.play.map(deserialize).filter(Boolean);
-  gameState.discard   = save.discard.map(deserialize).filter(Boolean);
-  gameState.permanent = save.permanent.map(deserialize).filter(Boolean);
-
-  // Restaurer le staging avec toutes ses métadonnées
-  gameState.staging = (save.staging || []).map(s => {
-    const ci = deserialize({ n: s.n, f: s.f });
-    if (!ci) return null;
-    const entry = {
-      cardInstance: ci,
-      action: s.action,
-      resourcesGained: s.resourcesGained || {},
-      fameGained: s.fameGained || 0,
-      newFace: s.newFace,
-      cout: s.cout || [],
-    };
-    if (s.sacrificeN) {
-      entry.sacrificeCardInstance = deserialize({ n: s.sacrificeN, f: s.sacrificeF });
-    }
-    if (s.terrainName) entry.terrainName = s.terrainName;
-    return entry;
-  }).filter(Boolean);
-
-  // Reconstruire la box (cartes non encore découvertes)
-  gameState.box = ALL_CARDS.filter(c => c.numero > 10).sort((a, b) => a.numero - b.numero);
-
-  updateUI();
-  addLog(`📂 Partie restaurée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
-}
-
 function initGame() {
   cardStateMap = {};
   choiceNeeded = new Set();
@@ -199,7 +59,6 @@ function initGame() {
   };
 
   updateUI();
-  setupDescTooltip();
   addLog('⚜ Que votre royaume prospère ! La partie commence.', true);
   addLog(`📦 ${gameState.deck.length} cartes en main | ${gameState.box.length} cartes à découvrir.`);
 }
@@ -239,8 +98,15 @@ function drawCards(n) {
   updateUI();
   window._dealExistingNums = null;
 
-  // Les cartes nouvelles sont déjà cachées (visibility:hidden injecté dans buildCardFrontHTML)
-  // On lance l'animation au frame suivant pour que le layout soit calculé
+  // Masquer immédiatement les nouvelles cartes pour éviter le pré-affichage
+  const playAreaHide = document.getElementById('playArea');
+  if (playAreaHide) {
+    Array.from(playAreaHide.querySelectorAll('.card-wrapper[data-card-num]'))
+      .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)))
+      .forEach(w => { const c = w.querySelector('.card'); if (c) c.style.visibility = 'hidden'; });
+  }
+
+  // Un seul RAF : les cartes sont invisibles, les positions sont déjà dans le DOM
   requestAnimationFrame(() => {
     applyDealAnimations(existingNums, deckRect);
   });
@@ -1427,17 +1293,13 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})">▲ Prom.</button>`);
   }
 
-  // Si cette carte vient d'être piochée, la cacher pour l'animation
-  const isNewCard = window._dealExistingNums && !window._dealExistingNums.has(cardInstance.cardDef.numero);
-  const hiddenStyle = isNewCard ? 'visibility:hidden;' : '';
-
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="openCardModal(${playIndex},'play')"
-           style="${hiddenStyle}cursor:pointer;background:${cardBg};border-color:${cardBorder};">
+           style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
-        <div class="card-name" style="color:${nameColor}" data-desc="${face.description ? face.description.replace(/"/g, '&quot;') : ''}">${face.nom}</div>
+        <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
@@ -1638,56 +1500,6 @@ function updateUI() {
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
   $('#btnPass').prop('disabled', !canPass).css('opacity', canPass ? 1 : 0.4)
     .attr('title', canPass ? '' : 'Aucune carte à jouer');
-}
-
-// ============================================================
-//  TOOLTIP DESCRIPTION — positionné en fixed, échappe aux overflow:hidden
-// ============================================================
-function setupDescTooltip() {
-  const tooltip = document.getElementById('cardDescTooltip');
-  if (!tooltip || tooltip._descSetup) return;
-  tooltip._descSetup = true;
-
-  document.addEventListener('mouseover', e => {
-    const nameEl = e.target.closest('.card-name[data-desc]');
-    if (!nameEl) return;
-    const desc = nameEl.dataset.desc;
-    if (!desc) return;
-
-    tooltip.textContent = desc;
-    tooltip.classList.add('visible');
-    positionTooltip(nameEl, tooltip);
-  });
-
-  document.addEventListener('mouseout', e => {
-    const nameEl = e.target.closest('.card-name[data-desc]');
-    if (!nameEl) return;
-    tooltip.classList.remove('visible');
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!tooltip.classList.contains('visible')) return;
-    const nameEl = e.target.closest('.card-name[data-desc]');
-    if (!nameEl) { tooltip.classList.remove('visible'); return; }
-    positionTooltip(nameEl, tooltip);
-  });
-}
-
-function positionTooltip(nameEl, tooltip) {
-  const rect = nameEl.getBoundingClientRect();
-  const tw = tooltip.offsetWidth || 190;
-  const th = tooltip.offsetHeight || 60;
-
-  // Centré au-dessus du nom
-  let left = rect.left + rect.width / 2 - tw / 2;
-  let top  = rect.top - th - 10;
-
-  // Garder dans la fenêtre
-  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-  if (top < 8) top = rect.bottom + 10; // passer en dessous si pas de place
-
-  tooltip.style.left = left + 'px';
-  tooltip.style.top  = top  + 'px';
 }
 
 function addLog(msg, important=false) {
