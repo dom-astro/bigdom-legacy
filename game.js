@@ -37,6 +37,146 @@ let gameState = {
   bandits: [],
 };
 
+
+// ============================================================
+//  SAUVEGARDE / RESTAURATION
+// ============================================================
+
+function saveGame() {
+  // Sérialiser une zone : tableau de { numero, currentFace }
+  const serializeZone = arr => arr.map(ci => ({
+    n: ci.cardDef.numero,
+    f: ci.currentFace
+  }));
+
+  // Sérialiser le staging (inclut les métadonnées d'action)
+  const serializeStaging = arr => arr.map(entry => {
+    const s = {
+      n: entry.cardInstance.cardDef.numero,
+      f: entry.cardInstance.currentFace,
+      action: entry.action,
+      resourcesGained: entry.resourcesGained,
+      fameGained: entry.fameGained,
+      newFace: entry.newFace,
+      cout: entry.cout,
+    };
+    if (entry.sacrificeCardInstance) {
+      s.sacrificeN = entry.sacrificeCardInstance.cardDef.numero;
+      s.sacrificeF = entry.sacrificeCardInstance.currentFace;
+    }
+    if (entry.terrainName) s.terrainName = entry.terrainName;
+    return s;
+  });
+
+  const save = {
+    version: 1,
+    date: new Date().toISOString(),
+    cardStateMap: { ...cardStateMap },
+    choiceNeeded: Array.from(choiceNeeded),
+    resources: { ...gameState.resources },
+    fame: gameState.fame,
+    round: gameState.round,
+    turn: gameState.turn,
+    turnStarted: gameState.turnStarted,
+    gameOver: gameState.gameOver,
+    nextDiscoverIndex: gameState.nextDiscoverIndex,
+    bandits: gameState.bandits,
+    deck:      serializeZone(gameState.deck),
+    play:      serializeZone(gameState.play),
+    discard:   serializeZone(gameState.discard),
+    permanent: serializeZone(gameState.permanent),
+    staging:   serializeStaging(gameState.staging),
+  };
+
+  const json = JSON.stringify(save, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().slice(0,16).replace('T','-').replace(':','-');
+  a.href     = url;
+  a.download = `kingdom-legacy-save-${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog(`💾 Partie sauvegardée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
+}
+
+function loadGame() {
+  const input = document.createElement('input');
+  input.type  = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const save = JSON.parse(ev.target.result);
+        restoreGame(save);
+      } catch(err) {
+        alert('❌ Fichier de sauvegarde invalide ou corrompu.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function restoreGame(save) {
+  if (!save || save.version !== 1) {
+    alert('❌ Format de sauvegarde incompatible.');
+    return;
+  }
+
+  // Recréer une instance à partir d'un objet sérialisé { n, f }
+  const deserialize = ({ n, f }) => {
+    const def = ALL_CARDS.find(c => c.numero === n);
+    if (!def) return null;
+    return { cardDef: def, currentFace: f };
+  };
+
+  cardStateMap = { ...save.cardStateMap };
+  choiceNeeded = new Set(save.choiceNeeded || []);
+
+  gameState.resources        = { ...save.resources };
+  gameState.fame             = save.fame;
+  gameState.round            = save.round;
+  gameState.turn             = save.turn;
+  gameState.turnStarted      = save.turnStarted;
+  gameState.gameOver         = save.gameOver;
+  gameState.nextDiscoverIndex = save.nextDiscoverIndex;
+  gameState.bandits          = save.bandits || [];
+
+  gameState.deck      = save.deck.map(deserialize).filter(Boolean);
+  gameState.play      = save.play.map(deserialize).filter(Boolean);
+  gameState.discard   = save.discard.map(deserialize).filter(Boolean);
+  gameState.permanent = save.permanent.map(deserialize).filter(Boolean);
+
+  // Restaurer le staging avec toutes ses métadonnées
+  gameState.staging = (save.staging || []).map(s => {
+    const ci = deserialize({ n: s.n, f: s.f });
+    if (!ci) return null;
+    const entry = {
+      cardInstance: ci,
+      action: s.action,
+      resourcesGained: s.resourcesGained || {},
+      fameGained: s.fameGained || 0,
+      newFace: s.newFace,
+      cout: s.cout || [],
+    };
+    if (s.sacrificeN) {
+      entry.sacrificeCardInstance = deserialize({ n: s.sacrificeN, f: s.sacrificeF });
+    }
+    if (s.terrainName) entry.terrainName = s.terrainName;
+    return entry;
+  }).filter(Boolean);
+
+  // Reconstruire la box (cartes non encore découvertes)
+  gameState.box = ALL_CARDS.filter(c => c.numero > 10).sort((a, b) => a.numero - b.numero);
+
+  updateUI();
+  addLog(`📂 Partie restaurée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
+}
+
 function initGame() {
   cardStateMap = {};
   choiceNeeded = new Set();
