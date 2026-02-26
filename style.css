@@ -650,3 +650,53 @@ body.light-mode .card-desc-tooltip {
   color: var(--ink);
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
+
+/* ============================================================
+   BARRE DE SAUVEGARDE
+   ============================================================ */
+.save-bar {
+  display: flex; justify-content: center; gap: 12px;
+  margin-top: 10px;
+}
+.btn-save {
+  font-family: 'Cinzel', serif; font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 7px 18px; border-radius: 7px;
+  border: 1px solid rgba(139,105,20,0.6);
+  background: rgba(30,22,8,0.7);
+  color: var(--stone-light);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-save:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+  background: rgba(60,44,16,0.85);
+  box-shadow: 0 0 10px rgba(200,150,12,0.25);
+}
+.btn-load {
+  border-color: rgba(60,100,160,0.5);
+  color: #88aadd;
+}
+.btn-load:hover {
+  border-color: #6699cc;
+  color: #aaccff;
+  background: rgba(20,40,80,0.7);
+  box-shadow: 0 0 10px rgba(60,120,200,0.25);
+}
+body.light-mode .btn-save {
+  background: rgba(220,185,100,0.2);
+  color: #5a4020;
+  border-color: rgba(139,105,20,0.4);
+}
+body.light-mode .btn-save:hover {
+  background: rgba(220,185,100,0.45);
+  color: #3a2800;
+}
+body.light-mode .btn-load {
+  border-color: rgba(40,80,140,0.4);
+  color: #2255aa;
+}
+body.light-mode .btn-load:hover {
+  background: rgba(40,80,160,0.15);
+  color: #1144aa;
+}
