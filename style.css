@@ -598,53 +598,44 @@ body.light-mode .confirm-modal-btn-ok {
 }
 
 /* ============================================================
-   TOOLTIP DESCRIPTION AU SURVOL DU NOM DE CARTE
+   TOOLTIP DESCRIPTION — positionné en fixed via JS (échappe aux overflow:hidden)
    ============================================================ */
-.card-name {
-  position: relative;
-  cursor: default;
-}
-.card-desc-tooltip {
+#cardDescTooltip {
   display: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 170px;
-  padding: 8px 11px;
-  background: linear-gradient(160deg, #1a1208, #0e0c06);
+  position: fixed;
+  width: 190px;
+  padding: 9px 13px;
+  background: linear-gradient(160deg, #1e1608, #100e06);
   border: 1px solid var(--border-ornate);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 12px rgba(139,105,20,0.2);
+  border-radius: 9px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.75), 0 0 14px rgba(139,105,20,0.25);
   font-family: 'Crimson Text', serif;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-style: italic;
   color: var(--parchment);
-  line-height: 1.45;
+  line-height: 1.5;
   text-align: center;
-  z-index: 200;
+  z-index: 9000;
   pointer-events: none;
   white-space: normal;
 }
-/* Petite flèche vers le bas */
-.card-desc-tooltip::after {
+#cardDescTooltip::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
+  top: 100%; left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
   border-top-color: var(--border-ornate);
 }
-.card-name:hover .card-desc-tooltip {
+#cardDescTooltip.visible {
   display: block;
-  animation: tooltipFadeIn 0.18s ease-out both;
+  animation: tooltipFadeIn 0.16s ease-out both;
 }
 @keyframes tooltipFadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-body.light-mode .card-desc-tooltip {
+body.light-mode #cardDescTooltip {
   background: linear-gradient(160deg, #f5e6c8, #e8d5a3);
   border-color: var(--border-ornate);
   color: var(--ink);
