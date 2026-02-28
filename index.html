@@ -18,6 +18,26 @@
   <span id="themeLabel">Mode Clair</span>
 </button>
 
+<!-- MENU SAUVEGARDE (haut gauche) -->
+<div class="save-menu" id="saveMenu">
+  <button class="save-menu-trigger" onclick="toggleSaveMenu()" title="Sauvegarde &amp; Chargement">
+    <span>📜</span>
+    <span>Partie</span>
+    <span class="save-menu-arrow" id="saveMenuArrow">▾</span>
+  </button>
+  <div class="save-menu-dropdown" id="saveMenuDropdown">
+    <button class="save-menu-item" onclick="exportGame(); toggleSaveMenu()">
+      <span class="save-menu-item-icon">💾</span>
+      <span>Sauvegarder</span>
+    </button>
+    <div class="save-menu-separator"></div>
+    <button class="save-menu-item" onclick="importGame(); toggleSaveMenu()">
+      <span class="save-menu-item-icon">📂</span>
+      <span>Charger</span>
+    </button>
+  </div>
+</div>
+
 
 <div class="game-container">
 
@@ -365,6 +385,24 @@
     const current = document.body.classList.contains('light-mode') ? 'light' : 'dark';
     applyTheme(current === 'light' ? 'dark' : 'light');
   }
+
+  // ── MENU SAUVEGARDE ────────────────────────────────────────
+  let _saveMenuOpen = false;
+  function toggleSaveMenu() {
+    _saveMenuOpen = !_saveMenuOpen;
+    const dd = document.getElementById('saveMenuDropdown');
+    const arrow = document.getElementById('saveMenuArrow');
+    dd.classList.toggle('open', _saveMenuOpen);
+    arrow.textContent = _saveMenuOpen ? '▴' : '▾';
+  }
+  // Fermer si clic ailleurs
+  document.addEventListener('click', function(e) {
+    if (_saveMenuOpen && !document.getElementById('saveMenu').contains(e.target)) {
+      _saveMenuOpen = false;
+      document.getElementById('saveMenuDropdown').classList.remove('open');
+      document.getElementById('saveMenuArrow').textContent = '▾';
+    }
+  });
 
   // Restaurer la préférence sauvegardée
   const savedTheme = localStorage.getItem('kingdom-theme');

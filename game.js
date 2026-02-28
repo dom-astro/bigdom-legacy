@@ -387,56 +387,43 @@ let pendingBanditDefeat = null;
 function showBanditRewardModal(banditPlayIndex) {
   pendingBanditDefeat = banditPlayIndex;
   const resources = ['Or', 'Bois', 'Pierre', 'Métal'];
-  // Compteur : { Or:0, Bois:0, ... }
-  window._banditRewardChoices = { Or:0, Bois:0, Pierre:0, Métal:0 };
-
-  let html = `<p style="margin-bottom:14px;">Choisissez <strong>2 ressources</strong> à gagner (même ressource possible deux fois) :</p>`;
-  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">`;
+  let html = `<p style="margin-bottom:12px;">Choisissez <strong>2 ressources</strong> à gagner en vainquant le Bandit :</p>`;
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">`;
   resources.forEach(r => {
-    html += `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:70px;">
-        <div style="font-size:1.6rem;">${RESOURCE_ICONS[r]}</div>
-        <div style="font-family:'Crimson Text',serif;font-size:0.75rem;color:var(--text-secondary);">${r}</div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button onclick="adjustBanditReward('${r}',-1)" class="bandit-reward-btn" style="width:28px;height:28px;padding:0;font-size:1rem;line-height:1;">−</button>
-          <span id="rewardCount-${r}" style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:var(--gold);min-width:18px;text-align:center;">0</span>
-          <button onclick="adjustBanditReward('${r}',+1)" class="bandit-reward-btn" style="width:28px;height:28px;padding:0;font-size:1rem;line-height:1;">+</button>
-        </div>
-      </div>`;
+    html += `<button onclick="selectBanditReward('${r}')" class="bandit-reward-btn" id="reward-${r}">
+      ${RESOURCE_ICONS[r]} ${r}
+    </button>`;
   });
   html += `</div>`;
-  html += `<div id="banditRewardSelected" style="margin-top:14px;min-height:28px;text-align:center;font-family:'Cinzel',serif;font-size:0.78rem;color:#f0c040;"></div>`;
-  html += `<button onclick="confirmBanditDefeat()" class="btn btn-success btn-sm" style="margin-top:10px;display:block;margin-left:auto;margin-right:auto;" id="btnConfirmDefeat" disabled>✔ Confirmer</button>`;
+  html += `<div id="banditRewardSelected" style="margin-top:12px;min-height:30px;text-align:center;font-family:'Cinzel',serif;font-size:0.8rem;color:#f0c040;"></div>`;
+  html += `<button onclick="confirmBanditDefeat()" class="btn btn-success btn-sm" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto;" id="btnConfirmDefeat" disabled>✔ Confirmer</button>`;
   $('#banditRewardBody').html(html);
   new bootstrap.Modal(document.getElementById('banditRewardModal')).show();
+  window._banditRewardChoices = [];
 }
 
-function adjustBanditReward(resource, delta) {
-  const counts = window._banditRewardChoices;
-  const total = Object.values(counts).reduce((s, v) => s + v, 0);
-  const newVal = (counts[resource] || 0) + delta;
-  if (newVal < 0) return;           // pas en dessous de 0
-  if (delta > 0 && total >= 2) return; // pas plus de 2 au total
-  counts[resource] = newVal;
+function selectBanditReward(resource) {
+  if (!window._banditRewardChoices) window._banditRewardChoices = [];
+  const choices = window._banditRewardChoices;
 
-  // Mettre à jour le compteur affiché
-  $(`#rewardCount-${resource}`).text(newVal);
+  const idx = choices.indexOf(resource);
+  if (idx >= 0) {
+    choices.splice(idx, 1);
+    $(`#reward-${resource}`).removeClass('selected');
+  } else if (choices.length < 2) {
+    choices.push(resource);
+    $(`#reward-${resource}`).addClass('selected');
+  }
 
-  // Résumé de la sélection
-  const newTotal = Object.values(counts).reduce((s, v) => s + v, 0);
-  const parts = Object.entries(counts)
-    .filter(([, v]) => v > 0)
-    .map(([r, v]) => `${v}× ${RESOURCE_ICONS[r]} ${r}`)
-    .join(' + ');
-  $('#banditRewardSelected').html(newTotal ? `Sélection : ${parts}` : '');
-  $('#btnConfirmDefeat').prop('disabled', newTotal < 2);
+  const parts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
+  $('#banditRewardSelected').html(choices.length ? `Sélection : ${parts}` : '');
+  $('#btnConfirmDefeat').prop('disabled', choices.length < 2);
 }
 
 function confirmBanditDefeat() {
   bootstrap.Modal.getInstance(document.getElementById('banditRewardModal'))?.hide();
-  const counts = window._banditRewardChoices || {};
-  const total = Object.values(counts).reduce((s, v) => s + v, 0);
-  if (total < 2 || pendingBanditDefeat === null) return;
+  const choices = window._banditRewardChoices || [];
+  if (choices.length < 2 || pendingBanditDefeat === null) return;
 
   const banditPlayIndex = pendingBanditDefeat;
   pendingBanditDefeat = null;
@@ -444,21 +431,16 @@ function confirmBanditDefeat() {
   // Dépenser 1 Épée
   gameState.resources['Epée'] = Math.max(0, gameState.resources['Epée'] - 1);
 
-  // Gagner les ressources choisies
-  Object.entries(counts).forEach(([r, v]) => {
-    if (v > 0) gameState.resources[r] = (gameState.resources[r] || 0) + v;
-  });
+  // Gagner les 2 ressources choisies
+  choices.forEach(r => { gameState.resources[r] = (gameState.resources[r] || 0) + 1; });
 
   // Retirer le bandit de play[] et des bandits[]
   const banditCard = gameState.play[banditPlayIndex];
   gameState.play.splice(banditPlayIndex, 1);
   updateBanditIndices(banditPlayIndex);
-  gameState.discard.push(banditCard);
+  gameState.discard.push(banditCard); // détruit (on met en défausse pour simplifier)
 
-  const resParts = Object.entries(counts)
-    .filter(([, v]) => v > 0)
-    .map(([r, v]) => `${v > 1 ? v + '× ' : ''}${RESOURCE_ICONS[r]} ${r}`)
-    .join(' + ');
+  const resParts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
   addLog(`⚔️ <span class="log-card">Bandit</span> vaincu ! -1⚔️ +${resParts}`, true);
   updateUI();
 }
@@ -1801,6 +1783,159 @@ function showDiscardPile() {
     </div></div>`);
   });
   new bootstrap.Modal(document.getElementById('discardModal')).show();
+}
+
+// ============================================================
+//  EXPORT / IMPORT DE PARTIE
+// ============================================================
+
+function exportGame() {
+  const serializeCards = (list) =>
+    list.map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace }));
+
+  const save = {
+    v: 1,
+    date: new Date().toISOString(),
+    round: gameState.round,
+    turn: gameState.turn,
+    fame: gameState.fame,
+    turnStarted: gameState.turnStarted,
+    gameOver: gameState.gameOver,
+    nextDiscoverIndex: gameState.nextDiscoverIndex,
+    resources: { ...gameState.resources },
+    cardStateMap: cardStateMap,
+    choiceNeeded: [...choiceNeeded],
+    deck:      serializeCards(gameState.deck),
+    play:      serializeCards(gameState.play),
+    discard:   serializeCards(gameState.discard),
+    permanent: serializeCards(gameState.permanent),
+    box:       serializeCards(gameState.box),
+    staging: gameState.staging.map(e => ({
+      n: e.cardInstance.cardDef.numero,
+      f: e.cardInstance.currentFace,
+      action: e.action,
+      resourcesGained: e.resourcesGained,
+      fameGained: e.fameGained,
+      newFace: e.newFace,
+      cout: e.cout,
+      sacN: e.sacrificeCardInstance?.cardDef.numero ?? null,
+      sacF: e.sacrificeCardInstance?.currentFace ?? null,
+    })),
+    bandits: gameState.bandits
+      .filter(b => b.banditPlayIndex != null && gameState.play[b.banditPlayIndex] != null)
+      .map(b => ({
+        bN:  gameState.play[b.banditPlayIndex].cardDef.numero,
+        blN: b.blockedPlayIndex != null && gameState.play[b.blockedPlayIndex] != null
+             ? gameState.play[b.blockedPlayIndex].cardDef.numero
+             : null,
+      })),
+  };
+
+  const json = JSON.stringify(save, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `kingdom-m${gameState.round}-t${gameState.turn}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog(`💾 Partie sauvegardée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
+}
+
+function importGame() {
+  const input  = document.createElement('input');
+  input.type   = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        _applyImport(JSON.parse(ev.target.result));
+      } catch (err) {
+        alert('❌ Fichier invalide ou corrompu.\n' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function _resolveCard(ref) {
+  const cardDef = ALL_CARDS.find(c => c.numero === ref.n);
+  if (!cardDef) { console.warn(`Carte #${ref.n} introuvable`); return null; }
+  return { cardDef, currentFace: ref.f || 1 };
+}
+
+function _applyImport(save) {
+  if (!save || save.v !== 1) {
+    alert('❌ Format de sauvegarde non reconnu.'); return;
+  }
+
+  cardStateMap = {};
+  Object.entries(save.cardStateMap || {}).forEach(([k, v]) => {
+    cardStateMap[parseInt(k)] = v;
+  });
+  choiceNeeded = new Set((save.choiceNeeded || []).map(Number));
+
+  const resolve = (list) => (list || []).map(_resolveCard).filter(Boolean);
+  const play = resolve(save.play);
+
+  const staging = (save.staging || []).map(e => {
+    const ci = _resolveCard({ n: e.n, f: e.f });
+    if (!ci) return null;
+    const entry = {
+      cardInstance: ci,
+      action: e.action,
+      resourcesGained: e.resourcesGained || {},
+      fameGained: e.fameGained || 0,
+      newFace: e.newFace || null,
+      cout: e.cout || [],
+    };
+    if (e.sacN) {
+      const sc = _resolveCard({ n: e.sacN, f: e.sacF || 1 });
+      if (sc) entry.sacrificeCardInstance = sc;
+    }
+    return entry;
+  }).filter(Boolean);
+
+  const bandits = (save.bandits || []).map(b => {
+    const banditPlayIndex  = play.findIndex(ci => ci.cardDef.numero === b.bN);
+    const blockedPlayIndex = b.blN !== null
+      ? play.findIndex(ci => ci.cardDef.numero === b.blN)
+      : null;
+    if (banditPlayIndex < 0) return null;
+    return {
+      banditPlayIndex,
+      blockedPlayIndex: blockedPlayIndex >= 0 ? blockedPlayIndex : null,
+    };
+  }).filter(Boolean);
+
+  gameState = {
+    deck:      resolve(save.deck),
+    play,
+    staging,
+    discard:   resolve(save.discard),
+    permanent: resolve(save.permanent),
+    box:       resolve(save.box),
+    nextDiscoverIndex: save.nextDiscoverIndex || 0,
+    resources: { ...save.resources },
+    fame:        save.fame        || 0,
+    round:       save.round       || 1,
+    turn:        save.turn        || 1,
+    turnStarted: save.turnStarted || false,
+    gameOver:    save.gameOver    || false,
+    bandits,
+  };
+
+  $('#gameLog').empty();
+  const d = new Date(save.date);
+  const dateLabel = isNaN(d.getTime()) ? ''
+    : ` (${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })})`;
+  addLog(`📂 Partie chargée${dateLabel}.`, true);
+  addLog(`⚜ Manche ${gameState.round}, Tour ${gameState.turn} — ${gameState.deck.length} cartes en pioche.`);
+  updateUI();
 }
 
 // ============================================================
