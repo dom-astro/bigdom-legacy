@@ -359,5 +359,24 @@
     applyTheme('light');
   }
 </script>
+<!-- NOUVELLES CARTES — modal d'inspection avant ajout à la pioche -->
+<div class="modal fade" id="newCardsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a1208,#0e0c06);border:2px solid var(--border-ornate);">
+      <div class="modal-header border-0" style="flex-direction:column;text-align:center;padding:22px 24px 8px;gap:4px;">
+        <div style="font-size:2rem;">🔍</div>
+        <h5 style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.05rem;letter-spacing:2px;margin:0;">Nouvelles Découvertes</h5>
+        <p style="font-family:'Crimson Text',serif;font-size:0.8rem;color:var(--stone-light);margin:0;font-style:italic;">2 cartes rejoignent votre royaume</p>
+      </div>
+      <div class="modal-body" id="newCardsModalBody" style="padding:16px 24px 8px;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:12px 24px 22px;">
+        <button onclick="confirmNewCards()" class="confirm-modal-btn confirm-modal-btn-ok" style="min-width:280px;font-size:0.82rem;">
+          🔀 Ajouter à la pioche &amp; Commencer la manche
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

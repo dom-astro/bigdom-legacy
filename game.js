@@ -1154,6 +1154,9 @@ function endTurn() {
   updateUI();
 }
 
+// Données en attente pendant l'inspection des nouvelles cartes
+let _pendingNewRound = null;
+
 function newRound() {
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
   gameState.staging = [];
@@ -1164,11 +1167,100 @@ function newRound() {
   const allCards = [...gameState.deck, ...gameState.discard, ...gameState.permanent];
   gameState.permanent = []; gameState.discard = []; gameState.deck = [];
   clearResources();
+  updateUI();
 
   const discovered = discoverNextCards(2);
+
+  if (discovered.length === 0) {
+    addLog(`📦 Toutes les cartes ont été découvertes.`);
+    _finalizeNewRound(allCards, []);
+    return;
+  }
+
+  // Stocker et afficher le modal d'inspection
+  _pendingNewRound = { allCards, discovered };
+  _showNewCardsModal(discovered);
+}
+
+function _showNewCardsModal(discovered) {
+  const typeColors = {
+    Personne: '#2a4a7a', Terrain: '#1e4a1a', Bâtiment: '#5a4a3a',
+    Ennemi: '#5a0a0a', Evènement: '#3a2a5a', Maritime: '#0a3a5a'
+  };
+
+  const cardsHTML = discovered.map(card => {
+    const face = getFaceData(card);
+
+    const resHTML = (face.ressources && face.ressources.length)
+      ? face.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return types.map(t =>
+            `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`
+          ).join('');
+        }).join('')
+      : `<span style="color:#666;font-size:0.65rem;font-style:italic;">Aucune production</span>`;
+
+    const effets = face.effet ? (Array.isArray(face.effet) ? face.effet : [face.effet]) : [];
+    const effectHTML = effets.map(e => {
+      const ico = { Activable: '🟢', Passif: '🔵', Destruction: '🔴' }[e.type] || '⚡';
+      return `<div style="font-size:0.65rem;color:#bbeebb;margin-top:3px;">${ico} ${e.type}${e.description ? ' — ' + e.description : ''}</div>`;
+    }).join('');
+
+    const promos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
+    const promoHTML = promos.length
+      ? `<div style="font-size:0.65rem;color:#f0c040;margin-top:5px;">▲ ${promos.length} promotion${promos.length > 1 ? 's' : ''}</div>`
+      : '';
+
+    const fameHTML = (face.victoire !== undefined && face.victoire !== 0)
+      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</div>`
+      : '';
+
+    const totalFaces = card.cardDef.faces.length;
+    const facesHTML = totalFaces > 1
+      ? `<div style="font-size:0.6rem;color:#888;margin-top:4px;">${totalFaces} faces au total</div>`
+      : '';
+
+    const bgType = typeColors[face.type] || '#3a3a3a';
+
+    return `<div style="
+        flex:1;min-width:170px;max-width:230px;
+        background:linear-gradient(160deg,#1e160a,#120e06);
+        border:2px solid var(--border-ornate);border-radius:10px;
+        padding:18px 14px;text-align:center;
+        box-shadow:0 4px 18px rgba(0,0,0,0.5);">
+      <div style="font-size:0.58rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${card.cardDef.numero}</div>
+      <div style="font-size:2.6rem;margin-bottom:8px;">${getCardEmoji(face.type, face.nom)}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
+      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
+      <div style="margin-bottom:4px;">${resHTML}</div>
+      ${fameHTML}${effectHTML}${promoHTML}${facesHTML}
+    </div>`;
+  }).join('');
+
+  document.getElementById('newCardsModalBody').innerHTML = `
+    <p style="text-align:center;font-family:'Crimson Text',serif;font-size:0.95rem;
+       color:#f5e6c8;margin-bottom:18px;line-height:1.5;">
+      Ces deux cartes vont rejoindre votre royaume.<br>
+      <em style="font-size:0.85rem;color:#aaa;">Inspectez-les avant qu'elles soient mélangées dans la pioche.</em>
+    </p>
+    <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">${cardsHTML}</div>`;
+
+  new bootstrap.Modal(document.getElementById('newCardsModal')).show();
+}
+
+function confirmNewCards() {
+  const modalEl = document.getElementById('newCardsModal');
+  bootstrap.Modal.getInstance(modalEl)?.hide();
+  if (!_pendingNewRound) return;
+  const { allCards, discovered } = _pendingNewRound;
+  _pendingNewRound = null;
+  _finalizeNewRound(allCards, discovered);
+}
+
+function _finalizeNewRound(allCards, discovered) {
   discovered.forEach(card => {
     allCards.push(card);
-    addLog(`🔍 Découverte: <span class="log-card">${getFaceData(card).nom}</span> (#${card.cardDef.numero})`, true);
+    addLog(`🔍 Découverte : <span class="log-card">${getFaceData(card).nom}</span> (#${card.cardDef.numero})`, true);
     if (card.cardDef.numero === 70) { gameState.gameOver = true; addLog(`🏆 Carte #70 ! Dernière Manche !`, true); }
   });
   if (!discovered.length) addLog(`📦 Toutes les cartes ont été découvertes.`);
@@ -1178,7 +1270,7 @@ function newRound() {
   shuffleDeck(newDeck);
   gameState.deck = newDeck;
   gameState.turn = 1; gameState.round++; gameState.turnStarted = false;
-  addLog(`🔄 Manche ${gameState.round} commence ! Pioche: ${newDeck.length} cartes.`, true);
+  addLog(`🔄 Manche ${gameState.round} commence ! Pioche : ${newDeck.length} cartes.`, true);
   updateUI();
 }
 
