@@ -77,14 +77,17 @@ function shuffleDeck(deck) {
 // ============================================================
 //  PIOCHE
 // ============================================================
+let _drawLocked = false;
+
 function drawCards(n) {
+  if (_drawLocked) return;
   if (gameState.deck.length === 0) { addLog('La pioche est vide !'); return; }
   if (gameState.turnStarted && gameState.staging.length === 0) clearResources();
   gameState.turnStarted = true;
   const toDraw = Math.min(n, gameState.deck.length);
 
   // Capturer la position de la pioche AVANT updateUI (elle peut disparaître si deck vide)
-  const deckEl = document.querySelector('#deckVisual .card-back');
+  const deckEl = document.querySelector('#deckVisual .card-front');
   const deckRect = deckEl ? deckEl.getBoundingClientRect() : null;
 
   // Mémoriser les numéros des cartes déjà en jeu (elles ne doivent PAS s'animer)
@@ -1177,7 +1180,6 @@ function newRound() {
     return;
   }
 
-  // Stocker et afficher le modal d'inspection
   _pendingNewRound = { allCards, discovered };
   _showNewCardsModal(discovered);
 }
@@ -1254,6 +1256,8 @@ function confirmNewCards() {
   if (!_pendingNewRound) return;
   const { allCards, discovered } = _pendingNewRound;
   _pendingNewRound = null;
+  _drawLocked = true;
+  setTimeout(() => { _drawLocked = false; }, 600);
   _finalizeNewRound(allCards, discovered);
 }
 
@@ -1517,7 +1521,36 @@ function updateUI() {
   const deckCount = gameState.deck.length;
   $('#deckCount').text(`${deckCount} carte${deckCount!==1?'s':''}`);
   $('#statDeck').text(deckCount);
-  deckCount===0 ? $('#deckVisual').hide() : $('#deckVisual').show();
+  if (deckCount === 0) {
+    $('#deckVisual').hide();
+  } else {
+    $('#deckVisual').show();
+    const topCard = gameState.deck[0];
+    const topFace = getFaceData(topCard);
+    const topResHTML = (topFace.ressources && topFace.ressources.length)
+      ? topFace.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+        }).join('')
+      : '';
+    const topPromos = topFace.promotions ? topFace.promotions : (topFace.promotion ? [topFace.promotion] : []);
+    const topUpgradeHTML = topPromos.length
+      ? `<div class="card-upgrade-hint" style="font-size:0.38rem;">▲ ${topPromos.map(p => formatCost(p.cout||[])).join(' | ')}</div>`
+      : '';
+    const topFameHTML = (topFace.victoire !== undefined && topFace.victoire !== 0)
+      ? `<div class="card-victory" style="${topFace.victoire < 0 ? 'background:var(--crimson)' : ''}">${topFace.victoire > 0 ? '★' : ''}${topFace.victoire}</div>`
+      : '';
+    const totalTopFaces = topCard.cardDef.faces.length;
+    $('#topDeckCard').html(`
+      ${topFameHTML}
+      <div class="card-serial">#${topCard.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${topCard.currentFace}/${totalTopFaces}</span></div>
+      <div class="card-name">${topFace.nom}</div>
+      <span class="card-type-badge type-${(topFace.type||'').replace('â','a').replace('è','e')}">${topFace.type}</span>
+      <div class="card-img-area">${getCardEmoji(topFace.type, topFace.nom)}</div>
+      <div class="card-resources">${topResHTML}</div>
+      ${topUpgradeHTML}
+    `);
+  }
 
   // Boîte
   const rem = gameState.box.length - gameState.nextDiscoverIndex;
