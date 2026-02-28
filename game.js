@@ -387,43 +387,56 @@ let pendingBanditDefeat = null;
 function showBanditRewardModal(banditPlayIndex) {
   pendingBanditDefeat = banditPlayIndex;
   const resources = ['Or', 'Bois', 'Pierre', 'Métal'];
-  let html = `<p style="margin-bottom:12px;">Choisissez <strong>2 ressources</strong> à gagner en vainquant le Bandit :</p>`;
-  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">`;
+  // Compteur : { Or:0, Bois:0, ... }
+  window._banditRewardChoices = { Or:0, Bois:0, Pierre:0, Métal:0 };
+
+  let html = `<p style="margin-bottom:14px;">Choisissez <strong>2 ressources</strong> à gagner (même ressource possible deux fois) :</p>`;
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">`;
   resources.forEach(r => {
-    html += `<button onclick="selectBanditReward('${r}')" class="bandit-reward-btn" id="reward-${r}">
-      ${RESOURCE_ICONS[r]} ${r}
-    </button>`;
+    html += `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:70px;">
+        <div style="font-size:1.6rem;">${RESOURCE_ICONS[r]}</div>
+        <div style="font-family:'Crimson Text',serif;font-size:0.75rem;color:var(--text-secondary);">${r}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="adjustBanditReward('${r}',-1)" class="bandit-reward-btn" style="width:28px;height:28px;padding:0;font-size:1rem;line-height:1;">−</button>
+          <span id="rewardCount-${r}" style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:var(--gold);min-width:18px;text-align:center;">0</span>
+          <button onclick="adjustBanditReward('${r}',+1)" class="bandit-reward-btn" style="width:28px;height:28px;padding:0;font-size:1rem;line-height:1;">+</button>
+        </div>
+      </div>`;
   });
   html += `</div>`;
-  html += `<div id="banditRewardSelected" style="margin-top:12px;min-height:30px;text-align:center;font-family:'Cinzel',serif;font-size:0.8rem;color:#f0c040;"></div>`;
-  html += `<button onclick="confirmBanditDefeat()" class="btn btn-success btn-sm" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto;" id="btnConfirmDefeat" disabled>✔ Confirmer</button>`;
+  html += `<div id="banditRewardSelected" style="margin-top:14px;min-height:28px;text-align:center;font-family:'Cinzel',serif;font-size:0.78rem;color:#f0c040;"></div>`;
+  html += `<button onclick="confirmBanditDefeat()" class="btn btn-success btn-sm" style="margin-top:10px;display:block;margin-left:auto;margin-right:auto;" id="btnConfirmDefeat" disabled>✔ Confirmer</button>`;
   $('#banditRewardBody').html(html);
   new bootstrap.Modal(document.getElementById('banditRewardModal')).show();
-  window._banditRewardChoices = [];
 }
 
-function selectBanditReward(resource) {
-  if (!window._banditRewardChoices) window._banditRewardChoices = [];
-  const choices = window._banditRewardChoices;
+function adjustBanditReward(resource, delta) {
+  const counts = window._banditRewardChoices;
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  const newVal = (counts[resource] || 0) + delta;
+  if (newVal < 0) return;           // pas en dessous de 0
+  if (delta > 0 && total >= 2) return; // pas plus de 2 au total
+  counts[resource] = newVal;
 
-  const idx = choices.indexOf(resource);
-  if (idx >= 0) {
-    choices.splice(idx, 1);
-    $(`#reward-${resource}`).removeClass('selected');
-  } else if (choices.length < 2) {
-    choices.push(resource);
-    $(`#reward-${resource}`).addClass('selected');
-  }
+  // Mettre à jour le compteur affiché
+  $(`#rewardCount-${resource}`).text(newVal);
 
-  const parts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
-  $('#banditRewardSelected').html(choices.length ? `Sélection : ${parts}` : '');
-  $('#btnConfirmDefeat').prop('disabled', choices.length < 2);
+  // Résumé de la sélection
+  const newTotal = Object.values(counts).reduce((s, v) => s + v, 0);
+  const parts = Object.entries(counts)
+    .filter(([, v]) => v > 0)
+    .map(([r, v]) => `${v}× ${RESOURCE_ICONS[r]} ${r}`)
+    .join(' + ');
+  $('#banditRewardSelected').html(newTotal ? `Sélection : ${parts}` : '');
+  $('#btnConfirmDefeat').prop('disabled', newTotal < 2);
 }
 
 function confirmBanditDefeat() {
   bootstrap.Modal.getInstance(document.getElementById('banditRewardModal'))?.hide();
-  const choices = window._banditRewardChoices || [];
-  if (choices.length < 2 || pendingBanditDefeat === null) return;
+  const counts = window._banditRewardChoices || {};
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  if (total < 2 || pendingBanditDefeat === null) return;
 
   const banditPlayIndex = pendingBanditDefeat;
   pendingBanditDefeat = null;
@@ -431,16 +444,21 @@ function confirmBanditDefeat() {
   // Dépenser 1 Épée
   gameState.resources['Epée'] = Math.max(0, gameState.resources['Epée'] - 1);
 
-  // Gagner les 2 ressources choisies
-  choices.forEach(r => { gameState.resources[r] = (gameState.resources[r] || 0) + 1; });
+  // Gagner les ressources choisies
+  Object.entries(counts).forEach(([r, v]) => {
+    if (v > 0) gameState.resources[r] = (gameState.resources[r] || 0) + v;
+  });
 
   // Retirer le bandit de play[] et des bandits[]
   const banditCard = gameState.play[banditPlayIndex];
   gameState.play.splice(banditPlayIndex, 1);
   updateBanditIndices(banditPlayIndex);
-  gameState.discard.push(banditCard); // détruit (on met en défausse pour simplifier)
+  gameState.discard.push(banditCard);
 
-  const resParts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
+  const resParts = Object.entries(counts)
+    .filter(([, v]) => v > 0)
+    .map(([r, v]) => `${v > 1 ? v + '× ' : ''}${RESOURCE_ICONS[r]} ${r}`)
+    .join(' + ');
   addLog(`⚔️ <span class="log-card">Bandit</span> vaincu ! -1⚔️ +${resParts}`, true);
   updateUI();
 }
