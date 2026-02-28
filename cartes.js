@@ -38,7 +38,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour en gagne",
+          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
           "ressources": [
             {
               "type": "Or",
@@ -137,7 +137,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour en gagne",
+          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
           "ressources": [
             {
               "type": "Or",
@@ -236,7 +236,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour en gagne",
+          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
           "ressources": [
             {
               "type": "Or",
@@ -335,7 +335,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour en gagne",
+          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
           "ressources": [
             {
               "type": "Or",

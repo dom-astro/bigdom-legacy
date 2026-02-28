@@ -1,5 +1,381 @@
 const CARDS_TO_DISCOVER = 
 [
+  { "numero": 71,
+    "faces": [
+      { "face": 1,
+        "nom": "Montagnes Lointaines",
+        "type": "Terrain",
+        "description": "Des montagnes riches en ressources, mais difficiles à exploiter.",
+        "ressources": [
+          {
+            "type": [
+              "Or"
+            ],
+            "quantite": 1
+          }
+        ],
+        "promotion": {
+          "face": 2,
+          "cout": [
+            {
+              "type": "Or",
+              "quantite": 2
+            }
+          ]
+        }
+      },
+      { "face": 2,
+        "nom": "Zone Rocheuse",
+        "type": "Terrain",
+        "description": "Une zone de terrain accidenté, riche en pierres mais difficile à exploiter.",
+        "ressources": [
+          {
+            "type": [
+              "Pierre"
+            ],
+            "quantite": 1
+          }
+        ],
+        "effet": {
+          "type": "Activable",
+          "cout": [
+            {
+              "type": "Or",
+              "quantite": 1
+            }
+          ],
+          "ressources": [
+            {
+              "type": "Pierre",
+              "quantite": 2
+            }
+          ]
+        },
+        "promotion": {
+          "face": 3,
+          "cout": [
+            {
+              "type": "Bois",
+              "quantite": 2
+            },
+            {
+              "type": "Or",
+              "quantite": 2
+            }
+          ]
+        }
+      },
+      { "face": 3,
+        "nom": "Carrière",
+        "type": "Terrain",
+        "description": "Une zone d'extraction de pierre, offrant des ressources précieuses pour la construction.",
+        "ressources": [
+          {
+            "type": [
+              "Pierre"
+            ],
+            "quantite": 2
+          }
+        ],
+        "promotion": {
+          "face": 4,
+          "cout": [
+            {
+              "type": "Bois",
+              "quantite": 2
+            },
+            {
+              "type": "Or",
+              "quantite": 2
+            }
+          ]
+        }
+      },
+      { "face": 4,
+        "nom": "Mine Peu Profonde",
+        "type": "Bâtiment",
+        "description": "Une mine à ciel ouvert pour extraire les ressources minérales.",
+        "ressources": [
+          {
+            "type": [
+              "Pierre"
+            ],
+            "quantite": 1
+          },
+          {
+            "type": [
+              "Métal"
+            ],
+            "quantite": 1
+          }
+        ],
+        "victoire": 3,
+        "effet": {
+          "type": "Destruction",
+          "description": "Décrouvrez une mine",
+          "cartes": [
+            84,
+            85
+          ]
+        }
+      }
+    ]
+  },
+  { "numero": 72,
+    "faces": [
+      { "face": 1,
+        "nom": "Forêt",
+        "type": "Terrain",
+        "description": "Une zone boisée, riche en ressources naturelles.",
+        "ressources": [
+          {
+            "type": [
+              "Bois"
+            ],
+            "quantite": 1
+          }
+        ],
+        "promotion": {
+          "face": 4,
+          "cout": [
+            {
+              "type": "Pierre",
+              "quantite": 2
+            }
+          ]
+        },
+        "effet": {
+          "type": "Activable",
+          "ressources": [
+            {
+              "type": [
+                "Bois"
+              ],
+              "quantite": 3
+            }
+          ],
+          "promotion": {
+            "face": 2
+          }
+        }
+      },
+      { "face": 2,
+        "nom": "Coupe Rase",
+        "type": "Terrain",
+        "description": "Une zone de terrain dégagée, idéale pour les constructions.",
+        "promotions": [
+          {
+            "face": 1,
+            "cout": [
+              {
+                "type": "Or",
+                "quantite": 1
+              }
+            ]
+          },
+          {
+            "face": 3,
+            "cout": [
+              {
+                "type": "Pierre",
+                "quantite": 1
+              },
+              {
+                "type": "Bois",
+                "quantite": 1
+              },
+              {
+                "type": "Or",
+                "quantite": 2
+              }
+            ]
+          }
+        ]
+      },
+      { "face": 3,
+        "nom": "Cabane de Bûcheron",
+        "type": "Bâtiment",
+        "description": "Un abri pour les travailleurs du bois, offrant des ressources précieuses pour la construction.",
+        "ressources": [
+          {
+            "type": [
+              "Bois"
+            ],
+            "quantite": 2
+          }
+        ],
+        "victoire": 2
+      },
+      { "face": 4,
+        "nom": "Puit Sacré",
+        "type": "Bâtiment",
+        "description": "Un puits mystique qui ouvrer le chemin du sanctuaire.",
+        "ressources": [
+          {
+            "type": [
+              "Or"
+            ],
+            "quantite": 1
+          }
+        ],
+        "victoire": 2,
+        "effet": {
+          "type": "Destruction",
+          "cartes": [
+            82,
+            83
+          ]
+        }
+      }
+    ]
+  },
+  { "numero": 73,
+    "faces": [
+      { "face": 1,
+        "nom": "Canyon de l'ouest",
+        "type": "Terrain",
+        "description": "Une zone de terrain rocailleux, riche en ressources naturelles.",
+        "ressources": [
+          {
+            "type": ["Pierre", 'Métal'],
+            "quantite": 1
+          }
+        ],
+        "promotions": [
+          {
+            "face": 2,
+            "cout": [
+              { "type": "Or", "quantite": 1 },
+              { "type": "Bois", "quantite": 1 },
+              { "type": "Pierre", "quantite": 1 },
+              { "type": "Métal", "quantite": 1 }
+            ]
+          },
+          {
+            "face": 4,
+            "cout": [
+              {
+                "type": "Pierre",
+                "quantite": 3
+              }
+            ]
+          }
+        ]
+      },
+      { "face": 2,
+        "nom": "Mineurs",
+        "type": "Personnes",
+        "description": "Des mineurs expérimentés, capables de récolter des ressources précieuses.",
+        "victoire": 2,
+        "ressources": [
+          { "type": "Pierre", "quantite": 1 },
+          { "type": "Métal", "quantite": 1 }
+        ],
+        "promotion": {
+          "face": 3,
+          "cout": [
+            { "type": "Epée", "quantite": 2 }
+          ]
+        }
+      },
+      { "face": 3,
+        "nom": "Travaux forcés",
+        "type": "Etat",
+        "description": "Une politique de travail forcé pour augmenter la production de ressources.",
+        "victoire": -3,
+        "ressources": [
+          { "type": "Pierre", "quantite": 2 },
+          { "type": "Métal", "quantite": 2 },
+        ],
+      },
+      { "face": 4,
+        "nom": "Muraille",
+        "type": "Bâtiment",
+        "description": "Une muraille imposante qui protège votre royaume des menaces extérieures, offrant une défense solide contre les attaques ennemies.",
+        "victoire": 3,
+        "ressources": [
+          {
+            "type": [
+              "Epée"
+            ],
+            "quantite": 1
+          }
+        ],
+        "effet": {
+          "type": "Passif",
+          "description": "Reste en jeu"
+        }
+      }
+    ]
+  },
+  { "numero": 74,
+    "faces": [
+      { "face": 1,
+        "nom": "Littoral",
+        "type": "Terrain",
+        "description": "Une zone côtière, riche en ressources maritimes.",
+        "ressources": [
+          { "type": "Or", "quantite": 1 }
+        ],
+        "promotions": [
+          {
+            "face": 2,
+            "cout": [
+              { "type": "Or", "quantite": 1 },
+              { "type": "Bois", "quantite": 3 }
+            ]
+          }
+        ]
+      },
+      { "face": 2,
+        "nom": "Chantier naval",
+        "type": "Bâtiment",
+        "description": "Un chantier naval pour construire des navires et exploiter les ressources maritimes.",
+        "victoire": 3,
+        "ressources": [
+          { "type": [ "Or", "Bois" ], "quantite": 1 }
+        ],
+        "promotion": {
+          "face": 3,
+          "cout": [
+            { "type": "Or", "quantite": 1 },
+            { "type": "Bois", "quantite": 4 }
+          ]
+        }
+      },
+      { "face": 3,
+        "nom": "Navire Marchand",
+        "type": "Maritime - navire",
+        "description": "Un navire marchand pour transporter des ressources maritimes.",
+        "victoire": 6,
+        "ressources": [
+          { "type": ["Or", "Bois", "Marchandise"], "quantite": 1 }
+        ],
+        "promotion": {
+          "face": 4,
+          "cout": [
+            { "type": "Personne", "quantite": 2 },
+            { "type": "Or", "quantite": 1 },
+            { "type": "Bois", "quantite": 2 }
+          ]
+        }
+      },
+      { "face": 4,
+        "nom": "Route commerciale",
+        "type": "Maritime - navire",
+        "description": "Une route commerciale maritime qui permet de transporter des marchandises entre les ports.",
+        "victoire": 13,
+        "ressources": [
+          { "type": [ "Or", "Bois", "Métal", "Marchandise" ], "quantite": 1 }
+        ],
+        "effet": {
+          "type": "Obligatoiref",
+          "description": "Découvrez le pirate",
+          "carte": 76
+        }
+      }
+    ]
+  },
   { "numero": 82,
     "faces": [
       { "face": 1,
