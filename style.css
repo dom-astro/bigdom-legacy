@@ -503,6 +503,9 @@ body.light-mode .sacrifice-choice-btn:hover {
 .btn-activate-action { background: rgba(10,60,80,0.85) !important; border-color: #44bbdd !important; color: #aaeeff !important; font-weight: 700; }
 .btn-activate-action:not(.btn-upgrade-disabled):hover { background: rgba(15,80,110,0.95) !important; box-shadow: 0 0 8px rgba(68,187,221,0.5); }
 body.light-mode .btn-activate-action { background: rgba(30,100,140,0.65) !important; color: #fff !important; border-color: #2288aa !important; }
+.btn-destroy-action { background: rgba(100,20,20,0.85) !important; border-color: #cc4422 !important; color: #ffbbaa !important; font-weight: 700; }
+.btn-destroy-action:hover { background: rgba(150,30,20,0.95) !important; box-shadow: 0 0 8px rgba(200,60,30,0.6) !important; }
+body.light-mode .btn-destroy-action { background: rgba(160,40,20,0.65) !important; color: #fff !important; border-color: #aa3311 !important; }
 
 /* ============================================================
    MODAUX DE CONFIRMATION (Passer le tour / Nouvelle Manche)

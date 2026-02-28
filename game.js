@@ -791,50 +791,128 @@ function _doStageActivate(playIndex, act) {
 //  EFFETS DE DESTRUCTION
 // ============================================================
 
-// Effet Destruction : la carte elle-même est détruite (retirée du jeu).
-// Le joueur choisit ensuite parmi les cartes listées celle à mettre en défausse.
-// Appelé après la promotion, on passe cardInstance (déjà dans discard à ce stade).
-let pendingDestructionChoiceCard = null; // la carte Mine détruite
-
-function applyDestructionEffect(cardInstance) {
+// Vérifie si une carte en jeu a un effet Destruction activable manuellement
+function hasDestructionEffect(cardInstance) {
   const fd = getFaceData(cardInstance);
-  if (!fd.effet) return;
+  if (!fd.effet) return false;
+  const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
+  return effets.some(e => e.type === 'Destruction' && e.cartes && e.cartes.length > 0);
+}
+
+// Déclenché par le bouton "💥 Sacrifier" sur la carte en jeu
+function triggerDestructionEffect(playIndex) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
   const destr = effets.find(e => e.type === 'Destruction');
-  if (!destr || !destr.cartes || destr.cartes.length === 0) return;
+  if (!destr) return;
 
-  const targetNums = destr.cartes; // ex: [84, 85]
+  const targetNums = destr.cartes;
 
-  // Trouver les cartes cibles disponibles dans toutes les zones
-  const available = [];
-  ['play', 'discard', 'deck'].forEach(zone => {
-    gameState[zone].forEach((ci, i) => {
-      if (targetNums.includes(ci.cardDef.numero))
-        available.push({ zone, index: i, ci });
-    });
-  });
+  // Retirer la carte du jeu (sacrifiée)
+  gameState.play.splice(playIndex, 1);
+  updateBanditIndices(playIndex);
+  addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
 
-  // Retirer définitivement la carte Mine du jeu (elle était dans discard après promotion)
-  // On la retire de la défausse pour "destruction"
-  const mineIdx = gameState.discard.indexOf(cardInstance);
-  if (mineIdx >= 0) gameState.discard.splice(mineIdx, 1);
-  addLog(`💥 <span class="log-card">${fd.nom}</span> — détruite par son propre effet !`, true);
+  // Chercher les candidats dans le pool de découverte par effet
+  const discoverCandidates = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
+    .filter(cardDef =>
+      targetNums.includes(cardDef.numero) &&
+      !(gameState.discoveredByEffect && gameState.discoveredByEffect.has(cardDef.numero))
+    );
 
-  if (available.length === 0) {
-    addLog(`🔴 Aucune carte cible (#${targetNums.join(', #')}) trouvée — effet ignoré.`);
-    return;
-  }
-
-  if (available.length === 1) {
-    // Une seule option : défausser automatiquement
-    moveToDiscard(available[0]);
-    addLog(`🎯 <span class="log-card">${getFaceData(available[0].ci).nom}</span> — mise en défausse par effet Destruction.`, true);
+  if (discoverCandidates.length > 0) {
+    // Découvrir une carte du pool
+    if (discoverCandidates.length === 1) {
+      _discoverByEffect(discoverCandidates[0]);
+    } else {
+      _showDiscoverByEffectModal(discoverCandidates, fd.nom);
+    }
   } else {
-    // Plusieurs options : le joueur choisit
-    pendingDestructionChoiceCard = cardInstance;
-    updateUI();
-    showDestructionChoiceModal(available);
+    // Cibler une carte existante du royaume pour la défausser
+    const available = [];
+    ['play', 'discard', 'deck'].forEach(zone => {
+      gameState[zone].forEach(ci => {
+        if (targetNums.includes(ci.cardDef.numero))
+          available.push({ zone, ci });
+      });
+    });
+
+    if (available.length === 0) {
+      addLog(`📦 Aucune carte cible (#${targetNums.join(', #')}) disponible.`);
+    } else if (available.length === 1) {
+      moveToDiscard(available[0]);
+      addLog(`🎯 <span class="log-card">${getFaceData(available[0].ci).nom}</span> — défaussée.`, true);
+    } else {
+      window._destructionTargets = available;
+      showDestructionChoiceModal(available);
+    }
   }
+  updateUI();
+}
+
+// Appelé après une promotion si la nouvelle face a un effet Destruction automatique
+// (conservé pour compatibilité mais ne s'applique plus aux cartes avec choix manuel)
+function applyDestructionEffect(cardInstance) {
+  // Les cartes avec effet Destruction ont maintenant un bouton manuel —
+  // cette fonction ne s'exécute plus automatiquement après promotion
+  // (les cartes #5-8 face 4 utilisent triggerDestructionEffect via le bouton)
+}
+
+function _discoverByEffect(cardDef) {
+  if (!gameState.discoveredByEffect) gameState.discoveredByEffect = new Set();
+  gameState.discoveredByEffect.add(cardDef.numero);
+  const newInstance = createCardInstance(cardDef);
+  gameState.discard.push(newInstance);
+  if (!ALL_CARDS.find(c => c.numero === cardDef.numero)) {
+    ALL_CARDS.push(cardDef);
+  }
+  const face = getFaceData(newInstance);
+  addLog(`✨ <span class="log-card">${face.nom}</span> (#${cardDef.numero}) — découverte et ajoutée à votre défausse !`, true);
+  updateUI();
+}
+
+function _showDiscoverByEffectModal(candidates, sourceName) {
+  const typeColors = { Personne:'#2a4a7a', Terrain:'#1e4a1a', Bâtiment:'#5a4a3a', Batiment:'#5a4a3a', Ennemi:'#5a0a0a' };
+
+  const html = candidates.map((cardDef, i) => {
+    const face = cardDef.faces[0];
+    const bg = typeColors[face.type] || '#3a3a3a';
+    const resHTML = (face.ressources || []).map(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+    }).join('');
+    const fameHTML = face.victoire ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire} Gloire</div>` : '';
+    const facesTotal = cardDef.faces.length;
+
+    return `<button onclick="confirmDiscoverByEffect(${i})" style="
+        width:100%;text-align:left;background:linear-gradient(135deg,#1a1408,#0e0e06);
+        border:2px solid ${bg};border-radius:10px;padding:12px 14px;margin-bottom:10px;
+        cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color 0.2s;
+      " onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='${bg}'">
+      <div style="font-size:2.2rem;">${getCardEmoji(face.type, face.nom)}</div>
+      <div style="flex:1;">
+        <div style="font-family:'Cinzel',serif;font-weight:700;color:var(--gold-light);font-size:0.85rem;">${face.nom}</div>
+        <div style="display:inline-block;background:${bg};border-radius:3px;padding:1px 8px;font-size:0.55rem;font-family:'Cinzel',serif;color:#fff;margin:4px 0;">${face.type}</div>
+        <div>${resHTML}</div>
+        ${fameHTML}
+        <div style="font-size:0.6rem;color:#888;margin-top:3px;">#${cardDef.numero} · ${facesTotal} face${facesTotal>1?'s':''}</div>
+      </div>
+    </button>`;
+  }).join('');
+
+  $('#discoverByEffectTitle').text(`✨ Sacrifice de ${sourceName}`);
+  $('#discoverByEffectSubtitle').text('Choisissez la carte à découvrir et ajouter à votre défausse :');
+  $('#discoverByEffectBody').html(html);
+  window._discoverByEffectCandidates = candidates;
+  new bootstrap.Modal(document.getElementById('discoverByEffectModal')).show();
+}
+
+function confirmDiscoverByEffect(idx) {
+  bootstrap.Modal.getInstance(document.getElementById('discoverByEffectModal'))?.hide();
+  const candidates = window._discoverByEffectCandidates || [];
+  window._discoverByEffectCandidates = null;
+  if (candidates[idx]) _discoverByEffect(candidates[idx]);
 }
 
 function moveToDiscard(target) {
@@ -864,10 +942,12 @@ function confirmDestructionChoice(idx) {
   const target = (window._destructionTargets || [])[idx];
   if (!target) return;
   moveToDiscard(target);
-  addLog(`🎯 <span class="log-card">${getFaceData(target.ci).nom}</span> (#${target.ci.cardDef.numero}) — défaussée par effet Destruction.`, true);
+  addLog(`🎯 <span class="log-card">${getFaceData(target.ci).nom}</span> (#${target.ci.cardDef.numero}) — défaussée.`, true);
   window._destructionTargets = null;
   updateUI();
 }
+
+
 
 // ============================================================
 //  STAGING — mise en attente sans application immédiate
@@ -1373,6 +1453,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   // Boutons d'action
   const hasActivable = hasActivableEffect(cardInstance);
   const canActivate = hasActivable && canActivateEffect(cardInstance);
+  const hasDestruction = hasDestructionEffect(cardInstance);
   const actionBtns = [];
   if (banditCard) {
     if (canDefeat) {
@@ -1383,6 +1464,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   } else if (!blocked) {
     if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${playIndex})">⚒ Prod.</button>`);
     if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${playIndex})" title="Effet activable">🟢 Activer</button>`);
+    if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${playIndex})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})">▲ Prom.</button>`);
   } else {
     // Carte bloquée : seule la promotion est possible (pas la production)

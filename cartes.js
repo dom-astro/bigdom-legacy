@@ -508,6 +508,7 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
+          "description": "Décrouvrez une mine",
           "cartes": [
             84,
             85
@@ -628,6 +629,7 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
+          "description": "Décrouvrez une mine",
           "cartes": [
             84,
             85
