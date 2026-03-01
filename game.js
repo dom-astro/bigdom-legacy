@@ -55,7 +55,7 @@ function initGame() {
     box: boxCards, nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
-    bandits: [],
+    bandits: [], _heritageTriggered: false,
   };
 
   updateUI();
@@ -1240,6 +1240,231 @@ function endTurn() {
 // Données en attente pendant l'inspection des nouvelles cartes
 let _pendingNewRound = null;
 
+// ============================================================
+//  HÉRITAGE — Cartes level-1 (23-27)
+// ============================================================
+
+// Convertit une carte level-1 en cardInstance compatible avec le système
+function _buildLevel1CardInstance(cardData) {
+  // Créer un cardDef compatible avec getFaceData (faces obligatoires)
+  let faces;
+  if (cardData.faces) {
+    // Progression (25, 26, 27) — faces minimalistes
+    faces = cardData.faces.map(f => ({
+      face: f.face,
+      nom: `${cardData.nom} (Niv. ${f.face})`,
+      type: cardData.type,
+      description: cardData.description || '',
+      ressources: [],
+    }));
+  } else if (cardData.effet) {
+    // Parchemin (24) avec effets permanents
+    faces = [{
+      face: 1,
+      nom: cardData.nom,
+      type: cardData.type || 'Parchemin',
+      description: cardData.description || '',
+      ressources: [],
+      effet: { type: 'Passif', description: 'Reste en jeu', ...{} },
+    }];
+  } else {
+    faces = [{
+      face: 1,
+      nom: cardData.nom || `Carte #${cardData.numero}`,
+      type: cardData.type || 'Règle',
+      description: cardData.description || '',
+      ressources: [],
+    }];
+  }
+  const cardDef = { numero: cardData.numero, nom: cardData.nom, type: cardData.type, faces, _level1: cardData };
+  cardStateMap[cardDef.numero] = 1;
+  return { cardDef, currentFace: 1 };
+}
+
+// Affiche le modal de la Règle Héritage (carte #23)
+function _showHeritageRuleModal(allCards) {
+  const rule23 = LEVEL1_CARDS.find(c => c.numero === 23);
+  if (!rule23) { _continueNewRoundAfterHeritage(allCards); return; }
+
+  const desc = rule23.description || '';
+  const html = `
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:3rem;margin-bottom:8px;">📜</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--stone);letter-spacing:2px;margin-bottom:4px;">CARTE #23 — RÈGLE</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.1rem;color:var(--gold-light);margin-bottom:12px;">L'Héritage du Royaume</div>
+    </div>
+    <div style="
+      background:linear-gradient(160deg,#1a1208,#100e06);
+      border:1px solid var(--border-ornate);
+      border-radius:10px;padding:20px 22px;
+      font-family:'Crimson Text',serif;font-size:0.95rem;
+      color:var(--parchment);line-height:1.7;
+      white-space:pre-wrap;">
+${desc.trim()}
+    </div>
+    <p style="text-align:center;margin-top:16px;font-family:'Crimson Text',serif;font-size:0.8rem;color:#aa8866;font-style:italic;">
+      ⚠️ Une fois engagé dans la voie de l'Héritage, le jeu ne peut plus être réinitialisé.
+    </p>`;
+
+  document.getElementById('heritageRuleBody').innerHTML = html;
+  window._heritageAllCards = allCards;
+  new bootstrap.Modal(document.getElementById('heritageRuleModal')).show();
+}
+
+// File d'inspection des cartes 24-27 : { allCards, queue: [cardData,...], currentIndex }
+let _heritageInspectState = null;
+
+// Appelé quand le joueur clique "J'ai lu la règle" dans le modal #23
+// Lance l'inspection une par une des cartes 24-27
+function confirmHeritageRule() {
+  bootstrap.Modal.getInstance(document.getElementById('heritageRuleModal'))?.hide();
+  const allCards = window._heritageAllCards;
+  window._heritageAllCards = null;
+
+  const queue = [24, 25, 26, 27]
+    .map(num => LEVEL1_CARDS.find(c => c.numero === num))
+    .filter(Boolean);
+
+  _heritageInspectState = { allCards, queue, currentIndex: 0 };
+  _showNextHeritageCard();
+}
+
+// Affiche la carte courante de la file d'inspection
+function _showNextHeritageCard() {
+  const state = _heritageInspectState;
+  if (!state || state.currentIndex >= state.queue.length) {
+    // Toutes les cartes inspectées → continuer le jeu
+    _heritageInspectState = null;
+    _continueNewRoundAfterHeritage(state ? state.allCards : []);
+    return;
+  }
+
+  const cardData = state.queue[state.currentIndex];
+  const isLast   = state.currentIndex === state.queue.length - 1;
+  const progress = `${state.currentIndex + 1} / ${state.queue.length}`;
+
+  // Icônes et couleurs selon le type
+  const typeIcons  = { Parchemin: '📜', Progression: '📈', Règle: '⚖️' };
+  const typeColors = { Parchemin: '#c8960c', Progression: '#4a8abf', Règle: '#9a6abf' };
+  const emoji      = typeIcons[cardData.type]  || '📜';
+  const color      = typeColors[cardData.type] || '#c8960c';
+
+  // Effets permanents (carte 24 — Parchemin)
+  let effetHTML = '';
+  if (cardData.effet && Array.isArray(cardData.effet)) {
+    effetHTML = `
+      <div style="margin-top:16px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:${color};letter-spacing:2px;margin-bottom:8px;">EFFETS PERMANENTS</div>
+        ${cardData.effet.map(e => `
+          <div style="
+            background:rgba(0,0,0,0.3);border-left:3px solid ${color};
+            border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:8px;
+            font-family:'Crimson Text',serif;font-size:0.9rem;color:var(--parchment);line-height:1.5;">
+            ✦ ${e.description || e.type}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // Niveaux (cartes Progression 25-27)
+  let facesHTML = '';
+  if (cardData.faces && cardData.faces.length) {
+    facesHTML = `
+      <div style="margin-top:16px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:${color};letter-spacing:2px;margin-bottom:8px;">NIVEAUX DE PROGRESSION</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          ${cardData.faces.map(f => `
+            <div style="
+              background:rgba(0,0,0,0.3);border:1px solid ${color}55;
+              border-radius:8px;padding:10px 18px;text-align:center;
+              font-family:'Cinzel',serif;font-size:0.75rem;color:#f5e6c8;">
+              <div style="font-size:1.4rem;margin-bottom:4px;">🔒</div>
+              Niveau ${f.face}
+            </div>`).join('')}
+        </div>
+        <p style="font-family:'Crimson Text',serif;font-size:0.78rem;color:#888;font-style:italic;text-align:center;margin-top:10px;">
+          Ces niveaux se débloquent au fil des manches de la voie Héritage.
+        </p>
+      </div>`;
+  }
+
+  const bodyHTML = `
+    <!-- Barre de progression -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <div style="flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${((state.currentIndex)/state.queue.length)*100}%;background:${color};border-radius:2px;transition:width 0.4s;"></div>
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#888;white-space:nowrap;">${progress}</div>
+    </div>
+
+    <!-- En-tête carte -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:3.5rem;margin-bottom:8px;filter:drop-shadow(0 0 10px ${color}88);">${emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;color:#666;letter-spacing:2px;margin-bottom:4px;">CARTE #${cardData.numero} — ${cardData.type.toUpperCase()}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.2rem;color:${color};margin-bottom:6px;">${cardData.nom || '#' + cardData.numero}</div>
+      <div style="display:inline-block;background:${color}22;border:1px solid ${color}55;border-radius:20px;padding:3px 14px;font-family:'Crimson Text',serif;font-size:0.75rem;color:${color};">
+        ${cardData.type}
+      </div>
+    </div>
+
+    ${effetHTML}
+    ${facesHTML}
+
+    <div style="text-align:center;margin-top:18px;font-family:'Crimson Text',serif;font-size:0.78rem;color:#aa8866;font-style:italic;">
+      Cette carte rejoindra vos <strong>Permanentes</strong> dès que vous cliquerez sur le bouton ci-dessous.
+    </div>`;
+
+  document.getElementById('heritageInspectBody').innerHTML = bodyHTML;
+
+  // Bouton : libellé dynamique
+  const btnLabel = isLast
+    ? `⚜ Ajouter aux permanentes & Continuer`
+    : `⚜ Ajouter aux permanentes & Carte suivante →`;
+  document.getElementById('heritageInspectBtn').textContent = btnLabel;
+
+  // Titre du modal
+  document.getElementById('heritageInspectTitle').textContent =
+    `Carte #${cardData.numero} — ${cardData.nom || cardData.type}`;
+
+  new bootstrap.Modal(document.getElementById('heritageInspectModal')).show();
+}
+
+// Le joueur confirme l'inspection de la carte courante
+function confirmHeritageInspect() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById('heritageInspectModal'));
+  modal?.hide();
+
+  const state = _heritageInspectState;
+  if (!state) return;
+
+  const cardData = state.queue[state.currentIndex];
+
+  // Ajouter la carte en permanente immédiatement
+  const ci = _buildLevel1CardInstance(cardData);
+  if (!ALL_CARDS.find(c => c.numero === cardData.numero)) ALL_CARDS.push(ci.cardDef);
+  gameState.permanent.push(ci);
+  addLog(`🏛 <span class="log-card">${cardData.nom || '#' + cardData.numero}</span> — ajoutée aux permanentes (Héritage) !`, true);
+  updateUI();
+
+  state.currentIndex++;
+
+  // Attendre que le modal soit fermé avant d'ouvrir le suivant
+  document.getElementById('heritageInspectModal').addEventListener('hidden.bs.modal', function handler() {
+    document.getElementById('heritageInspectModal').removeEventListener('hidden.bs.modal', handler);
+    _showNextHeritageCard();
+  });
+}
+
+function _continueNewRoundAfterHeritage(allCards) {
+  const discovered = discoverNextCards(2);
+  if (discovered.length === 0) {
+    addLog(`📦 Toutes les cartes ont été découvertes.`);
+    _finalizeNewRound(allCards, []);
+    return;
+  }
+  _pendingNewRound = { allCards, discovered };
+  _showNewCardsModal(discovered);
+}
+
 function newRound() {
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
   gameState.staging = [];
@@ -1247,10 +1472,26 @@ function newRound() {
   gameState.play.forEach(c => gameState.discard.push(c));
   gameState.play = [];
 
-  const allCards = [...gameState.deck, ...gameState.discard, ...gameState.permanent];
-  gameState.permanent = []; gameState.discard = []; gameState.deck = [];
+  // Séparer les permanentes normales des permanentes Héritage (level-1)
+  const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
+  const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
+
+  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms];
+  gameState.permanent = [...heritagePerms]; // Les cartes Héritage restent permanentes !
+  gameState.discard = []; gameState.deck = [];
   clearResources();
   updateUI();
+
+  // ── HÉRITAGE : détecter la manche à 22 cartes ──
+  // allCards contient les cartes du royaume actuel (sans les permanentes level-1 déjà exclues)
+  // On compte uniquement les cartes numérotées 1-22 pour détecter le seuil
+  const stdCards = allCards.filter(ci => ci.cardDef.numero <= 22);
+  if (stdCards.length === 22 && !gameState._heritageTriggered) {
+    gameState._heritageTriggered = true;
+    addLog(`📜 La manche des <strong>22 cartes</strong> s'achève. Une nouvelle règle est révélée...`, true);
+    _showHeritageRuleModal(allCards);
+    return;
+  }
 
   const discovered = discoverNextCards(2);
 
@@ -1554,6 +1795,41 @@ function buildStagingCardHTML(entry, stagingIndex) {
 //  RENDER — permanentes
 // ============================================================
 function buildPermanentCardHTML(cardInstance) {
+  // Rendu spécial pour les cartes Héritage (level-1)
+  if (cardInstance.cardDef._level1) {
+    const rawCard = cardInstance.cardDef._level1;
+    const typeIcons = { Parchemin:'📜', Progression:'📈', Règle:'⚖️' };
+    const typeColors = { Parchemin:'#7a5a0a', Progression:'#3a5a8a', Règle:'#5a3a7a' };
+    const emoji = typeIcons[rawCard.type] || '📜';
+    const color = typeColors[rawCard.type] || '#7a5a0a';
+
+    let effetHTML = '';
+    if (rawCard.effet && Array.isArray(rawCard.effet)) {
+      effetHTML = rawCard.effet.map(e =>
+        `<div style="font-size:0.38rem;color:#c8960c;margin-top:1px;text-align:center;line-height:1.3;">${e.description || e.type}</div>`
+      ).join('');
+    }
+    let facesHTML = '';
+    if (rawCard.faces) {
+      facesHTML = `<div style="font-size:0.38rem;color:#6a9adf;text-align:center;margin-top:2px;">${rawCard.faces.length} niveaux</div>`;
+    }
+
+    return `
+      <div class="card-wrapper">
+        <div class="card-front card-permanent" title="Carte Héritage — reste en jeu définitivement"
+             style="border-color:${color};background:linear-gradient(160deg,#1a1008,#0e0a04);">
+          <div class="card-serial" style="font-size:0.45rem;color:#c8960c;">#${rawCard.numero}</div>
+          <div class="card-name" style="font-size:0.5rem;color:#f0c040;">${rawCard.nom || '#' + rawCard.numero}</div>
+          <span class="card-type-badge" style="font-size:0.38rem;background:${color};">${rawCard.type}</span>
+          <div class="card-img-area" style="font-size:1.3rem;flex:1;">${emoji}</div>
+          ${effetHTML}
+          ${facesHTML}
+          <div style="text-align:center;font-size:0.38rem;color:#c8960c;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>
+        </div>
+      </div>`;
+  }
+
+  // Rendu normal
   const face = getFaceData(cardInstance);
   const resHTML = (face.ressources||[]).map(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
@@ -1801,6 +2077,7 @@ function exportGame() {
     fame: gameState.fame,
     turnStarted: gameState.turnStarted,
     gameOver: gameState.gameOver,
+    _heritageTriggered: gameState._heritageTriggered || false,
     nextDiscoverIndex: gameState.nextDiscoverIndex,
     resources: { ...gameState.resources },
     cardStateMap: cardStateMap,
@@ -1926,6 +2203,7 @@ function _applyImport(save) {
     turn:        save.turn        || 1,
     turnStarted: save.turnStarted || false,
     gameOver:    save.gameOver    || false,
+    _heritageTriggered: save._heritageTriggered || false,
     bandits,
   };
 
