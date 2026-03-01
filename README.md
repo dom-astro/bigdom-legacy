@@ -1,2 +1,2 @@
-# bigdom-tragedy
+# bigdom-legacy
 Jeu en HTML5
