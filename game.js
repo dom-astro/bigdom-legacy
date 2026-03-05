@@ -2091,6 +2091,9 @@ function updateUI() {
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
   $('#btnPass').prop('disabled', !canPass).css('opacity', canPass ? 1 : 0.4)
     .attr('title', canPass ? '' : 'Aucune carte à jouer');
+
+  // Sauvegarde automatique en session
+  _autosave();
 }
 
 function addLog(msg, important=false) {
@@ -2173,16 +2176,18 @@ function showDiscardPile() {
 //  EXPORT / IMPORT DE PARTIE
 // ============================================================
 
-function exportGame() {
-  // ── Helpers de sérialisation ───────────────────────────────
+// ── Clé localStorage ────────────────────────────────────────
+const SESSION_KEY = 'bigdom-autosave';
 
+// ── Sérialisation partagée (utilisée par exportGame ET _autosave) ─
+function _buildSaveObject() {
   // Filtre les entrées invalides avant de sérialiser
   const serializeCards = (list) =>
     (list || [])
       .filter(ci => ci && ci.cardDef && ci.cardDef.numero != null)
       .map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace || 1 }));
 
-  // Rendu lisible d'une carte : { numéro, face, nom, type }
+  // Rendu lisible d'une carte
   const readableCard = (ci) => {
     if (!ci || !ci.cardDef) return null;
     const face = getFaceData(ci);
@@ -2218,68 +2223,55 @@ function exportGame() {
       };
     });
 
-  // ── Date & intitulé ───────────────────────────────────────
-  const now       = new Date();
-  const dateStr   = now.toLocaleDateString('fr-FR');
-  const timeStr   = now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
-  const kingdom   = gameState.kingdomName || 'Inconnu';
+  const now     = new Date();
+  const kingdom = gameState.kingdomName || 'Inconnu';
 
-  // ── Objet de sauvegarde ───────────────────────────────────
-  const save = {
-    // — Métadonnées —
+  return {
     meta: {
-      version:        2,
-      date:           now.toISOString(),
-      date_lisible:   `${dateStr} à ${timeStr}`,
-      nom_fichier:    `${kingdom} — Manche ${gameState.round} Tour ${gameState.turn}`,
+      version:      2,
+      date:         now.toISOString(),
+      date_lisible: `${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}`,
+      nom_fichier:  `${kingdom} — Manche ${gameState.round} Tour ${gameState.turn}`,
     },
-
-    // — Identité du royaume —
     royaume: {
       nom:    kingdom,
       gloire: gameState.fame,
       manche: gameState.round,
       tour:   gameState.turn,
     },
-
-    // — Ressources actuelles —
     ressources: { ...gameState.resources },
-
-    // — Zones de cartes (lisibles) —
     zones: {
       en_jeu: {
-        label:   'Cartes dans la zone de jeu',
-        nombre:  gameState.play.length,
-        cartes:  readableList(gameState.play),
+        label:  'Cartes dans la zone de jeu',
+        nombre: gameState.play.length,
+        cartes: readableList(gameState.play),
       },
       en_attente: {
-        label:   'Cartes en attente de confirmation (staging)',
-        nombre:  gameState.staging.length,
-        cartes:  readableStaging(gameState.staging),
+        label:  'Cartes en attente de confirmation (staging)',
+        nombre: gameState.staging.length,
+        cartes: readableStaging(gameState.staging),
       },
       permanentes: {
-        label:   'Cartes permanentes',
-        nombre:  gameState.permanent.length,
-        cartes:  readableList(gameState.permanent),
+        label:  'Cartes permanentes',
+        nombre: gameState.permanent.length,
+        cartes: readableList(gameState.permanent),
       },
       defaussees: {
-        label:   'Cartes défaussées',
-        nombre:  gameState.discard.length,
-        cartes:  readableList(gameState.discard),
+        label:  'Cartes défaussées',
+        nombre: gameState.discard.length,
+        cartes: readableList(gameState.discard),
       },
       detruites: {
-        label:   'Cartes détruites / sacrifiées',
-        nombre:  (gameState.destroyed || []).length,
-        cartes:  readableList(gameState.destroyed || []),
+        label:  'Cartes détruites / sacrifiées',
+        nombre: (gameState.destroyed || []).length,
+        cartes: readableList(gameState.destroyed || []),
       },
       pioche: {
-        label:   'Cartes en pioche (ordre non garanti)',
-        nombre:  gameState.deck.length,
-        cartes:  readableList(gameState.deck),
+        label:  'Cartes en pioche (ordre non garanti)',
+        nombre: gameState.deck.length,
+        cartes: readableList(gameState.deck),
       },
     },
-
-    // — Données techniques (nécessaires pour le rechargement) —
     _tech: {
       v: 1,
       turnStarted:        gameState.turnStarted,
@@ -2294,7 +2286,7 @@ function exportGame() {
       permanent:          serializeCards(gameState.permanent),
       destroyed:          serializeCards(gameState.destroyed || []),
       box:                serializeCards(gameState.box),
-      staging: gameState.staging
+      staging: (gameState.staging || [])
         .filter(e => e && e.cardInstance && e.cardInstance.cardDef)
         .map(e => ({
           n: e.cardInstance.cardDef.numero,
@@ -2307,7 +2299,7 @@ function exportGame() {
           sacN: e.sacrificeCardInstance?.cardDef?.numero ?? null,
           sacF: e.sacrificeCardInstance?.currentFace    ?? null,
         })),
-      bandits: gameState.bandits
+      bandits: (gameState.bandits || [])
         .filter(b => b.banditPlayIndex != null && gameState.play[b.banditPlayIndex] != null)
         .map(b => ({
           bN:  gameState.play[b.banditPlayIndex].cardDef.numero,
@@ -2317,9 +2309,42 @@ function exportGame() {
         })),
     },
   };
+}
+
+// ── Sauvegarde automatique silencieuse en localStorage ──────
+function _autosave() {
+  if (!gameState.kingdomName) return; // partie pas encore nommée
+  try {
+    const save = _buildSaveObject();
+    localStorage.setItem(SESSION_KEY, JSON.stringify(save));
+  } catch (e) {
+    // localStorage peut être saturé ou désactivé — on ignore silencieusement
+    console.warn('Autosave localStorage échoué :', e);
+  }
+}
+
+// ── Restauration de la session au chargement de la page ───────
+function _restoreAutosave() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const save = JSON.parse(raw);
+    if (!save || !save._tech) return false;
+    _applyImport(save);
+    addLog(`🔄 Session restaurée automatiquement — <strong>${gameState.kingdomName}</strong>.`, true);
+    return true;
+  } catch (e) {
+    console.warn('Restauration session échouée :', e);
+    return false;
+  }
+}
+
+function exportGame() {
+  const save = _buildSaveObject();
 
   // ── Téléchargement ────────────────────────────────────────
-  const slug     = kingdom.normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // retirer accents
+  const kingdom  = gameState.kingdomName || 'royaume';
+  const slug     = kingdom.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
                           .replace(/[^a-zA-Z0-9 ]/g,'').trim()
                           .replace(/\s+/g,'-').toLowerCase();
   const filename = `${slug}-m${gameState.round}-t${gameState.turn}.json`;
@@ -2445,4 +2470,10 @@ function _applyImport(raw) {
 // ============================================================
 //  INIT
 // ============================================================
-$(document).ready(function() { initGame(); });
+$(document).ready(function() {
+  // Si une session existe, la restaurer silencieusement
+  if (!_restoreAutosave()) {
+    // Sinon, démarrer une nouvelle partie
+    initGame();
+  }
+});
