@@ -45,6 +45,11 @@
   <div class="game-header">
     <div class="game-title">⚔ Bigdom Legacy ⚔</div>
     <div class="game-subtitle">Un jeu de construction et de découverte</div>
+    <div id="kingdomNameDisplay" style="
+      font-family:'Crimson Text',serif;font-style:italic;
+      font-size:0.95rem;color:var(--gold);opacity:0.75;
+      margin-top:2px;letter-spacing:1px;min-height:1.2em;">
+    </div>
     <div class="header-divider"></div>
     <div class="round-badge" id="roundBadge">Manche 1 — Tour 1</div>
   </div>
@@ -163,6 +168,114 @@
 
   </div><!-- end game-layout -->
 
+</div>
+
+<!-- KINGDOM NAME MODAL -->
+<div class="modal fade" id="kingdomNameModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#100e08,#0a0806);
+      border:3px solid var(--border-ornate);
+      box-shadow:0 0 60px rgba(200,150,12,0.2),0 0 0 1px rgba(200,150,12,0.08);">
+
+      <!-- Bandeau décoratif haut -->
+      <div style="
+        height:4px;
+        background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);
+        border-radius:2px 2px 0 0;">
+      </div>
+
+      <div style="padding:32px 32px 10px;text-align:center;">
+        <!-- Emblème -->
+        <div style="
+          font-size:3.5rem;margin-bottom:12px;
+          filter:drop-shadow(0 0 16px rgba(200,150,12,0.5));">
+          🏰
+        </div>
+        <div style="
+          font-family:'Cinzel',serif;font-size:0.58rem;
+          color:var(--stone);letter-spacing:4px;
+          text-transform:uppercase;margin-bottom:8px;">
+          Fondation du Royaume
+        </div>
+        <h4 style="
+          font-family:'Cinzel',serif;font-weight:900;
+          font-size:1.3rem;color:var(--gold-light);
+          letter-spacing:2px;margin:0 0 6px;">
+          Quel est le nom<br>de votre royaume ?
+        </h4>
+        <p style="
+          font-family:'Crimson Text',serif;font-style:italic;
+          font-size:0.9rem;color:var(--stone-light);margin:0;">
+          Ce nom sera gravé dans les annales de votre règne.
+        </p>
+      </div>
+
+      <div style="padding:20px 32px;">
+        <!-- Champ de saisie -->
+        <div style="position:relative;margin-bottom:16px;">
+          <input
+            id="kingdomNameInput"
+            type="text"
+            maxlength="32"
+            autocomplete="off"
+            spellcheck="false"
+            onkeydown="if(event.key==='Enter') confirmKingdomName()"
+            style="
+              width:100%;
+              font-family:'Cinzel',serif;font-size:1rem;font-weight:600;
+              color:var(--gold-light);text-align:center;letter-spacing:1px;
+              background:rgba(0,0,0,0.4);
+              border:2px solid var(--border-ornate);border-radius:8px;
+              padding:14px 50px 14px 16px;
+              outline:none;box-sizing:border-box;
+              transition:border-color 0.2s,box-shadow 0.2s;"
+            onfocus="this.style.borderColor='var(--gold)';this.style.boxShadow='0 0 12px rgba(200,150,12,0.3)'"
+            onblur="this.style.borderColor='var(--border-ornate)';this.style.boxShadow='none'"
+            placeholder="Nom de votre royaume…">
+          <!-- Bouton dé -->
+          <button onclick="rollKingdomName()" title="Suggestion aléatoire" style="
+            position:absolute;right:10px;top:50%;transform:translateY(-50%);
+            background:none;border:none;cursor:pointer;
+            font-size:1.3rem;opacity:0.6;transition:opacity 0.2s,transform 0.2s;
+            padding:4px;"
+            onmouseover="this.style.opacity='1';this.style.transform='translateY(-50%) rotate(180deg)'"
+            onmouseout="this.style.opacity='0.6';this.style.transform='translateY(-50%) rotate(0deg)'">
+            🎲
+          </button>
+        </div>
+
+        <!-- Suggestion -->
+        <p style="
+          font-family:'Crimson Text',serif;font-style:italic;
+          font-size:0.78rem;color:#666;text-align:center;margin:0 0 20px;">
+          Suggestion : <span id="kingdomSuggestion" style="color:#888;">—</span>
+        </p>
+
+        <!-- Bouton confirmer -->
+        <button onclick="confirmKingdomName()" style="
+          width:100%;
+          font-family:'Cinzel',serif;font-weight:700;
+          font-size:0.88rem;letter-spacing:2px;text-transform:uppercase;
+          background:linear-gradient(135deg,#7a4a08,#c8960c,#7a4a08);
+          border:2px solid #f0c040;border-radius:8px;
+          color:#1a0e04;padding:14px;cursor:pointer;
+          box-shadow:0 4px 20px rgba(200,150,12,0.35);
+          transition:all 0.2s;"
+          onmouseover="this.style.boxShadow='0 6px 24px rgba(200,150,12,0.55)';this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.boxShadow='0 4px 20px rgba(200,150,12,0.35)';this.style.transform='none'">
+          ⚜ &nbsp;Fonder le Royaume&nbsp; ⚜
+        </button>
+      </div>
+
+      <!-- Bandeau décoratif bas -->
+      <div style="
+        height:4px;
+        background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);
+        border-radius:0 0 2px 2px;margin-top:8px;">
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- CARD DETAIL MODAL -->
