@@ -1570,6 +1570,192 @@ function _continueNewRoundAfterHeritage(allCards) {
   _showNewCardsModal(discovered);
 }
 
+// ============================================================
+//  CARTE 25 — ARMÉE / GRANDE ARMÉE
+// ============================================================
+
+// État de progression de la carte 25 (persisté dans gameState)
+// gameState.armeeProgress = { face: 1|2, casesMarquees: 0 }
+
+function _getArmeeCard() {
+  return gameState.permanent.find(ci => ci.cardDef.numero === 25) || null;
+}
+
+function _getArmeeData(face) {
+  const raw = LEVEL1_CARDS.find(c => c.numero === 25);
+  if (!raw || !raw.faces) return null;
+  return raw.faces.find(f => f.face === face) || null;
+}
+
+function _getArmeeProgress() {
+  if (!gameState.armeeProgress) gameState.armeeProgress = { face: 1, casesMarquees: 0 };
+  return gameState.armeeProgress;
+}
+
+// Ouvre le modal d'investissement pour la carte Armée
+function openArmeeModal() {
+  const prog = _getArmeeProgress();
+  const faceData = _getArmeeData(prog.face);
+  if (!faceData) return;
+
+  const cases       = faceData.cases || [];
+  const nextIndex   = prog.casesMarquees; // prochain slot à marquer (0-based)
+  const nextCase    = cases[nextIndex];
+  const projected   = getProjectedResources();
+  const epeesDispo  = projected['Epée'] || 0;
+
+  const nomCarte    = prog.face === 1 ? '⚔️ Armée' : '⚔️ Grande Armée';
+  const glBonus     = faceData.gloire_bonus || 0;
+  const glorieActuelle = glBonus + (nextIndex > 0 ? cases[nextIndex - 1].gloire : 0);
+
+  // Construction HTML des cases
+  let casesHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:16px 0;">';
+  cases.forEach((c, i) => {
+    const marked  = i < prog.casesMarquees;
+    const isCurrent = i === nextIndex;
+    const locked  = i > nextIndex;
+    let bg, border, textColor;
+    if (marked)       { bg = 'linear-gradient(135deg,#3a5a1a,#5a8a2a)'; border = '#8acc44'; textColor = '#ccff88'; }
+    else if (isCurrent) { bg = 'linear-gradient(135deg,#3a3010,#7a6020)'; border = '#f0c040'; textColor = '#f0c040'; }
+    else               { bg = 'rgba(0,0,0,0.3)'; border = '#444'; textColor = '#666'; }
+
+    const icon = marked ? '✓' : isCurrent ? '▶' : '🔒';
+    const isPromote = c.promotion;
+    casesHTML += `
+      <div style="
+        background:${bg};border:2px solid ${border};border-radius:8px;
+        padding:8px 10px;text-align:center;min-width:58px;
+        opacity:${locked ? 0.4 : 1};">
+        <div style="font-size:0.6rem;color:${textColor};font-family:'Cinzel',serif;">${icon} Case ${c.index}</div>
+        <div style="font-size:0.7rem;color:#fff;margin:3px 0;">${c.cout_epee}⚔️</div>
+        ${isPromote
+          ? '<div style="font-size:0.65rem;color:#f0c040;">🔱 Promo</div>'
+          : `<div style="font-size:0.75rem;color:#f0c040;font-weight:bold;">★${c.gloire}</div>`}
+      </div>`;
+  });
+  casesHTML += '</div>';
+
+  const canMark  = nextCase && epeesDispo >= nextCase.cout_epee;
+  const allDone  = nextIndex >= cases.length;
+
+  let actionHTML = '';
+  if (allDone) {
+    actionHTML = `<p style="text-align:center;font-family:'Cinzel',serif;font-size:0.8rem;color:#8acc44;">✅ Toutes les cases sont marquées !</p>`;
+  } else {
+    actionHTML = `
+      <div style="
+        background:rgba(0,0,0,0.3);border:1px solid ${canMark ? '#f0c040' : '#444'};
+        border-radius:10px;padding:14px;text-align:center;margin-top:8px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Prochaine case</div>
+        <div style="font-size:1.1rem;color:#fff;margin-bottom:4px;">
+          Coût : <strong style="color:#f5c842;">${nextCase.cout_epee} ⚔️</strong>
+        </div>
+        <div style="font-size:0.9rem;color:#f0c040;">
+          ${nextCase.promotion ? '🔱 Promotion → Grande Armée + découverte #135' : `Gain : ★ ${nextCase.gloire} gloire`}
+        </div>
+        <div style="font-size:0.75rem;color:${canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
+          ${canMark ? `✅ Vous avez ${epeesDispo}⚔️ — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_epee}⚔️ (vous avez ${epeesDispo})`}
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:14px;">
+        <button onclick="confirmArmeeCase()" ${canMark ? '' : 'disabled'} style="
+          font-family:'Cinzel',serif;font-weight:700;font-size:0.8rem;
+          letter-spacing:1px;text-transform:uppercase;
+          background:${canMark ? 'linear-gradient(135deg,#5a3a08,#c8960c,#5a3a08)' : 'rgba(0,0,0,0.4)'};
+          border:2px solid ${canMark ? '#f0c040' : '#444'};
+          color:${canMark ? '#1a0e04' : '#666'};
+          padding:10px 28px;border-radius:6px;cursor:${canMark ? 'pointer' : 'not-allowed'};
+          transition:all 0.2s;">
+          ⚔️ Marquer la case ${nextCase.index}
+        </button>
+      </div>`;
+  }
+
+  const body = `
+    <div style="text-align:center;margin-bottom:10px;">
+      <div style="font-size:0.6rem;font-family:'Cinzel',serif;color:#888;letter-spacing:2px;">CARTE #25 — PERMANENTE</div>
+      <div style="font-size:0.75rem;font-family:'Cinzel',serif;color:#aaa;margin-top:4px;font-style:italic;">${faceData.description}</div>
+    </div>
+    <div style="text-align:center;font-family:'Cinzel',serif;font-size:0.75rem;color:#f0c040;margin-bottom:4px;">
+      Gloire actuelle de la carte : <strong>★ ${glorieActuelle}</strong>
+      ${glBonus ? `<span style="color:#aaa;font-size:0.65rem;"> (bonus ${glBonus} + case)</span>` : ''}
+    </div>
+    ${casesHTML}
+    ${actionHTML}`;
+
+  document.getElementById('armeeModalTitle').textContent = nomCarte;
+  document.getElementById('armeeModalBody').innerHTML = body;
+  new bootstrap.Modal(document.getElementById('armeeModal')).show();
+}
+
+// Confirme le marquage de la prochaine case
+function confirmArmeeCase() {
+  bootstrap.Modal.getInstance(document.getElementById('armeeModal'))?.hide();
+
+  const prog     = _getArmeeProgress();
+  const faceData = _getArmeeData(prog.face);
+  if (!faceData) return;
+  const cases    = faceData.cases || [];
+  const nextCase = cases[prog.casesMarquees];
+  if (!nextCase) return;
+
+  // Dépenser les épées
+  gameState.resources['Epée'] = Math.max(0, (gameState.resources['Epée'] || 0) - nextCase.cout_epee);
+
+  prog.casesMarquees++;
+
+  if (nextCase.promotion) {
+    // Dernière case face 1 → promotion vers Grande Armée
+    prog.face = 2;
+    prog.casesMarquees = 0;
+    addLog(`🔱 <span class="log-card">Armée</span> → <span class="log-card">Grande Armée</span> ! -${nextCase.cout_epee}⚔️`, true);
+
+    // Découvrir la carte #135 si elle existe
+    if (nextCase.decouverte) {
+      const discovered = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
+        .find(c => c.numero === nextCase.decouverte);
+      if (discovered) {
+        _discoverByEffect(discovered);
+        addLog(`🗺️ État Vassal (#${nextCase.decouverte}) — découvert !`, true);
+      } else {
+        addLog(`📦 Carte #${nextCase.decouverte} (État Vassal) introuvable dans la boîte.`);
+      }
+    }
+  } else {
+    const gloire = nextCase.gloire;
+    const bonus  = faceData.gloire_bonus || 0;
+    const total  = bonus + gloire;
+    addLog(`⚔️ <span class="log-card">${faceData.nom}</span> — case ${nextCase.index} marquée ! -${nextCase.cout_epee}⚔️ ★${total} gloire`, true);
+  }
+
+  // Mise à jour de la gloire effective de la carte (recalcul à chaque fois)
+  _updateArmeeGloire();
+  updateUI();
+}
+
+// Recalcule et applique la gloire de la carte Armée dans gameState.fame
+// La gloire Armée remplace l'ancienne valeur Armée (on la traque séparément)
+function _updateArmeeGloire() {
+  const prog     = _getArmeeProgress();
+  const faceData = _getArmeeData(prog.face);
+  if (!faceData) return;
+  const cases    = faceData.cases || [];
+  const bonus    = faceData.gloire_bonus || 0;
+
+  // Gloire de la dernière case marquée
+  const lastMarked = prog.casesMarquees > 0 ? cases[prog.casesMarquees - 1] : null;
+  const newGloire  = bonus + (lastMarked && !lastMarked.promotion ? lastMarked.gloire : 0);
+
+  // Différentiel par rapport à la valeur précédente
+  const prev = gameState.armeeGloirePrev || 0;
+  const diff = newGloire - prev;
+  if (diff !== 0) {
+    gameState.fame = Math.max(0, (gameState.fame || 0) + diff);
+    gameState.armeeGloirePrev = newGloire;
+    if (diff > 0) addLog(`⭐ Gloire Armée +${diff} → Total : ${gameState.fame}`, true);
+  }
+}
+
 function newRound() {
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
   gameState.staging = [];
@@ -1903,6 +2089,52 @@ function buildPermanentCardHTML(cardInstance) {
   // Rendu spécial pour les cartes Héritage (level-1)
   if (cardInstance.cardDef._level1) {
     const rawCard = cardInstance.cardDef._level1;
+
+    // ── Rendu spécial carte 25 — Armée ──────────────────────
+    if (rawCard.numero === 25) {
+      const prog      = _getArmeeProgress();
+      const faceData  = _getArmeeData(prog.face);
+      const cases     = faceData?.cases || [];
+      const total     = cases.length;
+      const marked    = prog.casesMarquees;
+      const bonus     = faceData?.gloire_bonus || 0;
+      const lastCase  = marked > 0 ? cases[marked - 1] : null;
+      const gloire    = bonus + (lastCase && !lastCase.promotion ? lastCase.gloire : 0);
+      const pct       = total > 0 ? Math.round((marked / total) * 100) : 0;
+      const nomAffiche = prog.face === 2 ? 'Grande Armée' : 'Armée';
+      const projected = getProjectedResources();
+      const epees     = projected['Epée'] || 0;
+      const nextCase  = cases[marked];
+      const canMark   = nextCase && epees >= nextCase.cout_epee;
+      const allDone   = marked >= total;
+
+      return `
+        <div class="card-wrapper" style="cursor:pointer;" onclick="openArmeeModal()" title="Cliquer pour investir des Épées">
+          <div class="card-front card-permanent" style="
+            border-color:#cc4444;
+            background:linear-gradient(160deg,#1a0a0a,#0e0606);">
+            <div class="card-serial" style="font-size:0.45rem;color:#ff8888;">#25</div>
+            <div class="card-name" style="font-size:0.5rem;color:#ffaaaa;">${nomAffiche}</div>
+            <span class="card-type-badge" style="font-size:0.38rem;background:#7a1a1a;">Progression</span>
+            <div style="font-size:1.4rem;margin:4px 0;">⚔️</div>
+            <!-- Barre de progression -->
+            <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#cc4444,#ff6666);border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:0.38rem;color:#ff8888;text-align:center;margin:1px 0;">${marked}/${total} cases</div>
+            ${gloire > 0 ? `<div style="font-size:0.48rem;color:#f0c040;text-align:center;">★ ${gloire}</div>` : ''}
+            ${allDone
+              ? '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
+              : canMark
+                ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_epee}⚔️ dispo</div>`
+                : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_epee || '?'}⚔️ requis</div>`
+            }
+            <div style="text-align:center;font-size:0.35rem;color:#cc4444;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>
+          </div>
+        </div>`;
+    }
+
+    // ── Rendu générique Héritage ─────────────────────────────
     const typeIcons = { Parchemin:'📜', Progression:'📈', Règle:'⚖️' };
     const typeColors = { Parchemin:'#7a5a0a', Progression:'#3a5a8a', Règle:'#5a3a7a' };
     const emoji = typeIcons[rawCard.type] || '📜';
@@ -2277,6 +2509,8 @@ function _buildSaveObject() {
       turnStarted:        gameState.turnStarted,
       gameOver:           gameState.gameOver,
       _heritageTriggered: gameState._heritageTriggered || false,
+      armeeProgress:      gameState.armeeProgress || { face:1, casesMarquees:0 },
+      armeeGloirePrev:    gameState.armeeGloirePrev || 0,
       nextDiscoverIndex:  gameState.nextDiscoverIndex,
       cardStateMap:       cardStateMap,
       choiceNeeded:       [...choiceNeeded],
@@ -2453,6 +2687,8 @@ function _applyImport(raw) {
     turnStarted: save.turnStarted || false,
     gameOver:    save.gameOver    || false,
     _heritageTriggered: save._heritageTriggered || false,
+    armeeProgress:      save.armeeProgress      || { face:1, casesMarquees:0 },
+    armeeGloirePrev:    save.armeeGloirePrev     || 0,
     kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',
     bandits,
   };

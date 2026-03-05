@@ -278,6 +278,37 @@
   </div>
 </div>
 
+<!-- ARMÉE MODAL (carte 25 — investissement d'épées) -->
+<div class="modal fade" id="armeeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#120808,#0a0404);
+      border:3px solid #cc4444;
+      box-shadow:0 0 30px rgba(200,60,60,0.25);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:20px 24px 8px;
+        border-bottom:1px solid rgba(200,60,60,0.2);">
+        <div style="font-size:2.4rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(200,60,60,0.5));">⚔️</div>
+        <h5 id="armeeModalTitle" style="
+          font-family:'Cinzel',serif;color:#ffaaaa;
+          font-size:1rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Armée
+        </h5>
+      </div>
+      <div class="modal-body" id="armeeModalBody" style="padding:16px 22px 10px;color:#f5e6c8;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:8px 22px 18px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('armeeModal')).hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #444;color:#888;
+          padding:8px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- CARD DETAIL MODAL -->
 <div class="modal fade" id="cardModal" tabindex="-1">
   <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -446,7 +477,44 @@
           { "type": "Permanent", "description": "Choisissez un bâtiment et augmentez sa production de ressource de un" }
       ]
     },
-    { "numero": 25, "nom": "Armée",    "type": "Progression", "faces": [{ "face": 1 },{ "face": 2 }] },
+    { "numero": 25,
+      "nom": "Armée",
+      "type": "Progression",
+      "description": "Pour conquérir de nouveaux territoires, vous devez entraîner une armée.",
+      "permanent": true,
+      "faces": [
+        {
+          "face": 1,
+          "nom": "Armée",
+          "description": "Cette carte est permanente. Dépensez des ⚔️ pour améliorer votre armée : marquez 1 case de gauche à droite. Quand toutes les cases sont remplies, découvrez l'État Vassal (#135) et cette carte devient Grande Armée. Vaut la gloire de la case la plus haute marquée.",
+          "cases": [
+            { "index": 1,  "cout_epee": 1,  "gloire": 1  },
+            { "index": 2,  "cout_epee": 2,  "gloire": 4  },
+            { "index": 3,  "cout_epee": 3,  "gloire": 7  },
+            { "index": 4,  "cout_epee": 4,  "gloire": 10 },
+            { "index": 5,  "cout_epee": 5,  "gloire": 14 },
+            { "index": 6,  "cout_epee": 6,  "gloire": 19 },
+            { "index": 7,  "cout_epee": 7,  "gloire": 25 },
+            { "index": 8,  "cout_epee": 8,  "gloire": 32 },
+            { "index": 9,  "cout_epee": 9,  "gloire": 40 },
+            { "index": 10, "cout_epee": 10, "gloire": 0, "decouverte": 135, "promotion": true }
+          ]
+        },
+        {
+          "face": 2,
+          "nom": "Grande Armée",
+          "description": "Dépensez des ⚔️ pour améliorer votre Grande Armée. Vaut 50 gloire + la gloire de la case la plus haute marquée.",
+          "gloire_bonus": 50,
+          "cases": [
+            { "index": 1, "cout_epee": 10, "gloire": 10 },
+            { "index": 2, "cout_epee": 10, "gloire": 20 },
+            { "index": 3, "cout_epee": 12, "gloire": 30 },
+            { "index": 4, "cout_epee": 12, "gloire": 40 },
+            { "index": 5, "cout_epee": 15, "gloire": 50 }
+          ]
+        }
+      ]
+    },
     { "numero": 26, "nom": "Trésor",   "type": "Progression", "faces": [{ "face": 1 },{ "face": 2 }] },
     { "numero": 27, "nom": "Export",   "type": "Progression", "faces": [{ "face": 1 },{ "face": 2 }] }
   ];
