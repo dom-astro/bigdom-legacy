@@ -144,7 +144,7 @@ function _startGameWithName(name) {
   shuffleDeck(deck);
 
   gameState = {
-    deck, play: [], staging: [], discard: [], permanent: [],
+    deck, play: [], staging: [], discard: [], permanent: [], destroyed: [],
     box: boxCards, nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
@@ -539,7 +539,8 @@ function confirmBanditDefeat() {
   const banditCard = gameState.play[banditPlayIndex];
   gameState.play.splice(banditPlayIndex, 1);
   updateBanditIndices(banditPlayIndex);
-  gameState.discard.push(banditCard); // détruit (on met en défausse pour simplifier)
+  if (!gameState.destroyed) gameState.destroyed = [];
+  gameState.destroyed.push(banditCard); // vaincu et détruit
 
   const resParts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
   addLog(`⚔️ <span class="log-card">Bandit</span> vaincu ! -1⚔️ +${resParts}`, true);
@@ -910,9 +911,11 @@ function triggerDestructionEffect(playIndex) {
 
   const targetNums = destr.cartes;
 
-  // Retirer la carte du jeu (sacrifiée)
+  // Retirer la carte du jeu (sacrifiée → détruite)
   gameState.play.splice(playIndex, 1);
   updateBanditIndices(playIndex);
+  if (!gameState.destroyed) gameState.destroyed = [];
+  gameState.destroyed.push(cardInstance);
   addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
 
   // Chercher les candidats dans le pool de découverte par effet
@@ -1249,9 +1252,10 @@ function confirmTurn() {
       } else {
         // Activation simple : carte défaussée, plus utilisable ce tour
         gameState.discard.push(cardInstance);
-        // Si une carte avait été mise en staging comme sacrifice, la défausser maintenant
+        // Si une carte avait été mise en staging comme sacrifice, la détruire
         if (entry.sacrificeCardInstance) {
-          gameState.discard.push(entry.sacrificeCardInstance);
+          if (!gameState.destroyed) gameState.destroyed = [];
+          gameState.destroyed.push(entry.sacrificeCardInstance);
           const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
           addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
         } else {
@@ -2170,58 +2174,165 @@ function showDiscardPile() {
 // ============================================================
 
 function exportGame() {
-  const serializeCards = (list) =>
-    list.map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace }));
+  // ── Helpers de sérialisation ───────────────────────────────
 
-  const save = {
-    v: 1,
-    date: new Date().toISOString(),
-    round: gameState.round,
-    turn: gameState.turn,
-    fame: gameState.fame,
-    turnStarted: gameState.turnStarted,
-    gameOver: gameState.gameOver,
-    _heritageTriggered: gameState._heritageTriggered || false,
-    kingdomName: gameState.kingdomName || '',
-    nextDiscoverIndex: gameState.nextDiscoverIndex,
-    resources: { ...gameState.resources },
-    cardStateMap: cardStateMap,
-    choiceNeeded: [...choiceNeeded],
-    deck:      serializeCards(gameState.deck),
-    play:      serializeCards(gameState.play),
-    discard:   serializeCards(gameState.discard),
-    permanent: serializeCards(gameState.permanent),
-    box:       serializeCards(gameState.box),
-    staging: gameState.staging.map(e => ({
-      n: e.cardInstance.cardDef.numero,
-      f: e.cardInstance.currentFace,
-      action: e.action,
-      resourcesGained: e.resourcesGained,
-      fameGained: e.fameGained,
-      newFace: e.newFace,
-      cout: e.cout,
-      sacN: e.sacrificeCardInstance?.cardDef.numero ?? null,
-      sacF: e.sacrificeCardInstance?.currentFace ?? null,
-    })),
-    bandits: gameState.bandits
-      .filter(b => b.banditPlayIndex != null && gameState.play[b.banditPlayIndex] != null)
-      .map(b => ({
-        bN:  gameState.play[b.banditPlayIndex].cardDef.numero,
-        blN: b.blockedPlayIndex != null && gameState.play[b.blockedPlayIndex] != null
-             ? gameState.play[b.blockedPlayIndex].cardDef.numero
-             : null,
-      })),
+  // Filtre les entrées invalides avant de sérialiser
+  const serializeCards = (list) =>
+    (list || [])
+      .filter(ci => ci && ci.cardDef && ci.cardDef.numero != null)
+      .map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace || 1 }));
+
+  // Rendu lisible d'une carte : { numéro, face, nom, type }
+  const readableCard = (ci) => {
+    if (!ci || !ci.cardDef) return null;
+    const face = getFaceData(ci);
+    return {
+      numero:      ci.cardDef.numero,
+      face_active: ci.currentFace || 1,
+      nom:  face?.nom  || ci.cardDef.nom  || `Carte #${ci.cardDef.numero}`,
+      type: face?.type || ci.cardDef.type || '—',
+    };
   };
+  const readableList = (list) =>
+    (list || []).map(readableCard).filter(Boolean);
+
+  // Rendu lisible du staging
+  const readableStaging = (list) =>
+    (list || []).filter(e => e && e.cardInstance && e.cardInstance.cardDef).map(e => {
+      const face = getFaceData(e.cardInstance);
+      const res  = Object.entries(e.resourcesGained || {})
+        .filter(([,v]) => v > 0)
+        .map(([k,v]) => `+${v} ${k}`).join(', ');
+      return {
+        numero:    e.cardInstance.cardDef.numero,
+        face_active: e.cardInstance.currentFace || 1,
+        nom:       face?.nom || `Carte #${e.cardInstance.cardDef.numero}`,
+        type:      face?.type || '—',
+        action:    e.action,
+        ressources_attendues: res || '—',
+        fame_attendu: e.fameGained || 0,
+        promotion_vers_face: e.newFace || null,
+        sacrifice: (e.sacrificeCardInstance && e.sacrificeCardInstance.cardDef)
+          ? readableCard(e.sacrificeCardInstance)
+          : null,
+      };
+    });
+
+  // ── Date & intitulé ───────────────────────────────────────
+  const now       = new Date();
+  const dateStr   = now.toLocaleDateString('fr-FR');
+  const timeStr   = now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  const kingdom   = gameState.kingdomName || 'Inconnu';
+
+  // ── Objet de sauvegarde ───────────────────────────────────
+  const save = {
+    // — Métadonnées —
+    meta: {
+      version:        2,
+      date:           now.toISOString(),
+      date_lisible:   `${dateStr} à ${timeStr}`,
+      nom_fichier:    `${kingdom} — Manche ${gameState.round} Tour ${gameState.turn}`,
+    },
+
+    // — Identité du royaume —
+    royaume: {
+      nom:    kingdom,
+      gloire: gameState.fame,
+      manche: gameState.round,
+      tour:   gameState.turn,
+    },
+
+    // — Ressources actuelles —
+    ressources: { ...gameState.resources },
+
+    // — Zones de cartes (lisibles) —
+    zones: {
+      en_jeu: {
+        label:   'Cartes dans la zone de jeu',
+        nombre:  gameState.play.length,
+        cartes:  readableList(gameState.play),
+      },
+      en_attente: {
+        label:   'Cartes en attente de confirmation (staging)',
+        nombre:  gameState.staging.length,
+        cartes:  readableStaging(gameState.staging),
+      },
+      permanentes: {
+        label:   'Cartes permanentes',
+        nombre:  gameState.permanent.length,
+        cartes:  readableList(gameState.permanent),
+      },
+      defaussees: {
+        label:   'Cartes défaussées',
+        nombre:  gameState.discard.length,
+        cartes:  readableList(gameState.discard),
+      },
+      detruites: {
+        label:   'Cartes détruites / sacrifiées',
+        nombre:  (gameState.destroyed || []).length,
+        cartes:  readableList(gameState.destroyed || []),
+      },
+      pioche: {
+        label:   'Cartes en pioche (ordre non garanti)',
+        nombre:  gameState.deck.length,
+        cartes:  readableList(gameState.deck),
+      },
+    },
+
+    // — Données techniques (nécessaires pour le rechargement) —
+    _tech: {
+      v: 1,
+      turnStarted:        gameState.turnStarted,
+      gameOver:           gameState.gameOver,
+      _heritageTriggered: gameState._heritageTriggered || false,
+      nextDiscoverIndex:  gameState.nextDiscoverIndex,
+      cardStateMap:       cardStateMap,
+      choiceNeeded:       [...choiceNeeded],
+      deck:               serializeCards(gameState.deck),
+      play:               serializeCards(gameState.play),
+      discard:            serializeCards(gameState.discard),
+      permanent:          serializeCards(gameState.permanent),
+      destroyed:          serializeCards(gameState.destroyed || []),
+      box:                serializeCards(gameState.box),
+      staging: gameState.staging
+        .filter(e => e && e.cardInstance && e.cardInstance.cardDef)
+        .map(e => ({
+          n: e.cardInstance.cardDef.numero,
+          f: e.cardInstance.currentFace || 1,
+          action: e.action,
+          resourcesGained: e.resourcesGained,
+          fameGained: e.fameGained,
+          newFace: e.newFace,
+          cout: e.cout,
+          sacN: e.sacrificeCardInstance?.cardDef?.numero ?? null,
+          sacF: e.sacrificeCardInstance?.currentFace    ?? null,
+        })),
+      bandits: gameState.bandits
+        .filter(b => b.banditPlayIndex != null && gameState.play[b.banditPlayIndex] != null)
+        .map(b => ({
+          bN:  gameState.play[b.banditPlayIndex].cardDef.numero,
+          blN: b.blockedPlayIndex != null && gameState.play[b.blockedPlayIndex] != null
+               ? gameState.play[b.blockedPlayIndex].cardDef.numero
+               : null,
+        })),
+    },
+  };
+
+  // ── Téléchargement ────────────────────────────────────────
+  const slug     = kingdom.normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // retirer accents
+                          .replace(/[^a-zA-Z0-9 ]/g,'').trim()
+                          .replace(/\s+/g,'-').toLowerCase();
+  const filename = `${slug}-m${gameState.round}-t${gameState.turn}.json`;
 
   const json = JSON.stringify(save, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `kingdom-m${gameState.round}-t${gameState.turn}.json`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-  addLog(`💾 Partie sauvegardée — Manche ${gameState.round}, Tour ${gameState.turn}.`, true);
+  addLog(`💾 Partie sauvegardée — <strong>${kingdom}</strong>, Manche ${gameState.round} Tour ${gameState.turn}.`, true);
 }
 
 function importGame() {
@@ -2250,7 +2361,14 @@ function _resolveCard(ref) {
   return { cardDef, currentFace: ref.f || 1 };
 }
 
-function _applyImport(save) {
+function _applyImport(raw) {
+  // Compatibilité : format v2 (nouveau) porte les données techniques dans raw._tech
+  // Format v1 (ancien) les porte à la racine
+  const isV2 = raw && raw._tech && raw.meta;
+  const save  = isV2 ? raw._tech  : raw;
+  const meta  = isV2 ? raw.meta   : raw;
+  const info  = isV2 ? raw.royaume: raw;
+
   if (!save || save.v !== 1) {
     alert('❌ Format de sauvegarde non reconnu.'); return;
   }
@@ -2300,25 +2418,27 @@ function _applyImport(save) {
     staging,
     discard:   resolve(save.discard),
     permanent: resolve(save.permanent),
+    destroyed: resolve(save.destroyed || []),
     box:       resolve(save.box),
     nextDiscoverIndex: save.nextDiscoverIndex || 0,
-    resources: { ...save.resources },
-    fame:        save.fame        || 0,
-    round:       save.round       || 1,
-    turn:        save.turn        || 1,
+    resources: { ...(isV2 ? raw.ressources : save.resources) },
+    fame:        (isV2 ? info.gloire  : save.fame)   || 0,
+    round:       (isV2 ? info.manche  : save.round)  || 1,
+    turn:        (isV2 ? info.tour    : save.turn)   || 1,
     turnStarted: save.turnStarted || false,
     gameOver:    save.gameOver    || false,
     _heritageTriggered: save._heritageTriggered || false,
-    kingdomName: save.kingdomName || 'Valdermoor',
+    kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',
     bandits,
   };
 
   $('#gameLog').empty();
-  const d = new Date(save.date);
+  const dateRaw = isV2 ? raw.meta.date : save.date;
+  const d = new Date(dateRaw);
   const dateLabel = isNaN(d.getTime()) ? ''
     : ` (${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })})`;
   addLog(`📂 Partie chargée${dateLabel}.`, true);
-  addLog(`⚜ Manche ${gameState.round}, Tour ${gameState.turn} — ${gameState.deck.length} cartes en pioche.`);
+  addLog(`⚜ <strong>${gameState.kingdomName}</strong> — Manche ${gameState.round}, Tour ${gameState.turn} — ${gameState.deck.length} cartes en pioche.`);
   updateUI();
 }
 
