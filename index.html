@@ -506,12 +506,12 @@
 
 <!-- BANDIT CHOICE MODAL -->
 <div class="modal fade" id="banditChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content" style="background:linear-gradient(160deg,#2a0808,#1a0404);border:3px solid #cc3333;">
-      <div class="modal-header border-0">
-        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#ffaaaa;">🗡️ Bandit — Choisir une cible</h5>
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content" style="background:linear-gradient(160deg,#2a0808,#1a0404);border:3px solid #cc3333;box-shadow:0 0 30px rgba(200,50,50,0.4);">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title w-100 text-center" style="font-family:'Cinzel',serif;color:#ffaaaa;font-size:1rem;">🗡️ Le Bandit rôde…</h5>
       </div>
-      <div class="modal-body" id="banditChoiceBody" style="font-family:'Crimson Text',serif;color:#ffcccc;"></div>
+      <div class="modal-body" id="banditChoiceBody" style="font-family:'Crimson Text',serif;color:#ffcccc;padding:16px 20px 20px;"></div>
     </div>
   </div>
 </div>
@@ -779,6 +779,24 @@
           box-shadow:0 4px 14px rgba(200,150,12,0.35);
           transition:all 0.2s;width:100%;max-width:380px;">
           ⚜ Ajouter aux permanentes & Carte suivante →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- CARD GRANT MODAL (ex: Chapelle → Cathédrale) -->
+<div class="modal fade" id="cardGrantModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a1206,#0e0a04);border:3px solid var(--border-ornate);box-shadow:0 0 40px rgba(200,160,60,0.3);">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title w-100 text-center" style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1rem;">✨ Une nouvelle carte apparaît</h5>
+      </div>
+      <div class="modal-body" id="cardGrantBody" style="padding:16px 22px 10px;"></div>
+      <div class="modal-footer border-0 justify-content-center pt-0 pb-4">
+        <button onclick="confirmCardGrant()" class="btn" style="font-family:'Cinzel',serif;background:linear-gradient(135deg,#8a6a20,#c9a84c);color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:0.85rem;letter-spacing:1px;">
+          ⛪ Recevoir la carte
         </button>
       </div>
     </div>

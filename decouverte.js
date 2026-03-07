@@ -795,5 +795,42 @@ const CARDS_TO_DISCOVER =
         ],
       },
     ]
+  },
+  { "numero": 103,
+    "faces": [
+      { "face": 1,
+        "nom": "Missionaire",
+        "type": "Personne",
+        "description": "Un missionnaire dévoué, prêt à répandre la foi et à convertire les mécréants.",
+        "promotion": {
+          "face": 2,
+          "cout": [
+            {
+              "type": "Or",
+              "quantite": 3
+            }
+          ]
+        },
+        "effet": {
+          "type": "Activable",
+          "description": "Convertit une carte bandit",
+          "cout": [
+            {
+              "type": "Or",
+              "quantite": 3
+            }
+          ]
+        }
+      },
+      { "face": 2,
+        "nom": "Apiculteur",
+        "type": "Personne",
+        "description": "Un apiculteur expert, capable de produire du miel de qualité supérieure.",
+        "effet": {
+          "type": "Activable",
+          "description": "Cochez une case. Au bout de 4 cases ajouter une ressource au choix pour la production de la carte"
+        }
+      }
+    ]
   }
 ]

@@ -2,7 +2,10 @@
 //  CARD DATA from JSON files
 // ============================================================
 
-let ALL_CARDS = BEGIN_CARDS;
+let ALL_CARDS = [
+  ...BEGIN_CARDS,
+  ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []),
+];
 
 // ============================================================
 //  GAME STATE
@@ -32,8 +35,8 @@ let gameState = {
   turn: 1,
   turnStarted: false,
   gameOver: false,
-  // Bandits actifs : { banditPlayIndex, blockedPlayIndex|null }
-  // blockedPlayIndex = null si aucune carte Or disponible au moment du jeu
+  // Bandits actifs : { banditNum, blockedNum|null }
+  // banditNum/blockedNum = numéros stables (cardDef.numero), pas des indices play[]
   bandits: [],
 };
 
@@ -133,8 +136,13 @@ function confirmKingdomName() {
 function _startGameWithName(name) {
   cardStateMap = {};
   choiceNeeded = new Set();
+
+  // Deck de départ : cartes 1–10
   const startCards = ALL_CARDS.filter(c => c.numero >= 1 && c.numero <= 10);
-  const boxCards   = ALL_CARDS.filter(c => c.numero > 10).sort((a, b) => a.numero - b.numero);
+  // Box phase 1 : cartes 11–22, découvertes 2 par 2 à chaque manche
+  const boxCards = ALL_CARDS.filter(c => c.numero >= 11 && c.numero <= 22)
+    .sort((a, b) => a.numero - b.numero);
+
   ALL_CARDS.forEach(c => {
     cardStateMap[c.numero] = 1;
     if (isChoiceCard(c)) choiceNeeded.add(c.numero);
@@ -157,7 +165,7 @@ function _startGameWithName(name) {
   _updateKingdomNameUI(name);
   updateUI();
   addLog(`⚜ Que le Royaume de <strong>${name}</strong> prospère ! La partie commence.`, true);
-  addLog(`📦 ${gameState.deck.length} cartes en main | ${gameState.box.length} cartes à découvrir.`);
+  addLog(`📦 ${gameState.deck.length} cartes en pioche | ${gameState.box.length} cartes à découvrir (11–22).`);
 }
 
 function _updateKingdomNameUI(name) {
@@ -188,22 +196,44 @@ function drawCards(n) {
   gameState.turnStarted = true;
   const toDraw = Math.min(n, gameState.deck.length);
 
-  // Capturer la position de la pioche AVANT updateUI (elle peut disparaître si deck vide)
+  // Capturer la position de la pioche AVANT updateUI
   const deckEl = document.querySelector('#deckVisual .card-front');
   const deckRect = deckEl ? deckEl.getBoundingClientRect() : null;
 
-  // Mémoriser les numéros des cartes déjà en jeu (elles ne doivent PAS s'animer)
+  // Mémoriser les numéros des cartes déjà en jeu (pour les animations)
   const existingNums = new Set(gameState.play.map(ci => ci.cardDef.numero));
   window._dealExistingNums = existingNums;
 
-  for (let i = 0; i < toDraw; i++) gameState.play.push(gameState.deck.shift());
+  // Tirer les cartes une par une et pré-calculer les cibles bandit dans l'ordre
+  // Règle : quand un bandit est joué, il choisit parmi les cartes déjà en jeu À CE MOMENT
+  const _banditQueue = []; // { banditNum, goldCards[] } à résoudre après animations
+  for (let i = 0; i < toDraw; i++) {
+    const card = gameState.deck.shift();
+    if (isBandit(card)) {
+      const banditNum = card.cardDef.numero;
+      const alreadyBlocking = gameState.bandits.some(b => b.blockedNum != null);
+      if (alreadyBlocking) {
+        // Un blocage actif : ce bandit n'a pas de cible
+        gameState.bandits.push({ banditNum, blockedNum: null });
+        _banditQueue.push({ banditNum, goldCards: [] });
+      } else {
+        // Candidats = cartes déjà en jeu AVANT cette carte (play[] avant ce push)
+        const goldCards = gameState.play
+          .filter(c => !isBandit(c) && producesGold(c) &&
+                       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
+        gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: goldCards.length > 0 });
+        _banditQueue.push({ banditNum, goldCards });
+      }
+    }
+    gameState.play.push(card);
+  }
+
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
   processPendingFaceChoices();
-  if (!pendingFaceChoice) processPendingBandits();
   updateUI();
   window._dealExistingNums = null;
 
-  // Masquer immédiatement les nouvelles cartes pour éviter le pré-affichage
+  // Masquer les nouvelles cartes pour l'animation
   const playAreaHide = document.getElementById('playArea');
   if (playAreaHide) {
     Array.from(playAreaHide.querySelectorAll('.card-wrapper[data-card-num]'))
@@ -211,9 +241,13 @@ function drawCards(n) {
       .forEach(w => { const c = w.querySelector('.card'); if (c) c.style.visibility = 'hidden'; });
   }
 
-  // Un seul RAF : les cartes sont invisibles, les positions sont déjà dans le DOM
   requestAnimationFrame(() => {
     applyDealAnimations(existingNums, deckRect);
+    // Résoudre les bandits après la fin des animations
+    if (!pendingFaceChoice && _banditQueue.length > 0) {
+      const animDelay = (toDraw - 1) * 220 + 1100;
+      setTimeout(() => _resolveBanditQueue(_banditQueue), animDelay);
+    }
   });
 }
 
@@ -384,76 +418,123 @@ function producesGold(cardInstance) {
   });
 }
 
-// Est-ce un Bandit (carte Ennemi de nom "Bandit") ?
+// ============================================================
+//  BANDITS — numéros stables (cardDef.numero) au lieu d'indices play[]
+//  Structure : { banditNum, blockedNum|null, pendingChoice? }
+// ============================================================
+
 function isBandit(cardInstance) {
   const fd = getFaceData(cardInstance);
   return fd.type === 'Ennemi' && fd.nom === 'Bandit';
 }
 
-// Est-ce que cette carte en jeu est actuellement bloquée par un bandit ?
+// Résout l'index dans play[] à partir d'un numéro de carte (retourne -1 si absent)
+function _playIndexOf(cardNum) {
+  return gameState.play.findIndex(ci => ci.cardDef.numero === cardNum);
+}
+// Alias court
+const _playIdxByNum = _playIndexOf;
+
+// La carte à playIndex est-elle bloquée par un bandit ?
 function isBlockedByBandit(playIndex) {
-  return gameState.bandits.some(b => b.blockedPlayIndex === playIndex);
+  const ci = gameState.play[playIndex];
+  if (!ci) return false;
+  return gameState.bandits.some(b => b.blockedNum === ci.cardDef.numero);
 }
 
-// Après chaque pioche, cherche les bandits non encore assignés et ouvre le modal de choix
+// Après le tirage (animations terminées), résout les bandits un par un
+// Résout une file de bandits séquentiellement après les animations.
+// Chaque entrée : { banditNum, goldCards[] } pré-calculés au moment du tirage.
+function _resolveBanditQueue(queue) {
+  if (!queue || queue.length === 0) return;
+  const { banditNum, goldCards } = queue[0];
+  const rest = queue.slice(1);
+  const next = () => { if (rest.length > 0) setTimeout(() => _resolveBanditQueue(rest), 400); };
+
+  const entry = gameState.bandits.find(b => b.banditNum === banditNum);
+  if (!entry) { next(); return; }
+
+  if (goldCards.length === 0) {
+    entry.blockedNum = null;
+    entry.pendingChoice = false;
+    addLog(`🗡️ <span class="log-card">Bandit</span> joué — aucune carte à bloquer.`);
+    next();
+  } else if (goldCards.length === 1) {
+    entry.blockedNum = goldCards[0].cardDef.numero;
+    entry.pendingChoice = false;
+    addLog(`🗡️ <span class="log-card">Bandit</span> bloque <span class="log-card">${getFaceData(goldCards[0]).nom}</span> !`, true);
+    showBanditBlockedNotice(getFaceData(goldCards[0]).nom);
+    updateUI();
+    next();
+  } else {
+    // Plusieurs cibles → modal de choix ; on passe rest pour continuer après le choix
+    showBanditChoiceModal(banditNum, goldCards, rest);
+  }
+}
+
+// Fallback : utilisé après résolution d'un pendingFaceChoice (sans file pré-calculée)
 function processPendingBandits() {
-  gameState.play.forEach((ci, idx) => {
-    if (!isBandit(ci)) return;
-    // Ce bandit a-t-il déjà une entrée dans bandits[] ?
-    const existing = gameState.bandits.find(b => b.banditPlayIndex === idx);
-    if (!existing) {
-      // Nouveau bandit : chercher des cartes amies qui produisent de l'Or (dans play[], hors bandits)
-      const goldCards = gameState.play
-        .map((c, i) => ({ c, i }))
-        .filter(({ c, i }) => i !== idx && !isBandit(c) && producesGold(c) && !isBlockedByBandit(i));
+  const unregistered = gameState.play.filter(ci =>
+    isBandit(ci) && !gameState.bandits.some(b => b.banditNum === ci.cardDef.numero)
+  );
+  if (unregistered.length === 0) return;
 
-      if (goldCards.length === 0) {
-        // Aucune cible : effet ignoré
-        gameState.bandits.push({ banditPlayIndex: idx, blockedPlayIndex: null });
-        addLog(`🗡️ <span class="log-card">Bandit</span> joué — aucune carte à bloquer.`);
-      } else if (goldCards.length === 1) {
-        // Une seule cible : bloquer automatiquement
-        const target = goldCards[0];
-        gameState.bandits.push({ banditPlayIndex: idx, blockedPlayIndex: target.i });
-        addLog(`🗡️ <span class="log-card">Bandit</span> bloque <span class="log-card">${getFaceData(target.c).nom}</span> !`, true);
-        updateUI(); // mettre à jour avant le modal
-        showBanditBlockedNotice(getFaceData(target.c).nom);
-      } else {
-        // Plusieurs cibles : joueur doit choisir
-        gameState.bandits.push({ banditPlayIndex: idx, blockedPlayIndex: null, pendingChoice: true });
-        updateUI();
-        showBanditChoiceModal(idx, goldCards);
-      }
-    }
+  const queue = unregistered.map(banditCi => {
+    const banditNum = banditCi.cardDef.numero;
+    gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: false });
+    const goldCards = gameState.play.filter(c =>
+      c !== banditCi && !isBandit(c) && producesGold(c) &&
+      !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero)
+    );
+    return { banditNum, goldCards };
   });
+  _resolveBanditQueue(queue);
 }
 
-// Met à jour les index des bandits quand une carte est retirée de play[]
-function updateBanditIndices(removedIndex) {
-  gameState.bandits = gameState.bandits.map(b => {
-    const nb = { ...b };
-    if (nb.banditPlayIndex === removedIndex) return null; // ce bandit est retiré
-    if (nb.banditPlayIndex > removedIndex) nb.banditPlayIndex--;
-    if (nb.blockedPlayIndex !== null && nb.blockedPlayIndex === removedIndex) nb.blockedPlayIndex = null;
-    else if (nb.blockedPlayIndex !== null && nb.blockedPlayIndex > removedIndex) nb.blockedPlayIndex--;
-    return nb;
-  }).filter(Boolean);
+// Retire le bandit (et son blocage) quand une carte quitte play[].
+// Appeler avec le numéro de carte AVANT le splice.
+function updateBanditIndices(cardNum) {
+  if (cardNum == null) return;
+  gameState.bandits = gameState.bandits.filter(b => b.banditNum !== cardNum);
+  gameState.bandits.forEach(b => { if (b.blockedNum === cardNum) b.blockedNum = null; });
+}
+
+// Helper : retire play[idx] et nettoie les bandits en une seule opération
+function _playRemove(idx) {
+  const num = gameState.play[idx]?.cardDef.numero;
+  updateBanditIndices(num);
+  gameState.play.splice(idx, 1);
 }
 
 function showBanditBlockedNotice(targetName) {
-  // Simple log enrichi, pas de modal supplémentaire
-  addLog(`🔒 <span class="log-card">${targetName}</span> est bloquée et ne peut pas produire de l'Or.`);
+  addLog(`🔒 <span class="log-card">${targetName}</span> est bloquée — production d'Or impossible.`);
 }
 
-// Modal de choix : le joueur choisit quelle carte bloquer
-function showBanditChoiceModal(banditPlayIndex, goldCards) {
-  let html = `<p style="margin-bottom:12px;">Le <strong>Bandit</strong> doit bloquer une de vos cartes qui produit de l'Or. Choisissez :</p>`;
-  goldCards.forEach(({ c, i }) => {
-    const fd = getFaceData(c);
+// Modal de choix : goldCards est un tableau de cardInstances
+// rest = file des bandits suivants à résoudre après ce choix
+function showBanditChoiceModal(banditNum, goldCards, rest) {
+  window._banditChoiceRest = rest || [];
+  let html = `
+    <p style="margin-bottom:16px;font-size:0.9rem;text-align:center;line-height:1.5;">
+      Le <strong style="color:#ff6666;">Bandit</strong> doit bloquer une de vos cartes produisant de l'Or.<br>
+      <em style="font-size:0.8rem;color:#aaa;">Choisissez la carte à bloquer :</em>
+    </p>`;
+  goldCards.forEach(ci => {
+    const fd = getFaceData(ci);
+    const goldRes = (fd.ressources || []).filter(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return types.map(t => normalizeRes(t)).includes("Or");
+    });
+    const goldAmount = goldRes.reduce((s, r) => s + (r.quantite || 1), 0);
     html += `
-      <button onclick="assignBanditBlock(${banditPlayIndex}, ${i})" class="bandit-choice-btn">
-        ${getCardEmoji(fd.type, fd.nom)} <strong>${fd.nom}</strong>
-        <span style="font-size:0.75rem;opacity:0.8;"> — #${c.cardDef.numero}</span>
+      <button onclick="assignBanditBlock(${banditNum}, ${ci.cardDef.numero})" class="bandit-choice-btn">
+        <span style="font-size:1.4rem;margin-right:10px;">${getCardEmoji(fd.type, fd.nom)}</span>
+        <span>
+          <strong style="font-size:0.9rem;">${fd.nom}</strong>
+          <span style="display:block;font-size:0.72rem;color:#ffaa88;margin-top:2px;">
+            💰 ${goldAmount} Or — ${fd.type}
+          </span>
+        </span>
       </button>`;
   });
   $('#banditChoiceBody').html(html);
@@ -461,33 +542,37 @@ function showBanditChoiceModal(banditPlayIndex, goldCards) {
 }
 
 // Appelé quand le joueur choisit la carte à bloquer
-function assignBanditBlock(banditPlayIndex, targetPlayIndex) {
+function assignBanditBlock(banditNum, targetCardNum) {
   bootstrap.Modal.getInstance(document.getElementById('banditChoiceModal'))?.hide();
-  const entry = gameState.bandits.find(b => b.banditPlayIndex === banditPlayIndex);
+  const entry = gameState.bandits.find(b => b.banditNum === banditNum);
   if (entry) {
-    entry.blockedPlayIndex = targetPlayIndex;
+    entry.blockedNum = targetCardNum;
     entry.pendingChoice = false;
-    const targetName = getFaceData(gameState.play[targetPlayIndex]).nom;
+    const targetIdx = _playIndexOf(targetCardNum);
+    const targetName = targetIdx >= 0 ? getFaceData(gameState.play[targetIdx]).nom : `#${targetCardNum}`;
     addLog(`🗡️ <span class="log-card">Bandit</span> bloque <span class="log-card">${targetName}</span> !`, true);
+    showBanditBlockedNotice(targetName);
   }
   updateUI();
+  const rest = window._banditChoiceRest || [];
+  window._banditChoiceRest = [];
+  if (rest.length > 0) setTimeout(() => _resolveBanditQueue(rest), 400);
 }
 
 // Vaincre le bandit : coûte 1 Épée, détruit le bandit, gagne 2 ressources au choix
-function defeatBandit(banditPlayIndex) {
+function defeatBandit(cardNum) {
   const projected = getProjectedResources();
   if ((projected['Epée'] || 0) < 1) {
     addLog(`❌ Pas d'épée disponible pour vaincre le Bandit.`);
     return;
   }
-  // Ouvrir modal de choix des 2 ressources
-  showBanditRewardModal(banditPlayIndex);
+  showBanditRewardModal(cardNum);
 }
 
-let pendingBanditDefeat = null;
+let pendingBanditDefeat = null; // stocke maintenant le numéro de carte
 
-function showBanditRewardModal(banditPlayIndex) {
-  pendingBanditDefeat = banditPlayIndex;
+function showBanditRewardModal(banditNum) {
+  pendingBanditDefeat = banditNum;
   const resources = ['Or', 'Bois', 'Pierre', 'Métal'];
   let html = `<p style="margin-bottom:12px;">Choisissez <strong>2 ressources</strong> à gagner en vainquant le Bandit :</p>`;
   html += `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">`;
@@ -507,7 +592,6 @@ function showBanditRewardModal(banditPlayIndex) {
 function selectBanditReward(resource) {
   if (!window._banditRewardChoices) window._banditRewardChoices = [];
   const choices = window._banditRewardChoices;
-
   const idx = choices.indexOf(resource);
   if (idx >= 0) {
     choices.splice(idx, 1);
@@ -516,7 +600,6 @@ function selectBanditReward(resource) {
     choices.push(resource);
     $(`#reward-${resource}`).addClass('selected');
   }
-
   const parts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
   $('#banditRewardSelected').html(choices.length ? `Sélection : ${parts}` : '');
   $('#btnConfirmDefeat').prop('disabled', choices.length < 2);
@@ -527,19 +610,20 @@ function confirmBanditDefeat() {
   const choices = window._banditRewardChoices || [];
   if (choices.length < 2 || pendingBanditDefeat === null) return;
 
-  const banditPlayIndex = pendingBanditDefeat;
+  const banditNum = pendingBanditDefeat;
   pendingBanditDefeat = null;
+
+  // Résoudre l'index à partir du numéro (stable)
+  const banditPlayIndex = _playIndexOf(banditNum);
+  if (banditPlayIndex < 0) return;
 
   // Dépenser 1 Épée
   gameState.resources['Epée'] = Math.max(0, gameState.resources['Epée'] - 1);
-
-  // Gagner les 2 ressources choisies
   choices.forEach(r => { gameState.resources[r] = (gameState.resources[r] || 0) + 1; });
 
-  // Retirer le bandit de play[] et des bandits[]
+  // Retirer le bandit de play[] et de bandits[]
   const banditCard = gameState.play[banditPlayIndex];
-  gameState.play.splice(banditPlayIndex, 1);
-  updateBanditIndices(banditPlayIndex);
+  _playRemove(banditPlayIndex);
   if (!gameState.destroyed) gameState.destroyed = [];
   gameState.destroyed.push(banditCard); // vaincu et détruit
 
@@ -591,7 +675,9 @@ function canActivateEffect(cardInstance) {
 
 // Active l'effet activable : met en staging une action 'activate'
 // Gère les effets avec ou sans coût, avec ou sans promotion forcée, avec ou sans sacrifice
-function stageActivateEffect(playIndex) {
+function stageActivateEffect(cardNum) {
+  const playIndex = _playIdxByNum(cardNum);
+  if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
@@ -623,7 +709,7 @@ function stageActivateEffect(playIndex) {
     return types.some(t => t === 'Terrain');
   });
   if (hasTerrainResource) {
-    const terrains = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type === 'Terrain');
+    const terrains = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type === 'Terrain' && !isBlockedByBandit(i));
     if (terrains.length === 0) {
       addLog(`❌ Aucun Terrain en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
@@ -642,7 +728,103 @@ function stageActivateEffect(playIndex) {
     return;
   }
 
+  // Effet avec cartes : afficher la carte obtenue puis défausser la source et l'ajouter en défausse
+  if (act.cartes && act.cartes.length > 0) {
+    _doActivateWithCards(playIndex, act);
+    return;
+  }
+
   _doStageActivate(playIndex, act);
+}
+
+// Activation d'un effet qui ajoute une carte (ex: Chapelle → Cathédrale #103)
+function _doActivateWithCards(playIndex, act) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+
+  // Débiter le coût immédiatement
+  for (const c of (act.cout || [])) {
+    const key = normalizeRes(c.type);
+    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
+  }
+
+  // Trouver la/les cartes à obtenir dans ALL_CARDS ou CARDS_TO_DISCOVER
+  const allPool = [
+    ...ALL_CARDS,
+    ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
+  ];
+  const targetCards = act.cartes.map(num => allPool.find(c => c.numero === num)).filter(Boolean);
+
+  // Afficher un modal de présentation puis défausser
+  window._pendingCardGrant = { playIndex, cardInstance, targetCards };
+  _showCardGrantModal(targetCards, fd.nom);
+}
+
+function _showCardGrantModal(targetCards, sourceName) {
+  const typeColors = {
+    Personne: '#2a4a7a', Terrain: '#1e4a1a', Bâtiment: '#5a4a3a',
+    Ennemi: '#5a0a0a', Evènement: '#3a2a5a', Maritime: '#0a3a5a'
+  };
+
+  const cardsHTML = targetCards.map(cardDef => {
+    const face = cardDef.faces[0];
+    const bgType = typeColors[face.type] || '#3a3a3a';
+    const resHTML = (face.ressources || []).length
+      ? face.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`).join('');
+        }).join('')
+      : '';
+    const fameHTML = face.victoire ? `<div style="font-size:0.8rem;color:#f0c040;margin-top:6px;">★ +${face.victoire} Gloire</div>` : '';
+    const effetHTML = face.effet
+      ? `<div style="font-size:0.72rem;color:#bbeebb;margin-top:6px;">🔵 ${face.effet.type}${face.effet.description ? ' — ' + face.effet.description : ''}</div>`
+      : '';
+
+    return `<div style="
+        background:linear-gradient(160deg,#1e160a,#120e06);
+        border:2px solid var(--border-ornate);border-radius:10px;
+        padding:20px 18px;text-align:center;
+        box-shadow:0 4px 24px rgba(0,0,0,0.6);max-width:280px;margin:0 auto;">
+      <div style="font-size:0.6rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${cardDef.numero}</div>
+      <div style="font-size:3rem;margin-bottom:10px;">${getCardEmoji(face.type, face.nom)}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
+      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:2px 12px;font-size:0.62rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
+      <div style="font-size:0.8rem;color:#c8b89a;line-height:1.5;margin-bottom:10px;font-style:italic;">${face.description || ''}</div>
+      <div>${resHTML}</div>
+      ${fameHTML}${effetHTML}
+    </div>`;
+  }).join('');
+
+  document.getElementById('cardGrantBody').innerHTML = `
+    <p style="text-align:center;font-family:'Crimson Text',serif;font-size:0.95rem;color:#f5e6c8;margin-bottom:18px;line-height:1.5;">
+      La <strong>${sourceName}</strong> attire la grâce divine.<br>
+      <em style="font-size:0.85rem;color:#aaa;">Cette carte rejoint votre défausse.</em>
+    </p>
+    ${cardsHTML}`;
+
+  new bootstrap.Modal(document.getElementById('cardGrantModal')).show();
+}
+
+function confirmCardGrant() {
+  bootstrap.Modal.getInstance(document.getElementById('cardGrantModal'))?.hide();
+  const { playIndex, cardInstance, targetCards } = window._pendingCardGrant || {};
+  window._pendingCardGrant = null;
+  if (!cardInstance) return;
+
+  const fd = getFaceData(cardInstance);
+
+  // Retirer la carte source du jeu et la mettre en défausse
+  _playRemove(_playIdxByNum(cardInstance.cardDef.numero));
+  gameState.discard.push(cardInstance);
+
+  // Créer les nouvelles instances et les ajouter en défausse
+  targetCards.forEach(cardDef => {
+    const newInst = createCardInstance(cardDef);
+    gameState.discard.push(newInst);
+    addLog(`⛪ <span class="log-card">${fd.nom}</span> — <span class="log-card">${getFaceData(newInst).nom}</span> (#${cardDef.numero}) rejoint la défausse !`, true);
+  });
+
+  updateUI();
 }
 
 function showSacrificeModal(playIndex, act, candidates) {
@@ -699,7 +881,7 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
 
   // Retirer les deux cartes du jeu dans le bon ordre (grand index en premier)
   const idxs = [plainesPlayIndex, sacrificePlayIndex].sort((a, b) => b - a);
-  idxs.forEach(i => gameState.play.splice(i, 1));
+  idxs.forEach(i => _playRemove(i));
 
   // La carte sacrifice est placée en staging (pas encore défaussée)
   // Elle sera défaussée à la confirmation, ou remise en jeu si on annule les Plaines
@@ -778,7 +960,7 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
   });
 
   // Retirer l'Exploitant du jeu (le terrain reste en jeu)
-  gameState.play.splice(exploitantPlayIndex, 1);
+  _playRemove(exploitantPlayIndex);
 
   const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ') || '(rien)';
 
@@ -843,7 +1025,7 @@ function confirmResourceChoice(playIndex, choiceIdx) {
   const key = normalizeRes(chosen.type);
   const resourcesGained = { [key]: chosen.quantite };
 
-  gameState.play.splice(playIndex, 1);
+  _playRemove(playIndex);
   const resStr = `+${chosen.quantite}${RESOURCE_ICONS[key]||chosen.type}`;
 
   gameState.staging.push({
@@ -873,7 +1055,7 @@ function _doStageActivate(playIndex, act) {
   // Promotion forcée incluse dans l'effet (ex: Forêt → Coupe Rase)
   const newFace = act.promotion ? act.promotion.face : null;
 
-  gameState.play.splice(playIndex, 1);
+  _playRemove(playIndex);
   gameState.staging.push({
     cardInstance,
     action: 'activate',
@@ -903,7 +1085,9 @@ function hasDestructionEffect(cardInstance) {
 }
 
 // Déclenché par le bouton "💥 Sacrifier" sur la carte en jeu
-function triggerDestructionEffect(playIndex) {
+function triggerDestructionEffect(cardNum) {
+  const playIndex = _playIdxByNum(cardNum);
+  if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
@@ -913,8 +1097,7 @@ function triggerDestructionEffect(playIndex) {
   const targetNums = destr.cartes;
 
   // Retirer la carte du jeu (sacrifiée → détruite)
-  gameState.play.splice(playIndex, 1);
-  updateBanditIndices(playIndex);
+  _playRemove(playIndex);
   if (!gameState.destroyed) gameState.destroyed = [];
   gameState.destroyed.push(cardInstance);
   addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
@@ -1089,7 +1272,9 @@ function getProjectedResources() {
 }
 
 // Met une carte en staging pour production (sans défausser ni donner les ressources)
-function stageProduceCard(playIndex) {
+function stageProduceCard(cardNum) {
+  const playIndex = _playIdxByNum(cardNum);
+  if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   const faceData = getFaceData(cardInstance);
 
@@ -1112,7 +1297,7 @@ function stageProduceCard(playIndex) {
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
 
-  gameState.play.splice(playIndex, 1);
+  _playRemove(playIndex);
   gameState.staging.push({ cardInstance, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null });
   addLog(`⏳ <span class="log-card">${faceData.nom}</span> — production en attente.`);
   updateUI();
@@ -1120,7 +1305,9 @@ function stageProduceCard(playIndex) {
 
 // Met une carte en staging pour promotion (vérifie coût projeté, sans l'appliquer)
 // Si plusieurs promotions sont disponibles, ouvre un modal de choix
-function stageUpgradeCard(playIndex) {
+function stageUpgradeCard(cardNum) {
+  const playIndex = _playIdxByNum(cardNum);
+  if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   const faceData = getFaceData(cardInstance);
 
@@ -1196,7 +1383,7 @@ function _doStageUpgrade(playIndex, promo) {
   const newFaceData = cardInstance.cardDef.faces.find(f => f.face === newFace);
   const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
 
-  gameState.play.splice(playIndex, 1);
+  _playRemove(playIndex);
   gameState.staging.push({ cardInstance, action: 'upgrade', resourcesGained: {}, fameGained, newFace, cout });
   addLog(`⏳ <span class="log-card">${faceData.nom}</span> → <span class="log-card">${newFaceData ? newFaceData.nom : '?'}</span> — promotion en attente.`);
   updateUI();
@@ -1350,8 +1537,11 @@ function endTurn() {
   gameState.turnStarted = false;
   gameState.turn++;
   addLog(`— Fin du Tour ${gameState.turn - 1} —`);
-  if (gameState.deck.length === 0)
+  if (gameState.deck.length === 0) {
     addLog(`🔚 Pioche vide. Fin de la Manche ${gameState.round}. Cliquez "Nouvelle Manche".`, true);
+  } else {
+    drawCards(4);
+  }
   updateUI();
 }
 
@@ -1787,15 +1977,16 @@ function _getRetentionCount(cardInstance) {
 }
 
 // Déclenché par le bouton 🕊️ sur la carte
-function triggerRetentionEffect(playIndex) {
+function triggerRetentionEffect(cardNum) {
+  const playIndex = _playIdxByNum(cardNum);
+  if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   if (!cardInstance) return;
   const fd = getFaceData(cardInstance);
   const count = _getRetentionCount(cardInstance);
 
   // Retirer la carte du jeu (sacrifiée)
-  gameState.play.splice(playIndex, 1);
-  updateBanditIndices(playIndex);
+  _playRemove(playIndex);
   if (!gameState.destroyed) gameState.destroyed = [];
   gameState.destroyed.push(cardInstance);
   addLog(`🕊️ <span class="log-card">${fd.nom}</span> — défaussée pour retenir ${count} carte${count>1?'s':''}.`, true);
@@ -1949,11 +2140,23 @@ function newRound() {
   const stdCards = allCards.filter(ci => ci.cardDef.numero <= 22);
   if (stdCards.length === 22 && !gameState._heritageTriggered) {
     gameState._heritageTriggered = true;
+
+    // Phase 2 : ajouter les cartes d'aventure à la box (après l'Héritage)
+    const alreadyInBox = new Set(gameState.box.map(c => c.numero));
+    const phase2 = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
+      .filter(c => !alreadyInBox.has(c.numero))
+      .sort((a, b) => a.numero - b.numero);
+    if (phase2.length > 0) {
+      gameState.box = [...gameState.box, ...phase2];
+      addLog(`📦 Nouvelles terres à explorer — ${phase2.length} cartes d'aventure débloquées.`, true);
+    }
+
     addLog(`📜 La manche des <strong>22 cartes</strong> s'achève. Une nouvelle règle est révélée...`, true);
     _showHeritageRuleModal(allCards);
     return;
   }
 
+  // Découvrir 2 cartes depuis la box (phase 1 : 11-22 / phase 2 après Héritage : CARDS_TO_DISCOVER)
   const discovered = discoverNextCards(2);
 
   if (discovered.length === 0) {
@@ -2021,11 +2224,15 @@ function _showNewCardsModal(discovered) {
     </div>`;
   }).join('');
 
+  const isPhase1 = !gameState._heritageTriggered;
+  const introText = isPhase1
+    ? `Ces deux cartes rejoignent votre royaume.<br><em style="font-size:0.85rem;color:#aaa;">Inspectez-les avant qu'elles soient mélangées dans la pioche.</em>`
+    : `Deux nouvelles contrées s'ouvrent à vous.<br><em style="font-size:0.85rem;color:#aaa;">Ces cartes d'aventure enrichissent votre royaume.</em>`;
+
   document.getElementById('newCardsModalBody').innerHTML = `
     <p style="text-align:center;font-family:'Crimson Text',serif;font-size:0.95rem;
        color:#f5e6c8;margin-bottom:18px;line-height:1.5;">
-      Ces deux cartes vont rejoindre votre royaume.<br>
-      <em style="font-size:0.85rem;color:#aaa;">Inspectez-les avant qu'elles soient mélangées dans la pioche.</em>
+      ${introText}
     </p>
     <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">${cardsHTML}</div>`;
 
@@ -2172,24 +2379,24 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const actionBtns = [];
   if (banditCard) {
     if (canDefeat) {
-      actionBtns.push(`<button class="card-action-btn btn-defeat-bandit" onclick="event.stopPropagation();defeatBandit(${playIndex})">⚔️ Vaincre (1⚔️)</button>`);
+      actionBtns.push(`<button class="card-action-btn btn-defeat-bandit" onclick="event.stopPropagation();defeatBandit(${cardInstance.cardDef.numero})">⚔️ Vaincre (1⚔️)</button>`);
     } else {
       actionBtns.push(`<button class="card-action-btn btn-defeat-bandit btn-upgrade-disabled" disabled title="Besoin d'1 Épée">⚔️ Vaincre</button>`);
     }
   } else if (!blocked) {
-    if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${playIndex})">⚒ Prod.</button>`);
-    if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${playIndex})" title="Effet activable">🟢 Activer</button>`);
-    if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${playIndex})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
-    if (hasRetention) actionBtns.push(`<button class="card-action-btn btn-retention-action${isAlreadyRetained?' btn-retention-active':''}" onclick="event.stopPropagation();triggerRetentionEffect(${playIndex})" title="Défausser pour retenir des cartes au prochain tour">🕊️ ${isAlreadyRetained?'Annuler':'Retenir'}</button>`);
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
+    if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${cardInstance.cardDef.numero})">⚒ Prod.</button>`);
+    if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${cardInstance.cardDef.numero})" title="Effet activable">🟢 Activer</button>`);
+    if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${cardInstance.cardDef.numero})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
+    if (hasRetention) actionBtns.push(`<button class="card-action-btn btn-retention-action${isAlreadyRetained?' btn-retention-active':''}" onclick="event.stopPropagation();triggerRetentionEffect(${cardInstance.cardDef.numero})" title="Défausser pour retenir des cartes au prochain tour">🕊️ ${isAlreadyRetained?'Annuler':'Retenir'}</button>`);
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   } else {
-    // Carte bloquée : seule la promotion est possible (pas la production)
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
+    // Carte bloquée : seule la promotion est possible
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   }
 
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}" data-card-num="${cardInstance.cardDef.numero}">
-      <div class="card card-front" onclick="openCardModal(${playIndex},'play')"
+      <div class="card card-front" onclick="openCardModal(${cardInstance.cardDef.numero},'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
@@ -2505,8 +2712,8 @@ function updateUI() {
   $('#btnDraw')
     .prop('disabled', !canPioche)
     .css('opacity', canPioche ? 1 : 0.4)
-    .text(gameState.turnStarted ? '⚡ Avancer (+2 cartes)' : '📜 Nouvelle manche (4 cartes)')
-    .attr('onclick', gameState.turnStarted ? 'drawCards(2)' : 'drawCards(4)');
+    .text('⚡ Avancer (+2 cartes)')
+    .attr('onclick',  'drawCards(2)') ;
   $('#btnAdvance').hide(); // masqué — remplacé par le comportement dynamique de btnDraw
 
   // Passer le tour : désactivé si aucune carte en jeu/staging à traiter
@@ -2528,9 +2735,19 @@ function addLog(msg, important=false) {
 let modalCardIndex = null;
 let modalCardZone = 'play';
 
-function openCardModal(index, zone) {
-  modalCardIndex = index; modalCardZone = zone||'play';
-  const cardInstance = zone==='staging' ? gameState.staging[index].cardInstance : gameState.play[index];
+function openCardModal(indexOrNum, zone) {
+  modalCardZone = zone || 'play';
+  let cardInstance;
+  if (zone === 'staging') {
+    modalCardIndex = indexOrNum; // index réel pour staging
+    cardInstance = gameState.staging[indexOrNum].cardInstance;
+  } else {
+    // pour play, indexOrNum est un numéro de carte stable
+    modalCardIndex = indexOrNum;
+    const idx = _playIdxByNum(indexOrNum);
+    cardInstance = idx >= 0 ? gameState.play[idx] : null;
+    if (!cardInstance) return;
+  }
   const face = getFaceData(cardInstance);
 
   $('#modalCardName').text(`${getCardEmoji(face.type,face.nom)} ${face.nom}`);
@@ -2573,10 +2790,18 @@ function openCardModal(index, zone) {
 }
 
 function produceFromModal() {
-  if (modalCardIndex!==null) { bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide(); stageProduceCard(modalCardIndex); modalCardIndex=null; }
+  if (modalCardIndex !== null) {
+    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+    stageProduceCard(modalCardIndex); // modalCardIndex est maintenant un numéro
+    modalCardIndex = null;
+  }
 }
 function upgradeFromModal() {
-  if (modalCardIndex!==null) { bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide(); stageUpgradeCard(modalCardIndex); modalCardIndex=null; }
+  if (modalCardIndex !== null) {
+    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+    stageUpgradeCard(modalCardIndex); // modalCardIndex est maintenant un numéro
+    modalCardIndex = null;
+  }
 }
 
 function showDiscardPile() {
@@ -2724,14 +2949,10 @@ function _buildSaveObject() {
           sacN: e.sacrificeCardInstance?.cardDef?.numero ?? null,
           sacF: e.sacrificeCardInstance?.currentFace    ?? null,
         })),
-      bandits: (gameState.bandits || [])
-        .filter(b => b.banditPlayIndex != null && gameState.play[b.banditPlayIndex] != null)
-        .map(b => ({
-          bN:  gameState.play[b.banditPlayIndex].cardDef.numero,
-          blN: b.blockedPlayIndex != null && gameState.play[b.blockedPlayIndex] != null
-               ? gameState.play[b.blockedPlayIndex].cardDef.numero
-               : null,
-        })),
+      bandits: (gameState.bandits || []).map(b => ({
+        bN:  b.banditNum,
+        blN: b.blockedNum ?? null,
+      })),
     },
   };
 }
@@ -2770,8 +2991,32 @@ function confirmRestartGame() {
 
 function doRestartGame() {
   bootstrap.Modal.getInstance(document.getElementById('restartModal'))?.hide();
+
   // Effacer la sauvegarde locale
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+
+  // Réinitialiser complètement toutes les variables globales
+  cardStateMap = {};
+  choiceNeeded = new Set();
+  ALL_CARDS = [
+    ...BEGIN_CARDS,
+    ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []),
+  ];
+
+  // Remettre gameState à zéro immédiatement (vide l'UI pendant le modal de nom)
+  gameState = {
+    deck: [], play: [], staging: [], discard: [], permanent: [], destroyed: [],
+    retained: [], box: [], nextDiscoverIndex: 0,
+    resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
+    fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
+    bandits: [], _heritageTriggered: false, kingdomName: '',
+  };
+
+  // Vider le log
+  $('#gameLog').empty();
+
+  updateUI();
+
   // Relancer le modal de nom de royaume
   initGame();
 }
@@ -2862,17 +3107,12 @@ function _applyImport(raw) {
     return entry;
   }).filter(Boolean);
 
-  const bandits = (save.bandits || []).map(b => {
-    const banditPlayIndex  = play.findIndex(ci => ci.cardDef.numero === b.bN);
-    const blockedPlayIndex = b.blN !== null
-      ? play.findIndex(ci => ci.cardDef.numero === b.blN)
-      : null;
-    if (banditPlayIndex < 0) return null;
-    return {
-      banditPlayIndex,
-      blockedPlayIndex: blockedPlayIndex >= 0 ? blockedPlayIndex : null,
-    };
-  }).filter(Boolean);
+  const bandits = (save.bandits || [])
+    .filter(b => b.bN != null && play.some(ci => ci.cardDef.numero === b.bN))
+    .map(b => ({
+      banditNum:  b.bN,
+      blockedNum: b.blN ?? null,
+    }));
 
   gameState = {
     deck:      resolve(save.deck),
