@@ -343,9 +343,11 @@ body.light-mode .zone-title { color: #8a6200; }
 
 .card-victory { position: absolute; top: 5px; right: 5px; background: var(--gold); color: var(--ink); font-family: 'Cinzel', serif; font-weight: 900; font-size: 0.6rem; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 3px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 6px rgba(200,150,12,0.5); }
 .card-effect-indicator { position: absolute; bottom: 8px; right: 5px; font-size: 0.7rem; opacity: 0.7; }
-.card-upgrade-hint { position: absolute; bottom: 5px; left: 4px; right: 22px; font-size: 0.42rem; color: var(--stone); font-family: 'Cinzel', serif; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.card-upgrade-hint { position: absolute; bottom: 5px; left: 4px; right: 22px; font-size: 0.42rem; color: var(--stone); font-family: 'Cinzel', serif; overflow: hidden; }
 .card-upgrade-hint.can-upgrade { color: #2a8a2a; }
 body:not(.light-mode) .card-upgrade-hint.can-upgrade { color: #60cc60; text-shadow: 0 0 4px rgba(80,200,80,0.4); }
+.card-upgrade-hint .promo-costs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0px 2px; margin-top: 1px; }
+.card-upgrade-hint .promo-cost-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .card-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; border-radius: 0 0 8px 8px; background: rgba(0,0,0,0.15); }
 

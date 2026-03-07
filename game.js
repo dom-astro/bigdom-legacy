@@ -166,6 +166,7 @@ function _startGameWithName(name) {
   updateUI();
   addLog(`⚜ Que le Royaume de <strong>${name}</strong> prospère ! La partie commence.`, true);
   addLog(`📦 ${gameState.deck.length} cartes en pioche | ${gameState.box.length} cartes à découvrir (11–22).`);
+  drawCards(4);
 }
 
 function _updateKingdomNameUI(name) {
@@ -2162,11 +2163,13 @@ function newRound() {
   if (discovered.length === 0) {
     addLog(`📦 Toutes les cartes ont été découvertes.`);
     _finalizeNewRound(allCards, []);
+    drawCards(4);
     return;
   }
 
   _pendingNewRound = { allCards, discovered };
   _showNewCardsModal(discovered);
+  drawCards(4);
 }
 
 function _showNewCardsModal(discovered) {
@@ -2301,6 +2304,15 @@ function formatCost(cout) {
   if (!cout || !cout.length) return 'Gratuit';
   return cout.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`).join(' + ');
 }
+// Affiche un coût de promotion en grille 2 colonnes si > 2 ressources
+function formatCostHint(cout) {
+  if (!cout || !cout.length) return 'Gratuit';
+  const items = cout.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`);
+  if (items.length <= 2) return items.join(' + ');
+  // Grille 2×N : 2 items à gauche, 2 à droite
+  const cells = items.map(it => `<span class="promo-cost-item">${it}</span>`).join('');
+  return `<span class="promo-costs-grid">${cells}</span>`;
+}
 function getCardEmoji(type, nom) {
   return ({
     'Herbes Sauvages':'🌾','Plaines':'🌿','Terres cultivées':'🚜','Grange':'🏚️',
@@ -2406,7 +2418,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
-        ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCost(p.cout||[])).join(' | ')}</div>` : ''}
+        ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:var(--gold);border-radius:0 0 0 8px;"></div></div>
       </div>
       <div class="card-actions">
@@ -2621,7 +2633,7 @@ function updateUI() {
       : '';
     const topPromos = topFace.promotions ? topFace.promotions : (topFace.promotion ? [topFace.promotion] : []);
     const topUpgradeHTML = topPromos.length
-      ? `<div class="card-upgrade-hint" style="font-size:0.38rem;">▲ ${topPromos.map(p => formatCost(p.cout||[])).join(' | ')}</div>`
+      ? `<div class="card-upgrade-hint" style="font-size:0.38rem;">▲ ${topPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>`
       : '';
     const topFameHTML = (topFace.victoire !== undefined && topFace.victoire !== 0)
       ? `<div class="card-victory" style="${topFace.victoire < 0 ? 'background:var(--crimson)' : ''}">${topFace.victoire > 0 ? '★' : ''}${topFace.victoire}</div>`
