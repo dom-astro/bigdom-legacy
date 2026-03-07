@@ -1031,7 +1031,7 @@ const BEGIN_CARDS =
       { "face": 2,
         "nom": "Bazar",
         "type": "Bâtiment",
-        "description": "Un marché animé où les commerçants vendent leurs marchandises, offrant une variété de ressources pour votre royaume.",
+        "description": "Un marché animé où les commerçants échangent leurs marchandises. Payez 1 Or pour obtenir 1 Bois ou 1 Pierre.",
         "victoire": 1,
         "effet": {
           "type": "Activable",
@@ -1044,8 +1044,8 @@ const BEGIN_CARDS =
           "ressources": [
             {
               "type": [
-                "Or",
-                "Bois"
+                "Bois",
+                "Pierre"
               ],
               "quantite": 1
             }
