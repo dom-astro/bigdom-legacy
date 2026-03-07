@@ -145,6 +145,7 @@ function _startGameWithName(name) {
 
   gameState = {
     deck, play: [], staging: [], discard: [], permanent: [], destroyed: [],
+    retained: [],
     box: boxCards, nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
@@ -926,12 +927,8 @@ function triggerDestructionEffect(playIndex) {
     );
 
   if (discoverCandidates.length > 0) {
-    // Découvrir une carte du pool
-    if (discoverCandidates.length === 1) {
-      _discoverByEffect(discoverCandidates[0]);
-    } else {
-      _showDiscoverByEffectModal(discoverCandidates, fd.nom);
-    }
+    // Toujours passer par le modal pour que le joueur confirme son choix
+    _showDiscoverByEffectModal(discoverCandidates, fd.nom);
   } else {
     // Cibler une carte existante du royaume pour la défausser
     const available = [];
@@ -994,19 +991,29 @@ function _showDiscoverByEffectModal(candidates, sourceName) {
         border:2px solid ${bg};border-radius:10px;padding:12px 14px;margin-bottom:10px;
         cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color 0.2s;
       " onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='${bg}'">
-      <div style="font-size:2.2rem;">${getCardEmoji(face.type, face.nom)}</div>
+      <div style="
+        min-width:38px;text-align:center;
+        background:rgba(0,0,0,0.4);border:1px solid ${bg};border-radius:6px;
+        padding:4px 2px;font-family:'Cinzel',serif;color:var(--gold);font-size:0.65rem;font-weight:700;">
+        #${cardDef.numero}
+      </div>
+      <div style="font-size:2rem;">${getCardEmoji(face.type, face.nom)}</div>
       <div style="flex:1;">
         <div style="font-family:'Cinzel',serif;font-weight:700;color:var(--gold-light);font-size:0.85rem;">${face.nom}</div>
         <div style="display:inline-block;background:${bg};border-radius:3px;padding:1px 8px;font-size:0.55rem;font-family:'Cinzel',serif;color:#fff;margin:4px 0;">${face.type}</div>
         <div>${resHTML}</div>
         ${fameHTML}
-        <div style="font-size:0.6rem;color:#888;margin-top:3px;">#${cardDef.numero} · ${facesTotal} face${facesTotal>1?'s':''}</div>
+        <div style="font-size:0.6rem;color:#888;margin-top:3px;">${facesTotal} face${facesTotal>1?'s':''} · ajoutée à la défausse</div>
       </div>
     </button>`;
   }).join('');
 
-  $('#discoverByEffectTitle').text(`✨ Sacrifice de ${sourceName}`);
-  $('#discoverByEffectSubtitle').text('Choisissez la carte à découvrir et ajouter à votre défausse :');
+  $('#discoverByEffectTitle').text(`✨ Sacrifice — ${sourceName}`);
+  $('#discoverByEffectSubtitle').text(
+    candidates.length === 1
+      ? 'Cette carte sera ajoutée à votre défausse :'
+      : 'Choisissez la carte à ajouter à votre défausse :'
+  );
   $('#discoverByEffectBody').html(html);
   window._discoverByEffectCandidates = candidates;
   new bootstrap.Modal(document.getElementById('discoverByEffectModal')).show();
@@ -1762,11 +1769,168 @@ function _updateArmeeGloire() {
   }
 }
 
+// ============================================================
+//  RÉTENTION (cartes 82 & 83 — Autel / Sanctuaire / Oratoire / Temple)
+// ============================================================
+
+function _hasRetentionEffect(cardInstance) {
+  const fd = getFaceData(cardInstance);
+  const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
+  return effets.some(e => e.type === 'Retention');
+}
+
+function _getRetentionCount(cardInstance) {
+  const fd = getFaceData(cardInstance);
+  const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
+  const eff = effets.find(e => e.type === 'Retention');
+  return eff ? (eff.retenir || 1) : 0;
+}
+
+// Déclenché par le bouton 🕊️ sur la carte
+function triggerRetentionEffect(playIndex) {
+  const cardInstance = gameState.play[playIndex];
+  if (!cardInstance) return;
+  const fd = getFaceData(cardInstance);
+  const count = _getRetentionCount(cardInstance);
+
+  // Retirer la carte du jeu (sacrifiée)
+  gameState.play.splice(playIndex, 1);
+  updateBanditIndices(playIndex);
+  if (!gameState.destroyed) gameState.destroyed = [];
+  gameState.destroyed.push(cardInstance);
+  addLog(`🕊️ <span class="log-card">${fd.nom}</span> — défaussée pour retenir ${count} carte${count>1?'s':''}.`, true);
+
+  // Ouvrir le modal de sélection des cartes à retenir
+  _showRetentionModal(count);
+  updateUI();
+}
+
+function _showRetentionModal(count) {
+  const eligible = gameState.play.filter(ci => {
+    const retained = gameState.retained || [];
+    return !retained.includes(ci.cardDef.numero);
+  });
+
+  if (eligible.length === 0) {
+    addLog(`🕊️ Aucune carte en jeu à retenir.`);
+    return;
+  }
+
+  const already = (gameState.retained || []).length;
+  const toSelect = Math.min(count, eligible.length);
+
+  let html = `
+    <p style="font-family:'Crimson Text',serif;font-size:0.9rem;color:#f5e6c8;text-align:center;margin:0 0 14px;">
+      Choisissez <strong style="color:#f0c040;">${toSelect}</strong> carte${toSelect>1?'s':''} à conserver pour la prochaine manche.
+    </p>
+    <div id="retentionCardList" style="display:flex;flex-direction:column;gap:8px;">`;
+
+  eligible.forEach((ci, i) => {
+    const face = getFaceData(ci);
+    const typeColors = { Personne:'#2a4a7a', Terrain:'#1e4a1a', Bâtiment:'#5a4a3a', Batiment:'#5a4a3a', Ennemi:'#5a0a0a' };
+    const bg = typeColors[face.type] || '#3a3a3a';
+    html += `
+      <button id="retBtn_${i}" onclick="toggleRetentionCard(${i}, ${toSelect})" style="
+          width:100%;text-align:left;background:linear-gradient(135deg,#1a1408,#0e0e06);
+          border:2px solid ${bg};border-radius:10px;padding:10px 14px;
+          cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.2s;"
+        data-cardnum="${ci.cardDef.numero}">
+        <div style="min-width:34px;text-align:center;background:rgba(0,0,0,0.4);border:1px solid ${bg};border-radius:5px;padding:3px 2px;font-family:'Cinzel',serif;color:var(--gold);font-size:0.6rem;">#${ci.cardDef.numero}</div>
+        <div style="font-size:1.8rem;">${getCardEmoji(face.type, face.nom)}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;color:var(--gold-light);font-size:0.82rem;">${face.nom}</div>
+          <div style="font-size:0.6rem;color:#888;">${face.type}</div>
+        </div>
+        <div id="retCheck_${i}" style="font-size:1.4rem;opacity:0;">✅</div>
+      </button>`;
+  });
+
+  html += `</div>
+    <div style="text-align:center;margin-top:16px;">
+      <button id="retConfirmBtn" onclick="confirmRetentionSelection()" disabled style="
+        font-family:'Cinzel',serif;font-weight:700;font-size:0.75rem;letter-spacing:1px;
+        background:rgba(0,0,0,0.4);border:2px solid #444;color:#666;
+        padding:10px 26px;border-radius:6px;cursor:not-allowed;">
+        ✓ Confirmer (0 / ${toSelect})
+      </button>
+    </div>`;
+
+  document.getElementById('retentionModalBody').innerHTML = html;
+  window._retentionToSelect = toSelect;
+  window._retentionSelected = [];
+  new bootstrap.Modal(document.getElementById('retentionModal')).show();
+}
+
+function toggleRetentionCard(idx, max) {
+  const btn = document.getElementById(`retBtn_${idx}`);
+  const check = document.getElementById(`retCheck_${idx}`);
+  if (!btn || !check) return;
+
+  const cardNum = parseInt(btn.dataset.cardnum);
+  const sel = window._retentionSelected || [];
+  const pos = sel.indexOf(cardNum);
+
+  if (pos >= 0) {
+    // Désélectionner
+    sel.splice(pos, 1);
+    btn.style.borderColor = btn.style.borderColor; // reset géré en dessous
+    btn.style.background = 'linear-gradient(135deg,#1a1408,#0e0e06)';
+    check.style.opacity = '0';
+  } else if (sel.length < max) {
+    // Sélectionner
+    sel.push(cardNum);
+    btn.style.background = 'linear-gradient(135deg,#0a2a0a,#1a4a1a)';
+    btn.style.borderColor = '#4acc44';
+    check.style.opacity = '1';
+  }
+
+  window._retentionSelected = sel;
+  const confirmBtn = document.getElementById('retConfirmBtn');
+  const ready = sel.length === max;
+  confirmBtn.disabled = !ready;
+  confirmBtn.style.background = ready ? 'linear-gradient(135deg,#1e4a1a,#3a8a2a)' : 'rgba(0,0,0,0.4)';
+  confirmBtn.style.borderColor = ready ? '#4acc44' : '#444';
+  confirmBtn.style.color = ready ? '#ccffcc' : '#666';
+  confirmBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  confirmBtn.textContent = `✓ Confirmer (${sel.length} / ${max})`;
+}
+
+function confirmRetentionSelection() {
+  bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
+  const selected = window._retentionSelected || [];
+  window._retentionSelected = [];
+  if (!gameState.retained) gameState.retained = [];
+  selected.forEach(n => { if (!gameState.retained.includes(n)) gameState.retained.push(n); });
+  const names = selected.map(n => {
+    const ci = gameState.play.find(c => c.cardDef.numero === n);
+    return ci ? `<span class="log-card">${getFaceData(ci).nom}</span>` : `#${n}`;
+  });
+  addLog(`🕊️ Retenues : ${names.join(', ')} — resteront en jeu à la prochaine manche.`, true);
+  updateUI();
+}
+
 function newRound() {
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
   gameState.staging = [];
   gameState.bandits = [];
-  gameState.play.forEach(c => gameState.discard.push(c));
+
+  // ── Rétention (cartes 82/83) : extraire les cartes retenues avant la défausse ──
+  const retainedNums = new Set(gameState.retained || []);
+  const retainedCards = [];
+  const playToDiscard = [];
+  gameState.play.forEach(ci => {
+    if (retainedNums.has(ci.cardDef.numero)) {
+      retainedCards.push(ci);
+    } else {
+      playToDiscard.push(ci);
+    }
+  });
+  if (retainedCards.length > 0) {
+    addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — retenue${retainedCards.length > 1 ? 's' : ''} pour la prochaine manche.`, true);
+  }
+  gameState.retained = []; // réinitialiser pour la prochaine manche
+  gameState._retainedForNextRound = retainedCards; // transmis à _finalizeNewRound
+  playToDiscard.forEach(c => gameState.discard.push(c));
   gameState.play = [];
 
   // Séparer les permanentes normales des permanentes Héritage (level-1)
@@ -1890,8 +2054,18 @@ function _finalizeNewRound(allCards, discovered) {
   allCards.forEach(c => { cardStateMap[c.cardDef.numero] = c.currentFace; });
   let newDeck = allCards.map(c => createCardInstance(c.cardDef));
   shuffleDeck(newDeck);
+
+  // Placer les cartes retenues directement en jeu (déjà hors du deck)
+  const retainedCards = gameState._retainedForNextRound || [];
+  gameState._retainedForNextRound = [];
   gameState.deck = newDeck;
-  gameState.turn = 1; gameState.round++; gameState.turnStarted = false;
+  if (retainedCards.length > 0) {
+    gameState.play = retainedCards;
+    gameState.turnStarted = true; // le tour est déjà commencé avec les cartes retenues
+    addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — en jeu dès le début de la manche.`, true);
+  }
+
+  gameState.turn = 1; gameState.round++; gameState.turnStarted = retainedCards.length > 0;
   addLog(`🔄 Manche ${gameState.round} commence ! Pioche : ${newDeck.length} cartes.`, true);
   updateUI();
 }
@@ -1993,6 +2167,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const hasActivable = hasActivableEffect(cardInstance);
   const canActivate = hasActivable && canActivateEffect(cardInstance);
   const hasDestruction = hasDestructionEffect(cardInstance);
+  const hasRetention = _hasRetentionEffect(cardInstance);
+  const isAlreadyRetained = (gameState.retained || []).includes(cardInstance.cardDef.numero);
   const actionBtns = [];
   if (banditCard) {
     if (canDefeat) {
@@ -2004,6 +2180,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${playIndex})">⚒ Prod.</button>`);
     if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${playIndex})" title="Effet activable">🟢 Activer</button>`);
     if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${playIndex})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
+    if (hasRetention) actionBtns.push(`<button class="card-action-btn btn-retention-action${isAlreadyRetained?' btn-retention-active':''}" onclick="event.stopPropagation();triggerRetentionEffect(${playIndex})" title="Défausser pour retenir des cartes au prochain tour">🕊️ ${isAlreadyRetained?'Annuler':'Retenir'}</button>`);
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   } else {
     // Carte bloquée : seule la promotion est possible (pas la production)
@@ -2524,6 +2701,7 @@ function _buildSaveObject() {
       _heritageTriggered: gameState._heritageTriggered || false,
       armeeProgress:      gameState.armeeProgress || { face:1, casesMarquees:0 },
       armeeGloirePrev:    gameState.armeeGloirePrev || 0,
+      retained:           gameState.retained || [],
       nextDiscoverIndex:  gameState.nextDiscoverIndex,
       cardStateMap:       cardStateMap,
       choiceNeeded:       [...choiceNeeded],
@@ -2714,6 +2892,7 @@ function _applyImport(raw) {
     _heritageTriggered: save._heritageTriggered || false,
     armeeProgress:      save.armeeProgress      || { face:1, casesMarquees:0 },
     armeeGloirePrev:    save.armeeGloirePrev     || 0,
+    retained:           save.retained            || [],
     kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',
     bandits,
   };

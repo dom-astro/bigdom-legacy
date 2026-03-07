@@ -1079,9 +1079,9 @@ const BEGIN_CARDS =
           "ressources": [
             {
               "type": [
-                "Or",
                 "Bois",
-                "Pierre"
+                "Pierre",
+                "Métal"
               ],
               "quantite": 1
             }

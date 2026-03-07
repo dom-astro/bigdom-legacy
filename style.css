@@ -656,3 +656,8 @@ body.light-mode .confirm-modal-btn-cancel {
 body.light-mode .confirm-modal-btn-ok {
   background: linear-gradient(135deg, #2a8a2a, #1a6a1a); color: #fff;
 }
+/* ── Bouton Rétention (cartes 82/83) ── */
+.btn-retention-action { background: rgba(20,60,80,0.85) !important; border-color: #44aacc !important; color: #aaeeff !important; font-weight: 700; }
+.btn-retention-action:hover { background: rgba(30,80,110,0.95) !important; box-shadow: 0 0 8px rgba(60,160,200,0.6) !important; }
+.btn-retention-active { background: rgba(20,80,20,0.85) !important; border-color: #44cc44 !important; color: #aaffaa !important; }
+.btn-retention-active:hover { background: rgba(30,110,30,0.95) !important; box-shadow: 0 0 8px rgba(60,200,60,0.6) !important; }

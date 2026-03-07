@@ -385,8 +385,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 3,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que une autre carte reste en jeu"
+            "type": "Retention",
+            "retenir": 1,
+            "description": "Défaussez cette carte pour qu'une carte en jeu reste au tour suivant."
           }
         ],
         "promotion": {
@@ -406,8 +407,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 5,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que deux autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 2,
+            "description": "Défaussez cette carte pour que 2 cartes en jeu restent au tour suivant."
           }
         ],
         "promotion": {
@@ -431,8 +433,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 9,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que trois autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 3,
+            "description": "Défaussez cette carte pour que 3 cartes en jeu restent au tour suivant."
           }
         ],
         "promotion": {
@@ -460,10 +463,11 @@ const CARDS_TO_DISCOVER =
         "victoire": 15,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que trois autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 4,
+            "description": "Défaussez cette carte pour que 4 cartes en jeu restent au tour suivant."
           }
-        ],
+        ]
       },
     ]
   },
@@ -476,8 +480,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 3,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que une autre carte reste en jeu"
+            "type": "Retention",
+            "retenir": 1,
+            "description": "Défaussez cette carte pour qu'une carte en jeu reste au tour suivant."
           }
         ],
         "promotion": {
@@ -497,8 +502,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 5,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que deux autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 2,
+            "description": "Défaussez cette carte pour que 2 cartes en jeu restent au tour suivant."
           }
         ],
         "promotion": {
@@ -522,8 +528,9 @@ const CARDS_TO_DISCOVER =
         "victoire": 9,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que trois autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 3,
+            "description": "Défaussez cette carte pour que 3 cartes en jeu restent au tour suivant."
           }
         ],
         "promotion": {
@@ -551,10 +558,11 @@ const CARDS_TO_DISCOVER =
         "victoire": 15,
         "effet": [
           {
-            "type": "Evènement",
-            "description": "Défausser pour que trois autres carte reste en jeu"
+            "type": "Retention",
+            "retenir": 4,
+            "description": "Défaussez cette carte pour que 4 cartes en jeu restent au tour suivant."
           }
-        ],
+        ]
       },
     ]
   },
