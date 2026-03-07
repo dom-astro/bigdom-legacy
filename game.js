@@ -2573,6 +2573,18 @@ function _restoreAutosave() {
   }
 }
 
+function confirmRestartGame() {
+  new bootstrap.Modal(document.getElementById('restartModal')).show();
+}
+
+function doRestartGame() {
+  bootstrap.Modal.getInstance(document.getElementById('restartModal'))?.hide();
+  // Effacer la sauvegarde locale
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  // Relancer le modal de nom de royaume
+  initGame();
+}
+
 function exportGame() {
   const save = _buildSaveObject();
 

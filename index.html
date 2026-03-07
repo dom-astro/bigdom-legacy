@@ -35,6 +35,11 @@
       <span class="save-menu-item-icon">📂</span>
       <span>Charger</span>
     </button>
+    <div class="save-menu-separator"></div>
+    <button class="save-menu-item" onclick="confirmRestartGame(); toggleSaveMenu();" style="color:#ff8888;">
+      <span class="save-menu-item-icon">🔁</span>
+      <span>Recommencer</span>
+    </button>
   </div>
 </div>
 
@@ -303,6 +308,45 @@
           background:rgba(0,0,0,0.4);border:1px solid #444;color:#888;
           padding:8px 20px;border-radius:6px;cursor:pointer;">
           ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESTART CONFIRM MODAL -->
+<div class="modal fade" id="restartModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#120808,#0a0404);
+      border:3px solid #aa3333;">
+      <div class="modal-header border-0" style="flex-direction:column;text-align:center;padding:22px 20px 8px;">
+        <div style="font-size:2.2rem;margin-bottom:6px;">⚔️</div>
+        <h5 style="font-family:'Cinzel',serif;color:#ff8888;font-size:0.95rem;letter-spacing:2px;margin:0;">
+          Abandonner le Royaume ?
+        </h5>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:12px 24px 8px;">
+        <p style="font-family:'Crimson Text',serif;font-size:0.95rem;color:#f5e6c8;margin:0 0 6px;">
+          Toute progression non sauvegardée sera perdue.
+        </p>
+        <p style="font-family:'Crimson Text',serif;font-size:0.8rem;color:#aa7777;font-style:italic;margin:0;">
+          Un nouveau royaume pourra alors s'élever de ses cendres.
+        </p>
+      </div>
+      <div class="modal-footer border-0" style="justify-content:center;gap:10px;padding:12px 20px 20px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('restartModal')).hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #555;color:#aaa;
+          padding:9px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Annuler
+        </button>
+        <button onclick="doRestartGame()" style="
+          font-family:'Cinzel',serif;font-weight:700;font-size:0.72rem;letter-spacing:1px;
+          background:linear-gradient(135deg,#6a1010,#aa2222,#6a1010);
+          border:2px solid #cc3333;color:#ffe0e0;
+          padding:9px 22px;border-radius:6px;cursor:pointer;">
+          🔁 Recommencer
         </button>
       </div>
     </div>
