@@ -1117,6 +1117,12 @@ function stageUpgradeCard(playIndex) {
   const cardInstance = gameState.play[playIndex];
   const faceData = getFaceData(cardInstance);
 
+  // Règle : une seule promotion par tour
+  if (gameState.staging.some(e => e.action === 'upgrade')) {
+    addLog(`❌ Vous ne pouvez promouvoir qu'une seule carte par tour.`);
+    return;
+  }
+
   // Collecter toutes les promotions disponibles
   const allPromos = faceData.promotions
     ? faceData.promotions
@@ -1962,7 +1968,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const projected = getProjectedResources();
   // Support multiple promotions
   const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
-  const canUpgrade = hasUpgrade && allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
+  const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  const canUpgrade = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
   const canDefeat = banditCard && (projected['Epée'] || 0) >= 1;
 
   // Styles selon état
@@ -1997,10 +2004,10 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${playIndex})">⚒ Prod.</button>`);
     if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${playIndex})" title="Effet activable">🟢 Activer</button>`);
     if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${playIndex})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})">▲ Prom.</button>`);
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   } else {
     // Carte bloquée : seule la promotion est possible (pas la production)
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})">▲ Prom.</button>`);
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${playIndex})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   }
 
   return `
@@ -2314,10 +2321,16 @@ function updateUI() {
 
   // Jouer : actif uniquement si pioche non vide ET tour pas encore commencé
   const canDraw    = gameState.deck.length > 0 && !gameState.turnStarted;
-  // Avancer : actif uniquement si pioche non vide ET tour déjà commencé
   const canAdvance = gameState.deck.length > 0 && gameState.turnStarted;
-  $('#btnDraw').prop('disabled', !canDraw).css('opacity', canDraw ? 1 : 0.4);
-  $('#btnAdvance').prop('disabled', !canAdvance).css('opacity', canAdvance ? 1 : 0.4);
+  const canPioche  = canDraw || canAdvance;
+
+  // Un seul bouton pioche — label et action changent selon l'état du tour
+  $('#btnDraw')
+    .prop('disabled', !canPioche)
+    .css('opacity', canPioche ? 1 : 0.4)
+    .text(gameState.turnStarted ? '⚡ Avancer (+2 cartes)' : '📜 Nouvelle manche (4 cartes)')
+    .attr('onclick', gameState.turnStarted ? 'drawCards(2)' : 'drawCards(4)');
+  $('#btnAdvance').hide(); // masqué — remplacé par le comportement dynamique de btnDraw
 
   // Passer le tour : désactivé si aucune carte en jeu/staging à traiter
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
