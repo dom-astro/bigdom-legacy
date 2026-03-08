@@ -191,7 +191,7 @@ function shuffleDeck(deck) {
 let _drawLocked = false;
 
 function drawCards(n) {
-  if (_drawLocked) return;
+  //if (_drawLocked) return;
   if (gameState.deck.length === 0) { addLog('La pioche est vide !'); return; }
   if (gameState.turnStarted && gameState.staging.length === 0) clearResources();
   gameState.turnStarted = true;
@@ -2251,6 +2251,7 @@ function confirmNewCards() {
   _drawLocked = true;
   setTimeout(() => { _drawLocked = false; }, 600);
   _finalizeNewRound(allCards, discovered);
+  drawCards(4);
 }
 
 function _finalizeNewRound(allCards, discovered) {
