@@ -394,15 +394,18 @@ body.light-mode .btn-upgrade-action { background: rgba(30,130,30,0.65); color: #
 .btn-advance   { background: linear-gradient(135deg, #1a3a6a, #0e2040); border-color: #4a7aaa; color: #80b0e0; }
 .btn-pass      { background: linear-gradient(135deg, #4a2a1a, #2a1208); border-color: #8a5a3a; color: #c09070; }
 .btn-new-round { background: linear-gradient(135deg, #6a1a1a, #3a0808); border-color: #aa4a4a; color: #e09090; }
+.btn-undo      { background: linear-gradient(135deg, #3a3010, #201808); border-color: #8a7830; color: #d4b84a; }
 .btn-produce:hover   { box-shadow: 0 0 12px rgba(90,154,58,0.5); }
 .btn-advance:hover   { box-shadow: 0 0 12px rgba(74,122,170,0.5); }
 .btn-pass:hover      { box-shadow: 0 0 12px rgba(138,90,58,0.5); }
 .btn-new-round:hover { box-shadow: 0 0 12px rgba(170,74,74,0.5); }
+.btn-undo:hover      { box-shadow: 0 0 12px rgba(138,120,48,0.5); }
 
 body.light-mode .btn-produce   { background: linear-gradient(135deg, #3a8a1a, #2a6a0a); color: #f0ffe0; }
 body.light-mode .btn-advance   { background: linear-gradient(135deg, #2a5a9a, #1a3a70); color: #e0efff; }
 body.light-mode .btn-pass      { background: linear-gradient(135deg, #7a4a1a, #4a2a08); color: #fff0e0; }
 body.light-mode .btn-new-round { background: linear-gradient(135deg, #8a2a2a, #5a1010); color: #ffe0e0; }
+body.light-mode .btn-undo      { background: linear-gradient(135deg, #6a5a10, #4a3a08); color: #fff8d0; }
 
 /* ============================================================
    STATS + LOG + RÈGLES

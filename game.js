@@ -154,7 +154,7 @@ function _startGameWithName(name) {
   gameState = {
     deck, play: [], staging: [], discard: [], permanent: [], destroyed: [],
     retained: [],
-    box: boxCards, nextDiscoverIndex: 0,
+    box: boxCards.map(card => createCardInstance(card)), nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false,
@@ -190,9 +190,62 @@ function shuffleDeck(deck) {
 // ============================================================
 let _drawLocked = false;
 
+// ============================================================
+//  RETOUR ARRIÈRE — snapshot avant tirage
+// ============================================================
+let _drawSnapshot = null;
+
+function _saveDrawSnapshot() {
+  const serializeCI = ci => ({ cardDef: ci.cardDef, currentFace: ci.currentFace });
+  _drawSnapshot = {
+    deck:      gameState.deck.map(serializeCI),
+    play:      gameState.play.map(serializeCI),
+    staging:   JSON.parse(JSON.stringify(gameState.staging.map(e => ({
+                 ...e,
+                 cardInstance: serializeCI(e.cardInstance),
+                 sacrificeCardInstance: e.sacrificeCardInstance ? serializeCI(e.sacrificeCardInstance) : undefined,
+               })))),
+    discard:   gameState.discard.map(serializeCI),
+    resources: { ...gameState.resources },
+    fame:      gameState.fame,
+    turn:      gameState.turn,
+    bandits:   JSON.parse(JSON.stringify(gameState.bandits)),
+    turnStarted: gameState.turnStarted,
+    cardStateMap: { ...cardStateMap },
+    choiceNeeded: [...choiceNeeded],
+  };
+}
+
+function undoDraw() {
+  if (!_drawSnapshot) return;
+  const snap = _drawSnapshot;
+  _drawSnapshot = null;
+  cardStateMap = { ...snap.cardStateMap };
+  choiceNeeded = new Set(snap.choiceNeeded);
+  const rehydrate = list => list.map(s => ({ cardDef: s.cardDef, currentFace: s.currentFace }));
+  gameState.deck      = rehydrate(snap.deck);
+  gameState.play      = rehydrate(snap.play);
+  gameState.discard   = rehydrate(snap.discard);
+  gameState.staging   = snap.staging.map(e => ({
+    ...e,
+    cardInstance: { cardDef: e.cardInstance.cardDef, currentFace: e.cardInstance.currentFace },
+    sacrificeCardInstance: e.sacrificeCardInstance
+      ? { cardDef: e.sacrificeCardInstance.cardDef, currentFace: e.sacrificeCardInstance.currentFace }
+      : undefined,
+  }));
+  gameState.resources = { ...snap.resources };
+  gameState.fame      = snap.fame;
+  gameState.turn      = snap.turn;
+  gameState.bandits   = JSON.parse(JSON.stringify(snap.bandits));
+  gameState.turnStarted = snap.turnStarted;
+  addLog('↩ Tirage annulé — les cartes sont retournées dans la pioche.', true);
+  updateUI();
+}
+
 function drawCards(n) {
   //if (_drawLocked) return;
   if (gameState.deck.length === 0) { addLog('La pioche est vide !'); return; }
+  _saveDrawSnapshot();
   if (gameState.turnStarted && gameState.staging.length === 0) clearResources();
   gameState.turnStarted = true;
   const toDraw = Math.min(n, gameState.deck.length);
@@ -205,29 +258,46 @@ function drawCards(n) {
   const existingNums = new Set(gameState.play.map(ci => ci.cardDef.numero));
   window._dealExistingNums = existingNums;
 
-  // Tirer les cartes une par une et pré-calculer les cibles bandit dans l'ordre
-  // Règle : quand un bandit est joué, il choisit parmi les cartes déjà en jeu À CE MOMENT
-  const _banditQueue = []; // { banditNum, goldCards[] } à résoudre après animations
+  // Règle : les cartes normales sont placées EN PREMIER, les bandits EN DERNIER.
+  // Si une carte or fait partie du même tirage que le bandit, elle est bloquée
+  // automatiquement et prioritairement — sans modal de choix.
+  const _banditQueue = [];
+  const _banditsToPlace = [];
+  const newCardNums = new Set(); // numéros des cartes tirées dans CE tirage
+
   for (let i = 0; i < toDraw; i++) {
     const card = gameState.deck.shift();
-    if (isBandit(card)) {
-      const banditNum = card.cardDef.numero;
-      const alreadyBlocking = gameState.bandits.some(b => b.blockedNum != null);
-      if (alreadyBlocking) {
-        // Un blocage actif : ce bandit n'a pas de cible
-        gameState.bandits.push({ banditNum, blockedNum: null });
-        _banditQueue.push({ banditNum, goldCards: [] });
-      } else {
-        // Candidats = cartes déjà en jeu AVANT cette carte (play[] avant ce push)
-        const goldCards = gameState.play
-          .filter(c => !isBandit(c) && producesGold(c) &&
-                       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
-        gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: goldCards.length > 0 });
-        _banditQueue.push({ banditNum, goldCards });
-      }
+    if (!isBandit(card)) {
+      newCardNums.add(card.cardDef.numero);
+      gameState.play.push(card);
+    } else {
+      _banditsToPlace.push(card);
     }
-    gameState.play.push(card);
   }
+
+  _banditsToPlace.forEach(card => {
+    const banditNum = card.cardDef.numero;
+    const allGold = gameState.play
+      .filter(c => !isBandit(c) && producesGold(c) &&
+                   !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
+
+    // Cartes or tirées dans CE tirage → blocage automatique prioritaire
+    const newGold = allGold.filter(c => newCardNums.has(c.cardDef.numero));
+    // Cartes or déjà en jeu avant ce tirage → choix seulement si aucune nouvelle carte or
+    const oldGold = allGold.filter(c => !newCardNums.has(c.cardDef.numero));
+
+    gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: true });
+
+    /*if (newGold.length > 0) {
+      // Bloquer automatiquement la (première) carte or du même tirage
+      _banditQueue.push({ banditNum, goldCards: newGold, autoBlock: newGold[0] });
+    } else {
+      // Pas de nouvelle carte or → comportement classique sur les anciennes
+      _banditQueue.push({ banditNum, goldCards: oldGold });
+    }*/
+      _banditQueue.push({ banditNum, goldCards: newGold });
+    gameState.play.push(card);
+  });
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
   processPendingFaceChoices();
@@ -448,7 +518,7 @@ function isBlockedByBandit(playIndex) {
 // Chaque entrée : { banditNum, goldCards[] } pré-calculés au moment du tirage.
 function _resolveBanditQueue(queue) {
   if (!queue || queue.length === 0) return;
-  const { banditNum, goldCards } = queue[0];
+  const { banditNum, goldCards, autoBlock } = queue[0];
   const rest = queue.slice(1);
   const next = () => { if (rest.length > 0) setTimeout(() => _resolveBanditQueue(rest), 400); };
 
@@ -456,11 +526,22 @@ function _resolveBanditQueue(queue) {
   if (!entry) { next(); return; }
 
   if (goldCards.length === 0) {
+    // Aucune carte or disponible
     entry.blockedNum = null;
     entry.pendingChoice = false;
     addLog(`🗡️ <span class="log-card">Bandit</span> joué — aucune carte à bloquer.`);
+    updateUI();
+    next();
+  } else if (autoBlock) {
+    // Carte or tirée dans le même tirage → blocage automatique prioritaire, sans choix
+    entry.blockedNum = autoBlock.cardDef.numero;
+    entry.pendingChoice = false;
+    addLog(`🗡️ <span class="log-card">Bandit</span> bloque <span class="log-card">${getFaceData(autoBlock).nom}</span> — tirée ensemble !`, true);
+    showBanditBlockedNotice(getFaceData(autoBlock).nom);
+    updateUI();
     next();
   } else if (goldCards.length === 1) {
+    // Une seule cible → blocage automatique
     entry.blockedNum = goldCards[0].cardDef.numero;
     entry.pendingChoice = false;
     addLog(`🗡️ <span class="log-card">Bandit</span> bloque <span class="log-card">${getFaceData(goldCards[0]).nom}</span> !`, true);
@@ -468,7 +549,7 @@ function _resolveBanditQueue(queue) {
     updateUI();
     next();
   } else {
-    // Plusieurs cibles → modal de choix ; on passe rest pour continuer après le choix
+    // Plusieurs cibles existantes → modal de choix
     showBanditChoiceModal(banditNum, goldCards, rest);
   }
 }
@@ -1424,6 +1505,7 @@ function cancelStaging(stagingIndex) {
 //  CONFIRMER LE TOUR : applique toutes les actions du staging
 // ============================================================
 function confirmTurn() {
+  _drawSnapshot = null;
   if (gameState.staging.length === 0) { endTurn(); return; }
 
   const hasUpgrade = gameState.staging.some(e => e.action === 'upgrade');
@@ -2143,10 +2225,11 @@ function newRound() {
     gameState._heritageTriggered = true;
 
     // Phase 2 : ajouter les cartes d'aventure à la box (après l'Héritage)
-    const alreadyInBox = new Set(gameState.box.map(c => c.numero));
+    const alreadyInBox = new Set(gameState.box.map(c => c.cardDef ? c.cardDef.numero : c.numero));
     const phase2 = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
       .filter(c => !alreadyInBox.has(c.numero))
-      .sort((a, b) => a.numero - b.numero);
+      .sort((a, b) => a.numero - b.numero)
+      .map(card => createCardInstance(card));
     if (phase2.length > 0) {
       gameState.box = [...gameState.box, ...phase2];
       addLog(`📦 Nouvelles terres à explorer — ${phase2.length} cartes d'aventure débloquées.`, true);
@@ -2283,8 +2366,10 @@ function _finalizeNewRound(allCards, discovered) {
 
 function discoverNextCards(n) {
   const out = [];
-  for (let i = 0; i < n && gameState.nextDiscoverIndex < gameState.box.length; i++)
-    out.push(createCardInstance(gameState.box[gameState.nextDiscoverIndex++]));
+  for (let i = 0; i < n && gameState.nextDiscoverIndex < gameState.box.length; i++) {
+    const item = gameState.box[gameState.nextDiscoverIndex++];
+    out.push(item && item.cardDef ? item : createCardInstance(item));
+  }
   return out;
 }
 
@@ -2657,7 +2742,7 @@ function updateUI() {
   $('#boxCount').text(`📦 ${rem} à découvrir`);
   const nx = gameState.box[gameState.nextDiscoverIndex];
   const nx2 = gameState.box[gameState.nextDiscoverIndex+1];
-  $('#nextDiscoverInfo').text(nx ? `Prochaine: #${nx.numero}${nx2?` & #${nx2.numero}`:''}` : 'Boîte vide');
+  $('#nextDiscoverInfo').text(nx ? `Prochaine: #${nx.cardDef ? nx.cardDef.numero : nx.numero}${nx2?` & #${nx2.cardDef ? nx2.cardDef.numero : nx2.numero}`:''}` : 'Boîte vide');
 
   // Permanentes
   const $perm = $('#permanentArea');
@@ -2728,7 +2813,10 @@ function updateUI() {
     .css('opacity', canPioche ? 1 : 0.4)
     .text('⚡ Avancer (+2 cartes)')
     .attr('onclick',  'drawCards(2)') ;
-  $('#btnAdvance').hide(); // masqué — remplacé par le comportement dynamique de btnDraw
+  $('#btnAdvance').hide();
+
+  const canUndo = !!_drawSnapshot && gameState.staging.length === 0;
+  $('#btnUndo').toggle(canUndo).prop('disabled', !canUndo);
 
   // Passer le tour : désactivé si aucune carte en jeu/staging à traiter
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
@@ -2766,6 +2854,9 @@ function openCardModal(indexOrNum, zone) {
 
   $('#modalCardName').text(`${getCardEmoji(face.type,face.nom)} ${face.nom}`);
   let body = `<p><strong>Type:</strong> ${face.type} &nbsp;|&nbsp; <strong>#${cardInstance.cardDef.numero}</strong></p>`;
+  if (face.description) {
+    body += `<p style="font-style:italic;color:var(--stone,#888);font-size:0.88rem;border-left:3px solid var(--gold,#c8a00c);padding-left:10px;margin:6px 0 10px;">${face.description}</p>`;
+  }
   if (face.ressources && face.ressources.length) {
     const rs = face.ressources.map(r => { const t=Array.isArray(r.type)?r.type:[r.type]; return t.map(x=>`${r.quantite}× ${RESOURCE_ICONS[normalizeRes(x)]||x} ${x}`).join(', '); }).join('; ');
     body += `<p><strong>Production:</strong> ${rs}</p>`;
@@ -3082,6 +3173,24 @@ function _resolveCard(ref) {
   return { cardDef, currentFace: ref.f || 1 };
 }
 
+function _restoreBox(save) {
+  const resolved = (save.box || []).map(_resolveCard).filter(Boolean);
+  if (resolved.length > 0) return resolved;
+  const knownNums = new Set([
+    ...(save.deck||[]).map(c=>c.n), ...(save.play||[]).map(c=>c.n),
+    ...(save.discard||[]).map(c=>c.n), ...(save.permanent||[]).map(c=>c.n),
+    ...(save.destroyed||[]).map(c=>c.n),
+  ]);
+  const phase1 = ALL_CARDS.filter(c=>c.numero>=11&&c.numero<=22&&!knownNums.has(c.numero))
+    .sort((a,b)=>a.numero-b.numero).map(c=>createCardInstance(c));
+  if (!save._heritageTriggered) return phase1;
+  const phase1Nums = new Set(phase1.map(ci=>ci.cardDef.numero));
+  const phase2 = (typeof CARDS_TO_DISCOVER!=='undefined'?CARDS_TO_DISCOVER:[])
+    .filter(c=>!knownNums.has(c.numero)&&!phase1Nums.has(c.numero))
+    .sort((a,b)=>a.numero-b.numero).map(c=>createCardInstance(c));
+  return [...phase1,...phase2];
+}
+
 function _applyImport(raw) {
   // Compatibilité : format v2 (nouveau) porte les données techniques dans raw._tech
   // Format v1 (ancien) les porte à la racine
@@ -3135,7 +3244,7 @@ function _applyImport(raw) {
     discard:   resolve(save.discard),
     permanent: resolve(save.permanent),
     destroyed: resolve(save.destroyed || []),
-    box:       resolve(save.box),
+    box:       _restoreBox(save),
     nextDiscoverIndex: save.nextDiscoverIndex || 0,
     resources: { ...(isV2 ? raw.ressources : save.resources) },
     fame:        (isV2 ? info.gloire  : save.fame)   || 0,

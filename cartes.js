@@ -2235,7 +2235,7 @@ const BEGIN_CARDS =
         ]
       },
       { "face": 2,
-        "nom": "MChalet du Pêcheur",
+        "nom": "Chalet du Pêcheur",
         "type": "Bâtiment",
         "description": "Un chalet pittoresque au bord du lac, offrant des ressources précieuses pour la pêche et la navigation.",
         "victoire": 1,
