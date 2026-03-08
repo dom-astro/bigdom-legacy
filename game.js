@@ -154,7 +154,7 @@ function _startGameWithName(name) {
   gameState = {
     deck, play: [], staging: [], discard: [], permanent: [], destroyed: [],
     retained: [],
-    box: boxCards, nextDiscoverIndex: 0,
+    box: boxCards.map(card => createCardInstance(card)), nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false,
@@ -2143,10 +2143,11 @@ function newRound() {
     gameState._heritageTriggered = true;
 
     // Phase 2 : ajouter les cartes d'aventure à la box (après l'Héritage)
-    const alreadyInBox = new Set(gameState.box.map(c => c.numero));
+    const alreadyInBox = new Set(gameState.box.map(c => c.cardDef ? c.cardDef.numero : c.numero));
     const phase2 = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
       .filter(c => !alreadyInBox.has(c.numero))
-      .sort((a, b) => a.numero - b.numero);
+      .sort((a, b) => a.numero - b.numero)
+      .map(card => createCardInstance(card));
     if (phase2.length > 0) {
       gameState.box = [...gameState.box, ...phase2];
       addLog(`📦 Nouvelles terres à explorer — ${phase2.length} cartes d'aventure débloquées.`, true);
@@ -2283,8 +2284,11 @@ function _finalizeNewRound(allCards, discovered) {
 
 function discoverNextCards(n) {
   const out = [];
-  for (let i = 0; i < n && gameState.nextDiscoverIndex < gameState.box.length; i++)
-    out.push(createCardInstance(gameState.box[gameState.nextDiscoverIndex++]));
+  for (let i = 0; i < n && gameState.nextDiscoverIndex < gameState.box.length; i++) {
+    const item = gameState.box[gameState.nextDiscoverIndex++];
+    // La box peut contenir des cardInstances (nouveau format) ou des cardDef bruts (ancien format)
+    out.push(item && item.cardDef ? item : createCardInstance(item));
+  }
   return out;
 }
 
@@ -2656,7 +2660,7 @@ function updateUI() {
   $('#boxCount').text(`📦 ${rem} à découvrir`);
   const nx = gameState.box[gameState.nextDiscoverIndex];
   const nx2 = gameState.box[gameState.nextDiscoverIndex+1];
-  $('#nextDiscoverInfo').text(nx ? `Prochaine: #${nx.numero}${nx2?` & #${nx2.numero}`:''}` : 'Boîte vide');
+  $('#nextDiscoverInfo').text(nx ? `Prochaine: #${nx.cardDef ? nx.cardDef.numero : nx.numero}${nx2?` & #${nx2.cardDef ? nx2.cardDef.numero : nx2.numero}`:''}` : 'Boîte vide');
 
   // Permanentes
   const $perm = $('#permanentArea');
