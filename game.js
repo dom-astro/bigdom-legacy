@@ -208,25 +208,26 @@ function drawCards(n) {
   // Tirer les cartes une par une et pré-calculer les cibles bandit dans l'ordre
   // Règle : quand un bandit est joué, il choisit parmi les cartes déjà en jeu À CE MOMENT
   const _banditQueue = []; // { banditNum, goldCards[] } à résoudre après animations
-  const _banditsToPlace = []; // bandits tirés, placés en dernier
   for (let i = 0; i < toDraw; i++) {
     const card = gameState.deck.shift();
-    if (!isBandit(card)) {
-      gameState.play.push(card);
-    } else {
-      _banditsToPlace.push(card);
+    if (isBandit(card)) {
+      const banditNum = card.cardDef.numero;
+      const alreadyBlocking = gameState.bandits.some(b => b.blockedNum != null);
+      if (alreadyBlocking) {
+        // Un blocage actif : ce bandit n'a pas de cible
+        gameState.bandits.push({ banditNum, blockedNum: null });
+        _banditQueue.push({ banditNum, goldCards: [] });
+      } else {
+        // Candidats = cartes déjà en jeu AVANT cette carte (play[] avant ce push)
+        const goldCards = gameState.play
+          .filter(c => !isBandit(c) && producesGold(c) &&
+                       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
+        gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: goldCards.length > 0 });
+        _banditQueue.push({ banditNum, goldCards });
+      }
     }
-  }
-  // Les bandits sont placés EN DERNIER pour voir toutes les cartes or déjà jouées
-  _banditsToPlace.forEach(card => {
-    const banditNum = card.cardDef.numero;
-    const goldCards = gameState.play
-      .filter(c => !isBandit(c) && producesGold(c) &&
-                   !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
-    gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: goldCards.length > 0 });
-    _banditQueue.push({ banditNum, goldCards });
     gameState.play.push(card);
-  });
+  }
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
   processPendingFaceChoices();
@@ -2322,11 +2323,12 @@ function getCardEmoji(type, nom) {
     'Commerçante':'👩‍💼','Bazar':'🏪','Marché':'🛍️','Festival':'🎪',
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
     'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
+    'Autel':'⛩️','Terres cultivées':'🌽',
     'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👷',
     'Colinne':'⛰️','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯','Falaises de l\'Est':'🏔️',
     'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍎',
-    'Lac':'🏊','MChalet du Pêcheur':'🏠','Bateau de Pêche':'⛵','Phare':'🗼',
+    'Lac':'🏞️','MChalet du Pêcheur':'🏠','Bateau de Pêche':'⛵','Phare':'🗼',
   }[nom]) || TYPE_ICONS[type] || '📄';
 }
 
