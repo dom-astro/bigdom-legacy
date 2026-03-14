@@ -309,7 +309,7 @@ function canActivateEffect(cardInstance) {
   // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
   if (act.sacrifice) {
     const playIdx = gameState.play.indexOf(cardInstance);
-    const others = gameState.play.filter((_, i) => i !== playIdx);
+    const others = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type !== 'Ennemi');
     if (others.length === 0) return false;
   }
   // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
@@ -346,9 +346,9 @@ function stageActivateEffect(cardNum) {
 
   // Effet avec sacrifice : ouvre un modal pour choisir la carte à défausser
   if (act.sacrifice) {
-    const candidates = gameState.play.filter((_, i) => i !== playIndex);
+    const candidates = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type !== 'Ennemi');
     if (candidates.length === 0) {
-      addLog(`❌ Aucune carte disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
+      addLog(`❌ Aucune carte alliée disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
     }
     showSacrificeModal(playIndex, act, candidates);
