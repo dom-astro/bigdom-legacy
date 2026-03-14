@@ -590,7 +590,13 @@
     { "numero": 27, "nom": "Export",   "type": "Progression", "faces": [{ "face": 1 },{ "face": 2 }] }
   ];
 </script>
-<script src="game.js"></script>
+<script src="game-staging.js"></script>
+<script src="game-state.js"></script>    <!-- Variables globales en premier -->
+<script src="game-actions.js"></script>  <!-- Dépend de game-state -->
+<script src="game-round.js"></script>    <!-- Dépend de game-actions -->
+<script src="game-ui.js"></script>       <!-- Dépend de tout -->
+<script src="game-save.js"></script>     <!-- Dépend de game-state + game-ui -->
+<script src="game-init.js"></script>
 <!-- CONFIRM END TURN MODAL -->
 <div class="modal fade" id="confirmEndTurnModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-sm modal-dialog-centered">
