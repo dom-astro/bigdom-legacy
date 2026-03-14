@@ -420,6 +420,7 @@ function openCardModal(indexOrNum, zone) {
       body += `<p><strong>Effet (${e.type}):</strong> ${e.description||''}`;
       if (e.ressources) body += ' '+e.ressources.map(x=>`${x.quantite}× ${RESOURCE_ICONS[normalizeRes(Array.isArray(x.type)?x.type[0]:x.type)]||x.type}`).join(', ');
       if (e.cout) body += ` (Coût: ${formatCost(e.cout)})`;
+      if (e.cartes && e.cartes.length) body += ` <em style="color:var(--gold);">📜 Découvrir : ${e.cartes.map(n=>`#${n}`).join(', ')}</em>`;
       body += '</p>';
     });
   }

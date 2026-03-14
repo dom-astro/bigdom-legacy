@@ -1655,6 +1655,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "description": "Défaussez cette carte pour découvrir la carte #103.",
           "cout": [
             {
               "type": "Or",
