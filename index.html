@@ -496,10 +496,84 @@
     <div class="modal-content" style="background:linear-gradient(160deg,#1a1008,#0e0a04);border:3px solid #cc9900;">
       <div class="modal-header border-0" style="padding-bottom:4px;">
         <h5 class="modal-title" style="font-family:'Cinzel',serif;color:#f0c040;font-size:0.88rem;letter-spacing:2px;">
-          🌾 Plaines — Choisir une carte à sacrifier
+          ✝️ Missionnaire — Choisir un Bandit à convertir
         </h5>
       </div>
       <div class="modal-body" id="sacrificeChoiceBody" style="font-family:'Crimson Text',serif;color:#f5e6c8;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONVERSION REVEAL MODAL — animation retournement bandit -->
+<div class="modal fade" id="conversionRevealModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content" style="background:linear-gradient(160deg,#0e0a1e,#1a1030);border:3px solid #c8960c;border-radius:16px;overflow:hidden;">
+
+      <!-- En-tête -->
+      <div style="text-align:center;padding:20px 20px 8px;border-bottom:1px solid rgba(200,150,12,0.2);">
+        <div style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:3px;color:#c8960c;text-transform:uppercase;margin-bottom:6px;">✝️ Conversion miraculeuse</div>
+        <div id="convRevealSubtitle" style="font-family:'Crimson Text',serif;font-size:0.95rem;color:#f5e6c8;line-height:1.4;"></div>
+      </div>
+
+      <!-- Scène de retournement -->
+      <div style="padding:28px 20px 20px;display:flex;justify-content:center;align-items:center;">
+        <div class="conv-flip-scene">
+          <div class="conv-flip-card" id="convFlipCard">
+
+            <!-- Face avant : Bandit (rouge) -->
+            <div class="conv-flip-front">
+              <div class="conv-card-inner" style="background:linear-gradient(160deg,#3a0808,#1e0404);border-color:#cc3333;">
+                <div class="conv-card-serial" id="convFrontSerial"></div>
+                <div class="conv-card-emoji" id="convFrontEmoji">🗡️</div>
+                <div class="conv-card-name" id="convFrontName" style="color:#ffaaaa;"></div>
+                <div class="conv-card-type" style="background:#8b0000;">Ennemi</div>
+                <div class="conv-card-desc" id="convFrontDesc"></div>
+              </div>
+            </div>
+
+            <!-- Face arrière : nouvelle identité (or/vert) -->
+            <div class="conv-flip-back">
+              <div class="conv-card-inner" style="background:linear-gradient(160deg,#1a2a0e,#0e1a06);border-color:#88cc44;">
+                <div class="conv-card-serial" id="convBackSerial"></div>
+                <div class="conv-card-emoji" id="convBackEmoji">✨</div>
+                <div class="conv-card-name" id="convBackName" style="color:#ccff88;"></div>
+                <div class="conv-card-type" id="convBackType" style="background:#2a5a0e;">Personne</div>
+                <div class="conv-card-desc" id="convBackDesc"></div>
+                <div class="conv-card-res" id="convBackRes"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Coût déduit -->
+      <div id="convRevealCost" style="text-align:center;font-family:'Cinzel',serif;font-size:0.7rem;color:#c8960c;padding:0 20px 12px;"></div>
+
+      <!-- Boutons -->
+      <div style="padding:0 20px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;">
+
+        <!-- Bouton Convertir (visible avant le flip) -->
+        <button id="convBtnConvert" onclick="triggerConversionFlip()" style="
+          font-family:'Cinzel',serif;font-weight:700;font-size:0.82rem;letter-spacing:2px;
+          background:linear-gradient(135deg,#5a0a0a,#9a1a1a);border:2px solid #cc3333;
+          color:#ffaaaa;padding:12px 36px;border-radius:8px;cursor:pointer;
+          transition:all 0.2s;box-shadow:0 0 16px rgba(200,50,50,0.35);">
+          ✝️ Convertir
+        </button>
+
+        <!-- Bouton fermer (visible uniquement après le flip) -->
+        <button id="convBtnClose" onclick="closeConversionReveal()" style="
+          display:none;
+          font-family:'Cinzel',serif;font-weight:700;font-size:0.8rem;letter-spacing:2px;
+          background:linear-gradient(135deg,#1a3a0a,#2a5a12);border:2px solid #88cc44;
+          color:#ccff88;padding:12px 36px;border-radius:8px;cursor:pointer;
+          transition:all 0.2s;box-shadow:0 0 16px rgba(100,200,50,0.3);">
+          ✓ Que la foi triomphe
+        </button>
+
+      </div>
+
     </div>
   </div>
 </div>

@@ -993,9 +993,8 @@ function confirmConversionFromRetained(banditPlayIndex) {
   if (!missionaireInstance || !banditCard) return;
 
   const missionaireName = getFaceData(missionaireInstance).nom;
-  const banditName      = getFaceData(banditCard).nom;
 
-  // Débiter le coût
+  // Débiter le coût immédiatement
   for (const c of (act.cout || [])) {
     const key = normalizeRes(c.type);
     gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
@@ -1006,16 +1005,17 @@ function confirmConversionFromRetained(banditPlayIndex) {
   const face2Name = face2 ? face2.nom : 'face 2';
   banditCard.currentFace = 2;
 
-  // Retirer le bandit du jeu et défausser les deux
+  // Retirer le bandit du jeu
   _playRemove(banditPlayIndex);
-  gameState.discard.push(missionaireInstance);
-  gameState.discard.push(banditCard);
-
-  // Nettoyer la liste des bandits actifs
   gameState.bandits = (gameState.bandits || []).filter(b => b.banditNum !== banditCard.cardDef.numero);
 
-  addLog(`✝️ 🕊️ <span class="log-card">${missionaireName}</span> (retenu) convertit <span class="log-card">${banditName}</span> → <span class="log-card">${face2Name}</span>, les deux défaussés.`, true);
+  // Stocker pour fermeture du modal
+  window._pendingConversionDiscard = { missionaireCard: missionaireInstance, banditCard, face2Name };
+
+  addLog(`✝️ 🕊️ <span class="log-card">${missionaireName}</span> (retenu) convertit <span class="log-card">${getFaceData(banditCard).nom}</span> → <span class="log-card">${face2Name}</span>`, true);
+
   updateUI();
+  _showConversionReveal(banditCard, face2, act, missionaireName);
 }
 
 // Promotion depuis la zone retenues

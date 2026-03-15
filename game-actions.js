@@ -947,6 +947,90 @@ function confirmDestructionChoice(idx) {
 }
 
 // ============================================================
+//  ANIMATION RÉVÉLATION — Conversion du Missionnaire
+// ============================================================
+
+function _showConversionReveal(banditCard, face2, act, missionaireName) {
+  const face1 = banditCard.cardDef.faces.find(f => f.face === 1) || banditCard.cardDef.faces[0];
+
+  // Remplir la face avant (Bandit)
+  document.getElementById('convFrontSerial').textContent = `#${banditCard.cardDef.numero}`;
+  document.getElementById('convFrontEmoji').textContent  = getCardEmoji(face1.type, face1.nom);
+  document.getElementById('convFrontName').textContent   = face1.nom;
+  document.getElementById('convFrontDesc').textContent   = face1.description || '';
+
+  // Remplir la face arrière (nouvelle identité)
+  const face2Data = face2 || { nom: '?', type: 'Personne', description: '' };
+  document.getElementById('convBackSerial').textContent  = `#${banditCard.cardDef.numero}`;
+  document.getElementById('convBackEmoji').textContent   = getCardEmoji(face2Data.type, face2Data.nom);
+  document.getElementById('convBackName').textContent    = face2Data.nom;
+  document.getElementById('convBackType').textContent    = face2Data.type || 'Personne';
+  document.getElementById('convBackDesc').textContent    = face2Data.description || '';
+
+  // Ressources de la nouvelle face
+  const resHTML = (face2Data.ressources || []).map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => `${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}`).join(' ');
+  }).join('  ');
+  document.getElementById('convBackRes').textContent = resHTML;
+
+  // Sous-titre et coût
+  document.getElementById('convRevealSubtitle').innerHTML =
+    `<strong style="color:#f0c040;">${missionaireName}</strong> répand la foi...<br>
+     <em style="font-size:0.85rem;color:#aaa;">${face1.nom} devient ${face2Data.nom}</em>`;
+
+  const costParts = (act.cout || []).map(c =>
+    `${c.quantite} ${RESOURCE_ICONS[normalizeRes(c.type)] || c.type}`
+  );
+  document.getElementById('convRevealCost').innerHTML = costParts.length
+    ? `💸 Coût débité : ${costParts.join(' + ')}`
+    : '';
+
+  // Réinitialiser le flip et les boutons
+  const flipCard = document.getElementById('convFlipCard');
+  flipCard.classList.remove('is-flipped');
+  flipCard.querySelectorAll('.conv-glow-ring').forEach(el => el.remove());
+  document.getElementById('convBtnConvert').style.display = '';
+  document.getElementById('convBtnClose').style.display   = 'none';
+
+  // Ouvrir le modal — le joueur clique "Convertir" pour déclencher le flip
+  const modal = new bootstrap.Modal(document.getElementById('conversionRevealModal'));
+  modal.show();
+}
+
+function triggerConversionFlip() {
+  const flipCard = document.getElementById('convFlipCard');
+  const btnConvert = document.getElementById('convBtnConvert');
+  const btnClose   = document.getElementById('convBtnClose');
+
+  // Déclencher le flip
+  flipCard.classList.add('is-flipped');
+  btnConvert.style.display = 'none';
+
+  // Ajouter l'anneau lumineux après le flip
+  setTimeout(() => {
+    const ring = document.createElement('div');
+    ring.className = 'conv-glow-ring';
+    flipCard.querySelector('.conv-flip-back .conv-card-inner').appendChild(ring);
+    // Afficher le bouton de fermeture avec une apparition douce
+    btnClose.style.display = '';
+    btnClose.style.opacity = '0';
+    btnClose.style.transition = 'opacity 0.4s';
+    requestAnimationFrame(() => { btnClose.style.opacity = '1'; });
+  }, 850);
+}
+
+function closeConversionReveal() {
+  bootstrap.Modal.getInstance(document.getElementById('conversionRevealModal'))?.hide();
+  const { missionaireCard, banditCard, face2Name } = window._pendingConversionDiscard || {};
+  window._pendingConversionDiscard = null;
+  if (missionaireCard) gameState.discard.push(missionaireCard);
+  if (banditCard)      gameState.discard.push(banditCard);
+  if (banditCard) addLog(`🕊️ <span class="log-card">${face2Name}</span> & Missionnaire — défaussés.`, true);
+  updateUI();
+}
+
+// ============================================================
 //  CONVERSION (Missionnaire) — convertit un Bandit en face 2
 // ============================================================
 
@@ -987,10 +1071,7 @@ function confirmConversion(banditPlayIndex) {
   const banditCard      = gameState.play[banditPlayIndex];
   if (!missionaireCard || !banditCard) return;
 
-  const missionaireName = getFaceData(missionaireCard).nom;
-  const banditName      = getFaceData(banditCard).nom;
-
-  // Débiter le coût
+  // Débiter le coût immédiatement
   for (const c of (act.cout || [])) {
     const key = normalizeRes(c.type);
     gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
@@ -1001,17 +1082,17 @@ function confirmConversion(banditPlayIndex) {
   const face2Name = face2 ? face2.nom : 'face 2';
   banditCard.currentFace = 2;
 
-  // Retirer les deux cartes du jeu (grand index en premier)
+  // Retirer les deux cartes du jeu maintenant (avant l'animation)
   const idxs = [missionairePlayIndex, banditPlayIndex].sort((a, b) => b - a);
   idxs.forEach(i => _playRemove(i));
-
-  // Défausser les deux
-  gameState.discard.push(missionaireCard);
-  gameState.discard.push(banditCard);
-
-  // Nettoyer la liste des bandits actifs
   gameState.bandits = (gameState.bandits || []).filter(b => b.banditNum !== banditCard.cardDef.numero);
 
-  addLog(`✝️ <span class="log-card">${missionaireName}</span> convertit <span class="log-card">${banditName}</span> → <span class="log-card">${face2Name}</span>, les deux défaussés.`, true);
+  // Stocker pour la fermeture du modal
+  window._pendingConversionDiscard = { missionaireCard, banditCard, face2Name };
+
+  const missionaireName = getFaceData(missionaireCard).nom;
+  addLog(`✝️ <span class="log-card">${missionaireName}</span> convertit <span class="log-card">${getFaceData(banditCard).nom}</span> → <span class="log-card">${face2Name}</span>`, true);
+
   updateUI();
+  _showConversionReveal(banditCard, face2, act, missionaireName);
 }
