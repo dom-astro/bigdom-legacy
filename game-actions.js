@@ -770,18 +770,44 @@ function triggerDestructionEffect(cardNum) {
   gameState.destroyed.push(cardInstance);
   addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
 
-  // Chercher les candidats dans le pool de découverte par effet
-  const discoverCandidates = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
-    .filter(cardDef =>
-      targetNums.includes(cardDef.numero) &&
-      !(gameState.discoveredByEffect && gameState.discoveredByEffect.has(cardDef.numero))
-    );
+  // Chercher les candidats à découvrir :
+  // 1. Dans gameState.box (cartes non encore découvertes de la manche courante)
+  // 2. Dans CARDS_TO_DISCOVER (pool global, avant qu'elles soient ajoutées à la box)
+  if (!gameState.discoveredByEffect) gameState.discoveredByEffect = new Set();
+
+  // Construire un pool combiné dédupliqué (box en priorité, puis CARDS_TO_DISCOVER)
+  const boxNums = new Set(gameState.box.map(c => c.cardDef ? c.cardDef.numero : c.numero));
+  const allPool = [
+    // Cartes dans la box (instances ou defs)
+    ...gameState.box
+      .filter(c => targetNums.includes(c.cardDef ? c.cardDef.numero : c.numero))
+      .map(c => c.cardDef || c),
+    // Cartes dans CARDS_TO_DISCOVER pas encore dans la box
+    ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
+      .filter(c => targetNums.includes(c.numero) && !boxNums.has(c.numero)),
+  ];
+
+  // Exclure les cartes déjà découvertes par effet ET déjà dans le royaume
+  const alreadyInKingdom = new Set([
+    ...gameState.deck, ...gameState.play,
+    ...gameState.discard, ...gameState.permanent,
+    ...(gameState.retainedCards || []),
+  ].map(ci => ci.cardDef.numero));
+
+  const discoverCandidates = allPool.filter(cardDef =>
+    !gameState.discoveredByEffect.has(cardDef.numero) &&
+    !alreadyInKingdom.has(cardDef.numero)
+  );
 
   if (discoverCandidates.length > 0) {
-    // Toujours passer par le modal pour que le joueur confirme son choix
+    // Retirer les candidats de la box si ils y sont (ils vont être découverts)
+    gameState.box = gameState.box.filter(c => {
+      const num = c.cardDef ? c.cardDef.numero : c.numero;
+      return !discoverCandidates.some(d => d.numero === num);
+    });
     _showDiscoverByEffectModal(discoverCandidates, fd.nom);
   } else {
-    // Cibler une carte existante du royaume pour la défausser
+    // Toutes les cibles sont déjà dans le royaume → les défausser
     const available = [];
     ['play', 'discard', 'deck'].forEach(zone => {
       gameState[zone].forEach(ci => {
@@ -814,6 +840,17 @@ function applyDestructionEffect(cardInstance) {
 function _discoverByEffect(cardDef) {
   if (!gameState.discoveredByEffect) gameState.discoveredByEffect = new Set();
   gameState.discoveredByEffect.add(cardDef.numero);
+
+  // Si la carte était encore dans la box (pas retirée en amont), la retirer maintenant
+  // et ajuster nextDiscoverIndex si nécessaire
+  const boxIdx = gameState.box.findIndex(c => (c.cardDef ? c.cardDef.numero : c.numero) === cardDef.numero);
+  if (boxIdx >= 0) {
+    gameState.box.splice(boxIdx, 1);
+    if (boxIdx < gameState.nextDiscoverIndex) {
+      gameState.nextDiscoverIndex = Math.max(0, gameState.nextDiscoverIndex - 1);
+    }
+  }
+
   const newInstance = createCardInstance(cardDef);
   gameState.discard.push(newInstance);
   if (!ALL_CARDS.find(c => c.numero === cardDef.numero)) {
@@ -859,11 +896,11 @@ function _showDiscoverByEffectModal(candidates, sourceName) {
     </button>`;
   }).join('');
 
-  $('#discoverByEffectTitle').text(`✨ Sacrifice — ${sourceName}`);
+  $('#discoverByEffectTitle').text(`✨ Découverte — ${sourceName}`);
   $('#discoverByEffectSubtitle').text(
     candidates.length === 1
       ? 'Cette carte sera ajoutée à votre défausse :'
-      : 'Choisissez la carte à ajouter à votre défausse :'
+      : 'Choisissez UNE carte à découvrir et ajouter à votre défausse :'
   );
   $('#discoverByEffectBody').html(html);
   window._discoverByEffectCandidates = candidates;
