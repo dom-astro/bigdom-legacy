@@ -314,10 +314,45 @@ function updateUI() {
       ? '<div style="font-family:\'Cinzel\',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;padding:8px;">Aucune carte permanente</div>'
       : gameState.permanent.map(c => buildPermanentCardHTML(c)).join(''));
 
+  // Zone cartes retenues
+  const retainedNums = new Set(gameState.retained || []);
+  const hasRetained = retainedNums.size > 0;
+  $('#retainedZone').toggle(hasRetained);
+  $('#retainedDivider').toggle(hasRetained);
+  if (hasRetained) {
+    const retHtml = [...retainedNums].map(n => {
+      const ci = gameState.play.find(c => c.cardDef.numero === n);
+      const face = ci ? getFaceData(ci) : null;
+      const nom  = face ? face.nom : `#${n}`;
+      const type = face ? face.type : '';
+      const emoji = face ? getCardEmoji(face.type, face.nom) : '🕊️';
+      const totalFaces = ci ? ci.cardDef.faces.length : 1;
+      const curFace = ci ? ci.currentFace : 1;
+      const victoire = face && face.victoire !== undefined && face.victoire !== 0
+        ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''};">${face.victoire>0?'★':''}${face.victoire}</div>` : '';
+      return `<div style="width:100px;height:148px;border-radius:8px;cursor:pointer;
+          background:linear-gradient(160deg,#0a1a2a,#081420);
+          border:2px solid #44aacc;padding:5px;display:flex;flex-direction:column;
+          align-items:center;justify-content:center;gap:3px;position:relative;
+          box-shadow:0 0 10px rgba(68,170,204,0.25);"
+          onclick="openCardModal(${n},'play')" title="Voir ${nom}">
+        ${victoire}
+        <div style="font-family:'Cinzel',serif;font-size:0.42rem;color:#44aacc;">#${n} <span style="opacity:0.6;">${curFace}/${totalFaces}</span></div>
+        <div style="font-size:1.8rem;">${emoji}</div>
+        <div style="font-family:'Cinzel',serif;font-size:0.52rem;font-weight:700;color:#aaeeff;text-align:center;line-height:1.2;">${nom}</div>
+        ${type ? `<span class="card-type-badge type-${(type).replace('â','a').replace('è','e')}" style="font-size:0.38rem;">${type}</span>` : ''}
+        <div style="font-size:0.5rem;color:#44aacc;margin-top:2px;">🕊️</div>
+      </div>`;
+    }).join('');
+    $('#retainedArea').html(retHtml);
+  }
+
+  // Zone de jeu — exclure les cartes retenues
   const $play = $('#playArea');
-  $play.html(gameState.play.length===0
+  const visiblePlay = gameState.play.filter(c => !retainedNums.has(c.cardDef.numero));
+  $play.html(visiblePlay.length===0
     ? '<div class="play-area-empty"><span class="empty-icon">🏰</span><span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span></div>'
-    : gameState.play.map((c,i) => buildCardFrontHTML(c,i)).join(''));
+    : visiblePlay.map(c => buildCardFrontHTML(c, gameState.play.indexOf(c))).join(''));
   $('#statPlay').text(gameState.play.length + gameState.staging.length);
 
   const hasStagingCards = gameState.staging.length > 0;
@@ -420,7 +455,6 @@ function openCardModal(indexOrNum, zone) {
       body += `<p><strong>Effet (${e.type}):</strong> ${e.description||''}`;
       if (e.ressources) body += ' '+e.ressources.map(x=>`${x.quantite}× ${RESOURCE_ICONS[normalizeRes(Array.isArray(x.type)?x.type[0]:x.type)]||x.type}`).join(', ');
       if (e.cout) body += ` (Coût: ${formatCost(e.cout)})`;
-      if (e.cartes && e.cartes.length) body += ` <em style="color:var(--gold);">📜 Découvrir : ${e.cartes.map(n=>`#${n}`).join(', ')}</em>`;
       body += '</p>';
     });
   }

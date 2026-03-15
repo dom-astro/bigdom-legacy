@@ -74,11 +74,21 @@
     <div class="resource-item"><span class="resource-icon">🛒</span><span class="resource-name">Troc</span><span class="resource-count" id="res-troc">0</span></div>
   </div>
 
-  <!-- ZONE PERMANENTE -->
+  <!-- ZONE PERMANENTE + RETENUES -->
   <div class="permanent-zone-wrapper">
-    <div class="zone-title" style="margin-bottom:6px;">🏛 Cartes Permanentes <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(restent en jeu chaque tour)</span></div>
-    <div class="permanent-cards-container" id="permanentArea">
-      <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;letter-spacing:1px;padding:8px;">Aucune carte permanente</div>
+    <!-- Cartes permanentes (gauche) -->
+    <div class="permanent-column">
+      <div class="zone-title" style="margin-bottom:6px;">🏛 Cartes Permanentes <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(restent en jeu chaque tour)</span></div>
+      <div class="permanent-cards-container" id="permanentArea">
+        <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;letter-spacing:1px;padding:8px;">Aucune carte permanente</div>
+      </div>
+    </div>
+    <!-- Séparateur vertical -->
+    <div class="retained-divider" id="retainedDivider" style="display:none;"></div>
+    <!-- Cartes retenues (droite) -->
+    <div class="retained-column" id="retainedZone" style="display:none;">
+      <div class="zone-title" style="margin-bottom:6px;">🕊️ Cartes Retenues <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(jusqu'à la fin de la manche)</span></div>
+      <div class="permanent-cards-container" id="retainedArea"></div>
     </div>
   </div>
 
