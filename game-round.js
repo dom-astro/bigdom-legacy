@@ -179,7 +179,7 @@ function _showHeritageRuleModal(allCards) {
     <div style="text-align:center;margin-bottom:18px;">
       <div style="font-size:3rem;margin-bottom:8px;">📜</div>
       <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:var(--stone);letter-spacing:2px;margin-bottom:4px;">CARTE #23 — RÈGLE</div>
-      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.1rem;color:var(--gold-light);margin-bottom:12px;">L'Héritage du Royaume</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.1rem;color:var(--gold-light);margin-bottom:12px;">L'Héritage du Royaume — Manche 7 accomplie</div>
     </div>
     <div style="
       background:linear-gradient(160deg,#1a1208,#100e06);
@@ -577,15 +577,17 @@ function triggerRetentionEffect(cardNum) {
 }
 
 function _showRetentionModal(count) {
-  const alreadyRetainedNums = new Set((gameState.retainedCards || []).map(c => c.cardDef.numero));
-  const eligible = gameState.play.filter(ci => !alreadyRetainedNums.has(ci.cardDef.numero));
+  const eligible = gameState.play.filter(ci => {
+    const retained = gameState.retained || [];
+    return !retained.includes(ci.cardDef.numero);
+  });
 
   if (eligible.length === 0) {
     addLog(`🕊️ Aucune carte en jeu à retenir.`);
     return;
   }
 
-  const already = (gameState.retainedCards || []).length;
+  const already = (gameState.retained || []).length;
   const toSelect = Math.min(count, eligible.length);
 
   let html = `
@@ -668,22 +670,13 @@ function confirmRetentionSelection() {
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
   const selected = window._retentionSelected || [];
   window._retentionSelected = [];
-  if (!gameState.retainedCards) gameState.retainedCards = [];
-
-  const names = [];
-  selected.forEach(n => {
-    const idx = gameState.play.findIndex(c => c.cardDef.numero === n);
-    if (idx >= 0) {
-      const ci = gameState.play.splice(idx, 1)[0];
-      if (!gameState.retainedCards.find(c => c.cardDef.numero === n)) {
-        gameState.retainedCards.push(ci);
-      }
-      names.push(`<span class="log-card">${getFaceData(ci).nom}</span>`);
-    }
+  if (!gameState.retained) gameState.retained = [];
+  selected.forEach(n => { if (!gameState.retained.includes(n)) gameState.retained.push(n); });
+  const names = selected.map(n => {
+    const ci = gameState.play.find(c => c.cardDef.numero === n);
+    return ci ? `<span class="log-card">${getFaceData(ci).nom}</span>` : `#${n}`;
   });
-  if (names.length > 0) {
-    addLog(`🕊️ Retenues : ${names.join(', ')} — utilisables jusqu\'à la fin de la manche.`, true);
-  }
+  addLog(`🕊️ Retenues : ${names.join(', ')} — resteront en jeu à la prochaine manche.`, true);
   updateUI();
 }
 
@@ -692,16 +685,23 @@ function newRound() {
   gameState.staging = [];
   gameState.bandits = [];
 
-  // ── Rétention : les cartes retenues rejoignent le jeu du prochain tour ──
-  const retainedCards = gameState.retainedCards || [];
+  // ── Rétention (cartes 82/83) : extraire les cartes retenues avant la défausse ──
+  const retainedNums = new Set(gameState.retained || []);
+  const retainedCards = [];
+  const playToDiscard = [];
+  gameState.play.forEach(ci => {
+    if (retainedNums.has(ci.cardDef.numero)) {
+      retainedCards.push(ci);
+    } else {
+      playToDiscard.push(ci);
+    }
+  });
   if (retainedCards.length > 0) {
     addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — retenue${retainedCards.length > 1 ? 's' : ''} pour la prochaine manche.`, true);
   }
-  gameState._retainedForNextRound = retainedCards;
-  gameState.retainedCards = []; // vider la zone retenues
-
-  // Défausser toutes les cartes en jeu (les retenues sont déjà dans _retainedForNextRound)
-  gameState.play.forEach(c => gameState.discard.push(c));
+  gameState.retained = []; // réinitialiser pour la prochaine manche
+  gameState._retainedForNextRound = retainedCards; // transmis à _finalizeNewRound
+  playToDiscard.forEach(c => gameState.discard.push(c));
   gameState.play = [];
 
   // Séparer les permanentes normales des permanentes Héritage (level-1)
@@ -714,14 +714,11 @@ function newRound() {
   clearResources();
   updateUI();
 
-  // ── HÉRITAGE : détecter la manche à 22 cartes ──
-  // allCards contient les cartes du royaume actuel (sans les permanentes level-1 déjà exclues)
-  // On compte uniquement les cartes numérotées 1-22 pour détecter le seuil
-  const stdCards = allCards.filter(ci => ci.cardDef.numero <= 22);
-  if (stdCards.length === 22 && !gameState._heritageTriggered) {
+  // ── HÉRITAGE : se déclenche à la fin de la manche 7 ──
+  if (gameState.round === 7 && !gameState._heritageTriggered) {
     gameState._heritageTriggered = true;
 
-    // Phase 2 : ajouter les cartes d'aventure à la box (après l'Héritage)
+    // Ajouter les cartes d'aventure à la box (débloquées par l'Héritage)
     const alreadyInBox = new Set(gameState.box.map(c => c.cardDef ? c.cardDef.numero : c.numero));
     const phase2 = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
       .filter(c => !alreadyInBox.has(c.numero))
@@ -732,7 +729,7 @@ function newRound() {
       addLog(`📦 Nouvelles terres à explorer — ${phase2.length} cartes d'aventure débloquées.`, true);
     }
 
-    addLog(`📜 La manche des <strong>22 cartes</strong> s'achève. Une nouvelle règle est révélée...`, true);
+    addLog(`📜 La manche 7 s'achève. La voie de l'Héritage s'ouvre...`, true);
     _showHeritageRuleModal(allCards);
     return;
   }
@@ -868,193 +865,4 @@ function discoverNextCards(n) {
     out.push(item && item.cardDef ? item : createCardInstance(item));
   }
   return out;
-}
-
-// ============================================================
-//  ACTIONS SUR CARTES RETENUES (zone rétention — carte 83)
-// ============================================================
-
-function _retainedIdxByNum(cardNum) {
-  return (gameState.retainedCards || []).findIndex(c => c.cardDef.numero === cardNum);
-}
-
-function _retainedRemove(idx) {
-  if (idx >= 0 && gameState.retainedCards) gameState.retainedCards.splice(idx, 1);
-}
-
-// Production depuis la zone retenues : défausse la carte retenue et donne ses ressources
-function stageProduceRetainedCard(cardNum) {
-  const idx = _retainedIdxByNum(cardNum);
-  if (idx < 0) return;
-  const cardInstance = gameState.retainedCards[idx];
-  const faceData = getFaceData(cardInstance);
-
-  if (!faceData.ressources || faceData.ressources.length === 0) {
-    addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
-    return;
-  }
-
-  const resourcesGained = {};
-  faceData.ressources.forEach(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
-  });
-
-  _retainedRemove(idx);
-  // On stage depuis la zone retenues (zone 'retained') : cardInstance va en staging
-  gameState.staging.push({ cardInstance, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromRetained: true });
-  addLog(`⏳ 🕊️ <span class="log-card">${faceData.nom}</span> (retenue) — production en attente.`);
-  updateUI();
-}
-
-// Activation depuis la zone retenues
-function stageActivateRetainedEffect(cardNum) {
-  const idx = _retainedIdxByNum(cardNum);
-  if (idx < 0) return;
-  const cardInstance = gameState.retainedCards[idx];
-  const fd = getFaceData(cardInstance);
-  const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
-  const act = effets.find(e => e.type === 'Activable');
-  if (!act) return;
-
-  const projected = getProjectedResources();
-  for (const c of (act.cout || [])) {
-    if ((projected[normalizeRes(c.type)] || 0) < c.quantite) {
-      addLog(`💰 Ressources insuffisantes pour activer <span class="log-card">${fd.nom}</span>. Coût: ${formatCost(act.cout)}`);
-      return;
-    }
-  }
-
-  // Conversion (Missionnaire) depuis la zone retenues
-  if (act.conversion) {
-    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
-    if (bandits.length === 0) {
-      addLog(`❌ Aucun Bandit en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
-      return;
-    }
-    // Retirer le Missionnaire de la zone retenues avant d'ouvrir le modal
-    _retainedRemove(idx);
-    showConversionModalFromRetained(cardInstance, act, bandits);
-    return;
-  }
-
-  // Effets simples sans sacrifice ni terrain ni multi-type
-  const resourcesGained = {};
-  (act.ressources || []).forEach(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
-  });
-
-  _retainedRemove(idx);
-  gameState.staging.push({ cardInstance, action: 'activate', resourcesGained, fameGained: 0, newFace: act.promotion ? act.promotion.face : null, cout: act.cout || [], fromRetained: true });
-  addLog(`⏳ 🕊️ <span class="log-card">${fd.nom}</span> (retenue) — effet activé en attente.`);
-  updateUI();
-}
-
-// Modal de conversion quand le Missionnaire vient de la zone retenues
-function showConversionModalFromRetained(missionaireInstance, act, bandits) {
-  window._pendingConversionRetained = { missionaireInstance, act };
-
-  let html = `<p style="margin-bottom:12px;">
-    Choisissez un <strong>Bandit</strong> à convertir :<br>
-    <small style="color:#aaa;">Il sera promu en face 2, puis défaussé avec le Missionnaire.</small>
-  </p><div style="display:flex;flex-direction:column;gap:8px;">`;
-
-  bandits.forEach(ci => {
-    const f = getFaceData(ci);
-    const face2 = ci.cardDef.faces.find(f2 => f2.face === 2);
-    const face2Name = face2 ? face2.nom : '?';
-    const actualIdx = gameState.play.indexOf(ci);
-    html += `<button onclick="confirmConversionFromRetained(${actualIdx})" class="sacrifice-choice-btn">
-      <span class="sacrifice-emoji">✝️</span>
-      <span class="sacrifice-info">
-        <strong>${f.nom}</strong> #${ci.cardDef.numero}
-        <span class="sacrifice-type" style="color:#aaa;">→ devient <strong style="color:#f0c040;">${face2Name}</strong></span>
-      </span>
-    </button>`;
-  });
-
-  html += `</div>`;
-  $('#sacrificeChoiceBody').html(html);
-  new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
-}
-
-function confirmConversionFromRetained(banditPlayIndex) {
-  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
-
-  const { missionaireInstance, act } = window._pendingConversionRetained || {};
-  window._pendingConversionRetained = null;
-
-  const banditCard = gameState.play[banditPlayIndex];
-  if (!missionaireInstance || !banditCard) return;
-
-  const missionaireName = getFaceData(missionaireInstance).nom;
-
-  // Débiter le coût immédiatement
-  for (const c of (act.cout || [])) {
-    const key = normalizeRes(c.type);
-    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
-  }
-
-  // Promouvoir le Bandit en face 2
-  const face2 = banditCard.cardDef.faces.find(f2 => f2.face === 2);
-  const face2Name = face2 ? face2.nom : 'face 2';
-  banditCard.currentFace = 2;
-
-  // Retirer le bandit du jeu
-  _playRemove(banditPlayIndex);
-  gameState.bandits = (gameState.bandits || []).filter(b => b.banditNum !== banditCard.cardDef.numero);
-
-  // Stocker pour fermeture du modal
-  window._pendingConversionDiscard = { missionaireCard: missionaireInstance, banditCard, face2Name };
-
-  addLog(`✝️ 🕊️ <span class="log-card">${missionaireName}</span> (retenu) convertit <span class="log-card">${getFaceData(banditCard).nom}</span> → <span class="log-card">${face2Name}</span>`, true);
-
-  updateUI();
-  _showConversionReveal(banditCard, face2, act, missionaireName);
-}
-
-// Promotion depuis la zone retenues
-function stageUpgradeRetainedCard(cardNum) {
-  const idx = _retainedIdxByNum(cardNum);
-  if (idx < 0) return;
-  const cardInstance = gameState.retainedCards[idx];
-  const faceData = getFaceData(cardInstance);
-
-  if (gameState.staging.some(e => e.action === 'upgrade')) {
-    addLog(`❌ Vous ne pouvez promouvoir qu'une seule carte par tour.`);
-    return;
-  }
-
-  const allPromos = faceData.promotions ? faceData.promotions : (faceData.promotion ? [faceData.promotion] : []);
-  if (allPromos.length === 0) {
-    addLog(`❌ <span class="log-card">${faceData.nom}</span> ne peut pas être promue.`);
-    return;
-  }
-
-  const projected = getProjectedResources();
-  const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
-  );
-
-  if (affordablePromos.length === 0) {
-    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
-    addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
-    return;
-  }
-
-  const promo = affordablePromos[0];
-  const cout = promo.cout || [];
-  const newFace = promo.face;
-  const newFaceData = cardInstance.cardDef.faces.find(f => f.face === newFace);
-  const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
-
-  _retainedRemove(idx);
-  gameState.staging.push({ cardInstance, action: 'upgrade', resourcesGained: {}, fameGained, newFace, cout, fromRetained: true });
-  addLog(`⏳ 🕊️ <span class="log-card">${faceData.nom}</span> (retenue) → <span class="log-card">${newFaceData ? newFaceData.nom : '?'}</span> — promotion en attente.`);
-  updateUI();
 }
