@@ -1,6 +1,5 @@
-  // Données des cartes level-1 (23-27 — règles de l'Héritage)
-  // Chargées depuis level-1.js — intégrées inline pour garantir la disponibilité synchrone
-  const LEVEL1_CARDS = [
+  // Données des cartes 23 à 27 — règles de l'Héritage
+  const LEGACY_CARDS = [
     { "numero": 23,
       "type": "Règle",
       "description": "Maintenant que vous maîtrisez le jeu, vous pouvez recommencer si vous souhaitez tenter votre chance. Si vous continuez, vous découvrirez 4 cartes, les cartes 24 à 27. Examinez-les maintenant, puis décidez si vous voulez recommencer ou continuer.\n     Après ces cartes, vous découvrirez la partie « Héritage » du jeu, où certaines cartes changeront définitivement au fil de la partie. Vous ne pourrez plus réinitialiser le jeu une fois engagé dans cette voie."

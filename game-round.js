@@ -171,7 +171,7 @@ function _buildLevel1CardInstance(cardData) {
 
 // Affiche le modal de la Règle Héritage (carte #23)
 function _showHeritageRuleModal(allCards) {
-  const rule23 = LEVEL1_CARDS.find(c => c.numero === 23);
+  const rule23 = LEGACY_CARDS.find(c => c.numero === 23);
   if (!rule23) { _continueNewRoundAfterHeritage(allCards); return; }
 
   const desc = rule23.description || '';
@@ -210,7 +210,7 @@ function confirmHeritageRule() {
   window._heritageAllCards = null;
 
   const queue = [24, 25, 26, 27]
-    .map(num => LEVEL1_CARDS.find(c => c.numero === num))
+    .map(num => LEGACY_CARDS.find(c => c.numero === num))
     .filter(Boolean);
 
   _heritageInspectState = { allCards, queue, currentIndex: 0 };
@@ -365,7 +365,7 @@ function _getArmeeCard() {
 }
 
 function _getArmeeData(face) {
-  const raw = LEVEL1_CARDS.find(c => c.numero === 25);
+  const raw = LEGACY_CARDS.find(c => c.numero === 25);
   if (!raw || !raw.faces) return null;
   return raw.faces.find(f => f.face === face) || null;
 }
