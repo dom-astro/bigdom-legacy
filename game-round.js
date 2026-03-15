@@ -927,6 +927,19 @@ function stageActivateRetainedEffect(cardNum) {
     }
   }
 
+  // Conversion (Missionnaire) depuis la zone retenues
+  if (act.conversion) {
+    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
+    if (bandits.length === 0) {
+      addLog(`❌ Aucun Bandit en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
+      return;
+    }
+    // Retirer le Missionnaire de la zone retenues avant d'ouvrir le modal
+    _retainedRemove(idx);
+    showConversionModalFromRetained(cardInstance, act, bandits);
+    return;
+  }
+
   // Effets simples sans sacrifice ni terrain ni multi-type
   const resourcesGained = {};
   (act.ressources || []).forEach(r => {
@@ -939,6 +952,69 @@ function stageActivateRetainedEffect(cardNum) {
   _retainedRemove(idx);
   gameState.staging.push({ cardInstance, action: 'activate', resourcesGained, fameGained: 0, newFace: act.promotion ? act.promotion.face : null, cout: act.cout || [], fromRetained: true });
   addLog(`⏳ 🕊️ <span class="log-card">${fd.nom}</span> (retenue) — effet activé en attente.`);
+  updateUI();
+}
+
+// Modal de conversion quand le Missionnaire vient de la zone retenues
+function showConversionModalFromRetained(missionaireInstance, act, bandits) {
+  window._pendingConversionRetained = { missionaireInstance, act };
+
+  let html = `<p style="margin-bottom:12px;">
+    Choisissez un <strong>Bandit</strong> à convertir :<br>
+    <small style="color:#aaa;">Il sera promu en face 2, puis défaussé avec le Missionnaire.</small>
+  </p><div style="display:flex;flex-direction:column;gap:8px;">`;
+
+  bandits.forEach(ci => {
+    const f = getFaceData(ci);
+    const face2 = ci.cardDef.faces.find(f2 => f2.face === 2);
+    const face2Name = face2 ? face2.nom : '?';
+    const actualIdx = gameState.play.indexOf(ci);
+    html += `<button onclick="confirmConversionFromRetained(${actualIdx})" class="sacrifice-choice-btn">
+      <span class="sacrifice-emoji">✝️</span>
+      <span class="sacrifice-info">
+        <strong>${f.nom}</strong> #${ci.cardDef.numero}
+        <span class="sacrifice-type" style="color:#aaa;">→ devient <strong style="color:#f0c040;">${face2Name}</strong></span>
+      </span>
+    </button>`;
+  });
+
+  html += `</div>`;
+  $('#sacrificeChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function confirmConversionFromRetained(banditPlayIndex) {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+
+  const { missionaireInstance, act } = window._pendingConversionRetained || {};
+  window._pendingConversionRetained = null;
+
+  const banditCard = gameState.play[banditPlayIndex];
+  if (!missionaireInstance || !banditCard) return;
+
+  const missionaireName = getFaceData(missionaireInstance).nom;
+  const banditName      = getFaceData(banditCard).nom;
+
+  // Débiter le coût
+  for (const c of (act.cout || [])) {
+    const key = normalizeRes(c.type);
+    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
+  }
+
+  // Promouvoir le Bandit en face 2
+  const face2 = banditCard.cardDef.faces.find(f2 => f2.face === 2);
+  const face2Name = face2 ? face2.nom : 'face 2';
+  banditCard.currentFace = 2;
+
+  // Retirer le bandit du jeu et défausser les deux
+  _playRemove(banditPlayIndex);
+  gameState.discard.push(missionaireInstance);
+  gameState.discard.push(banditCard);
+
+  // Nettoyer la liste des bandits actifs
+  gameState.bandits = (gameState.bandits || []).filter(b => b.banditNum !== banditCard.cardDef.numero);
+
+  addLog(`✝️ 🕊️ <span class="log-card">${missionaireName}</span> (retenu) convertit <span class="log-card">${banditName}</span> → <span class="log-card">${face2Name}</span>, les deux défaussés.`, true);
   updateUI();
 }
 
