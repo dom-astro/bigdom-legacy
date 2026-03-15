@@ -52,6 +52,7 @@ function _buildSaveObject() {
       armeeProgress: gameState.armeeProgress || { face:1, casesMarquees:0 },
       armeeGloirePrev: gameState.armeeGloirePrev || 0,
       retained: gameState.retained || [],
+      retainedCards: (gameState.retainedCards || []).map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace || 1 })),
       nextDiscoverIndex: gameState.nextDiscoverIndex,
       cardStateMap: cardStateMap,
       choiceNeeded: [...choiceNeeded],
@@ -67,6 +68,7 @@ function _buildSaveObject() {
         newFace: e.newFace, cout: e.cout,
         sacN: e.sacrificeCardInstance?.cardDef?.numero ?? null,
         sacF: e.sacrificeCardInstance?.currentFace    ?? null,
+        fromRetained: e.fromRetained || false,
       })),
       bandits: (gameState.bandits || []).map(b => ({ bN: b.banditNum, blN: b.blockedNum ?? null })),
     },
@@ -103,7 +105,7 @@ function doRestartGame() {
   ALL_CARDS = [ ...BEGIN_CARDS, ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []) ];
   gameState = {
     deck: [], play: [], staging: [], discard: [], permanent: [], destroyed: [],
-    retained: [], box: [], nextDiscoverIndex: 0,
+    retained: [], retainedCards: [], box: [], nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false, kingdomName: '',
@@ -182,7 +184,8 @@ function _applyImport(raw) {
     const ci = _resolveCard({ n: e.n, f: e.f });
     if (!ci) return null;
     const entry = { cardInstance: ci, action: e.action, resourcesGained: e.resourcesGained || {},
-      fameGained: e.fameGained || 0, newFace: e.newFace || null, cout: e.cout || [] };
+      fameGained: e.fameGained || 0, newFace: e.newFace || null, cout: e.cout || [],
+      fromRetained: e.fromRetained || false };
     if (e.sacN) { const sc = _resolveCard({ n: e.sacN, f: e.sacF || 1 }); if (sc) entry.sacrificeCardInstance = sc; }
     return entry;
   }).filter(Boolean);
@@ -207,6 +210,7 @@ function _applyImport(raw) {
     armeeProgress:   save.armeeProgress   || { face:1, casesMarquees:0 },
     armeeGloirePrev: save.armeeGloirePrev || 0,
     retained:        save.retained        || [],
+    retainedCards:   (save.retainedCards  || []).map(s => _resolveCard(s)).filter(Boolean),
     kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',
     bandits,
   };

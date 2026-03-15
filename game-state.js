@@ -29,6 +29,7 @@ let gameState = {
   turnStarted: false,
   gameOver: false,
   bandits: [],
+  retainedCards: [], // cartes retenues par l'effet de la carte 83 — utilisables jusqu'à fin de manche
 };
 
 function getFaceData(ci) {

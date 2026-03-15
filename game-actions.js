@@ -309,7 +309,7 @@ function canActivateEffect(cardInstance) {
   // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
   if (act.sacrifice) {
     const playIdx = gameState.play.indexOf(cardInstance);
-    const others = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type !== 'Ennemi');
+    const others = gameState.play.filter((_, i) => i !== playIdx);
     if (others.length === 0) return false;
   }
   // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
@@ -321,6 +321,11 @@ function canActivateEffect(cardInstance) {
     const playIdx = gameState.play.indexOf(cardInstance);
     const terrains = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type === 'Terrain');
     if (terrains.length === 0) return false;
+  }
+  // Si l'effet est une conversion, vérifier qu'un Bandit est en jeu
+  if (act.conversion) {
+    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
+    if (bandits.length === 0) return false;
   }
   return true;
 }
@@ -344,11 +349,22 @@ function stageActivateEffect(cardNum) {
     }
   }
 
+  // Effet de conversion (Missionnaire) : choisir un Bandit en jeu
+  if (act.conversion) {
+    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
+    if (bandits.length === 0) {
+      addLog(`❌ Aucun Bandit en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
+      return;
+    }
+    showConversionModal(playIndex, act, bandits);
+    return;
+  }
+
   // Effet avec sacrifice : ouvre un modal pour choisir la carte à défausser
   if (act.sacrifice) {
-    const candidates = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type !== 'Ennemi');
+    const candidates = gameState.play.filter((_, i) => i !== playIndex);
     if (candidates.length === 0) {
-      addLog(`❌ Aucune carte alliée disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
+      addLog(`❌ Aucune carte disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
     }
     showSacrificeModal(playIndex, act, candidates);
@@ -890,5 +906,75 @@ function confirmDestructionChoice(idx) {
   moveToDiscard(target);
   addLog(`🎯 <span class="log-card">${getFaceData(target.ci).nom}</span> (#${target.ci.cardDef.numero}) — défaussée.`, true);
   window._destructionTargets = null;
+  updateUI();
+}
+
+// ============================================================
+//  CONVERSION (Missionnaire) — convertit un Bandit en face 2
+// ============================================================
+
+function showConversionModal(missionairePlayIndex, act, bandits) {
+  window._pendingConversion = { missionairePlayIndex, act };
+
+  let html = `<p style="margin-bottom:12px;">
+    Choisissez un <strong>Bandit</strong> à convertir :<br>
+    <small style="color:#aaa;">Il sera promu en face 2, puis défaussé avec le Missionnaire.</small>
+  </p><div style="display:flex;flex-direction:column;gap:8px;">`;
+
+  bandits.forEach(ci => {
+    const f = getFaceData(ci);
+    const face2 = ci.cardDef.faces.find(f2 => f2.face === 2);
+    const face2Name = face2 ? face2.nom : '?';
+    const actualIdx = gameState.play.indexOf(ci);
+    html += `<button onclick="confirmConversion(${actualIdx})" class="sacrifice-choice-btn">
+      <span class="sacrifice-emoji">✝️</span>
+      <span class="sacrifice-info">
+        <strong>${f.nom}</strong> #${ci.cardDef.numero}
+        <span class="sacrifice-type" style="color:#aaa;">→ devient <strong style="color:#f0c040;">${face2Name}</strong></span>
+      </span>
+    </button>`;
+  });
+
+  html += `</div>`;
+  $('#sacrificeChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function confirmConversion(banditPlayIndex) {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+
+  const { missionairePlayIndex, act } = window._pendingConversion || {};
+  window._pendingConversion = null;
+
+  const missionaireCard = gameState.play[missionairePlayIndex];
+  const banditCard      = gameState.play[banditPlayIndex];
+  if (!missionaireCard || !banditCard) return;
+
+  const missionaireName = getFaceData(missionaireCard).nom;
+  const banditName      = getFaceData(banditCard).nom;
+
+  // Débiter le coût
+  for (const c of (act.cout || [])) {
+    const key = normalizeRes(c.type);
+    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
+  }
+
+  // Promouvoir le Bandit en face 2
+  const face2 = banditCard.cardDef.faces.find(f2 => f2.face === 2);
+  const face2Name = face2 ? face2.nom : 'face 2';
+  banditCard.currentFace = 2;
+
+  // Retirer les deux cartes du jeu (grand index en premier)
+  const idxs = [missionairePlayIndex, banditPlayIndex].sort((a, b) => b - a);
+  idxs.forEach(i => _playRemove(i));
+
+  // Défausser les deux
+  gameState.discard.push(missionaireCard);
+  gameState.discard.push(banditCard);
+
+  // Nettoyer la liste des bandits actifs
+  gameState.bandits = (gameState.bandits || []).filter(b => b.banditNum !== banditCard.cardDef.numero);
+
+  addLog(`✝️ <span class="log-card">${missionaireName}</span> convertit <span class="log-card">${banditName}</span> → <span class="log-card">${face2Name}</span>, les deux défaussés.`, true);
   updateUI();
 }

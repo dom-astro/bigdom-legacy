@@ -76,17 +76,17 @@
 
   <!-- ZONE PERMANENTE + RETENUES -->
   <div class="permanent-zone-wrapper">
-    <!-- Cartes permanentes (gauche) -->
+    <!-- Colonne gauche : cartes permanentes -->
     <div class="permanent-column">
       <div class="zone-title" style="margin-bottom:6px;">🏛 Cartes Permanentes <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(restent en jeu chaque tour)</span></div>
       <div class="permanent-cards-container" id="permanentArea">
         <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;letter-spacing:1px;padding:8px;">Aucune carte permanente</div>
       </div>
     </div>
-    <!-- Séparateur vertical -->
+    <!-- Séparateur vertical (masqué si aucune carte retenue) -->
     <div class="retained-divider" id="retainedDivider" style="display:none;"></div>
-    <!-- Cartes retenues (droite) -->
-    <div class="retained-column" id="retainedZone" style="display:none;">
+    <!-- Colonne droite : cartes retenues -->
+    <div class="retained-column" id="retainedColumn" style="display:none;">
       <div class="zone-title" style="margin-bottom:6px;">🕊️ Cartes Retenues <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(jusqu'à la fin de la manche)</span></div>
       <div class="permanent-cards-container" id="retainedArea"></div>
     </div>
@@ -401,8 +401,9 @@
       <div class="modal-body" id="modalCardBody"></div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fermer</button>
-        <button type="button" class="btn btn-sm btn-warning" id="modalProduceBtn" onclick="produceFromModal()">⚒ Produire</button>
-        <button type="button" class="btn btn-sm btn-success" id="modalUpgradeBtn" onclick="upgradeFromModal()">▲ Promouvoir</button>
+        <button type="button" class="btn btn-sm btn-warning" id="modalProduceBtn">⚒ Produire</button>
+        <button type="button" class="btn btn-sm btn-success" id="modalUpgradeBtn">▲ Promouvoir</button>
+        <button type="button" class="btn btn-sm btn-info" id="modalActivateBtn" style="display:none;">🟢 Activer</button>
       </div>
     </div>
   </div>

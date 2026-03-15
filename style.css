@@ -235,13 +235,8 @@ body.light-mode .game-title { text-shadow: 1px 1px 0 rgba(0,0,0,0.1); }
   box-shadow: var(--shadow-panel);
   display: flex; flex-direction: row; gap: 0; align-items: flex-start;
 }
-.permanent-column { flex: 1 1 auto; }
-.retained-column  { flex: 0 0 auto; min-width: 120px; padding-left: 12px; }
-.retained-divider {
-  width: 1px; background: var(--perm-border); align-self: stretch;
-  margin: 0 4px; opacity: 0.4;
-}
 .permanent-cards-container { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 40px; }
+.permanent-column { flex: 1 1 auto; }
 
 .card-permanent {
   width: 100px; height: 148px; border-radius: 8px;
@@ -252,6 +247,23 @@ body.light-mode .game-title { text-shadow: 1px 1px 0 rgba(0,0,0,0.1); }
   position: relative; overflow: hidden;
 }
 .card-permanent::before { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(74,122,170,0.3); border-radius: 5px; pointer-events: none; }
+
+/* Cartes retenues — zone rétention (carte 83) */
+.card-retained {
+  width: 100px; height: 148px; border-radius: 8px;
+  border: 2px solid #8866cc !important;
+  background: linear-gradient(160deg, #1a1a2a, #0e0e1e) !important;
+  padding: 5px; display: flex; flex-direction: column;
+  box-shadow: var(--shadow-card), 0 0 12px rgba(136,102,204,0.35);
+  position: relative; overflow: hidden;
+}
+.card-retained::before { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(136,102,204,0.25); border-radius: 5px; pointer-events: none; }
+.card-retained:hover { box-shadow: var(--shadow-card), 0 0 22px rgba(136,102,204,0.6); transform: translateY(-3px); transition: all 0.2s; }
+.card-wrapper-retained { position: relative; }
+
+/* Séparateur et colonne retenues */
+.retained-divider { width: 1px; background: rgba(136,102,204,0.4); align-self: stretch; margin: 0 8px; }
+.retained-column  { flex: 0 0 auto; min-width: 100px; }
 
 .staging-zone-wrapper {
   background: var(--staging-bg); border: 2px solid var(--staging-border);

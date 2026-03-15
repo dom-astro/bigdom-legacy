@@ -50,7 +50,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const canActivate = hasActivable && canActivateEffect(cardInstance);
   const hasDestruction = hasDestructionEffect(cardInstance);
   const hasRetention = _hasRetentionEffect(cardInstance);
-  const isAlreadyRetained = (gameState.retained || []).includes(cardInstance.cardDef.numero);
+  const isAlreadyRetained = (gameState.retainedCards || []).some(c => c.cardDef.numero === cardInstance.cardDef.numero);
   const actionBtns = [];
   if (banditCard) {
     if (canDefeat) {
@@ -243,6 +243,55 @@ function buildPermanentCardHTML(cardInstance) {
     </div>`;
 }
 
+// ============================================================
+//  RENDER — cartes retenues (zone rétention carte 83)
+// ============================================================
+function buildRetainedCardHTML(cardInstance) {
+  const face = getFaceData(cardInstance);
+  const cardNum = cardInstance.cardDef.numero;
+  const totalFaces = cardInstance.cardDef.faces.length;
+  const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
+
+  const resHTML = (face.ressources||[]).map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+  }).join('');
+
+  const projected = getProjectedResources();
+  const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
+  const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
+    allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
+
+  const hasActivable = hasActivableEffect(cardInstance);
+  const canActivate  = hasActivable && canActivateEffect(cardInstance);
+  const hasResources = face.ressources && face.ressources.length > 0;
+
+  const actionBtns = [];
+  if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})" title="Produire (défausse la carte retenue)">⚒ Prod.</button>`);
+  if (hasActivable)  actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})" title="Effet activable">🟢 Activer</button>`);
+  if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})" title="Promouvoir">▲ Prom.</button>`);
+
+  return `
+    <div class="card-wrapper card-wrapper-retained" data-retained-num="${cardNum}">
+      <div class="card card-front card-retained" onclick="openCardModal(${cardNum},'retained')"
+           style="cursor:pointer;background:linear-gradient(160deg,#1a1a2a,#0e0e1e);border-color:#8866cc;">
+        ${face.victoire!==undefined ? `<div class="card-victory" style="background:#553399;">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
+        <div class="card-serial" style="color:#b088ee;">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
+        <div class="card-name" style="color:#d0aaff;">${face.nom}</div>
+        <span class="card-type-badge" style="background:#553399;font-size:0.42rem;">${face.type}</span>
+        <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
+        <div class="card-resources">${resHTML}</div>
+        ${allPromos.length > 0 ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
+        <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:#8866cc;border-radius:0 0 0 8px;"></div></div>
+        <div style="text-align:center;font-size:0.42rem;color:#b088ee;font-family:'Cinzel',serif;margin-top:2px;">🕊️ RETENUE</div>
+      </div>
+      <div class="card-actions">
+        ${actionBtns.join('')}
+      </div>
+    </div>`;
+}
+
 function buildDiscardTopHTML(cardInstance) {
   const face = getFaceData(cardInstance);
   return `
@@ -314,45 +363,24 @@ function updateUI() {
       ? '<div style="font-family:\'Cinzel\',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;padding:8px;">Aucune carte permanente</div>'
       : gameState.permanent.map(c => buildPermanentCardHTML(c)).join(''));
 
-  // Zone cartes retenues
-  const retainedNums = new Set(gameState.retained || []);
-  const hasRetained = retainedNums.size > 0;
-  $('#retainedZone').toggle(hasRetained);
-  $('#retainedDivider').toggle(hasRetained);
-  if (hasRetained) {
-    const retHtml = [...retainedNums].map(n => {
-      const ci = gameState.play.find(c => c.cardDef.numero === n);
-      const face = ci ? getFaceData(ci) : null;
-      const nom  = face ? face.nom : `#${n}`;
-      const type = face ? face.type : '';
-      const emoji = face ? getCardEmoji(face.type, face.nom) : '🕊️';
-      const totalFaces = ci ? ci.cardDef.faces.length : 1;
-      const curFace = ci ? ci.currentFace : 1;
-      const victoire = face && face.victoire !== undefined && face.victoire !== 0
-        ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''};">${face.victoire>0?'★':''}${face.victoire}</div>` : '';
-      return `<div style="width:100px;height:148px;border-radius:8px;cursor:pointer;
-          background:linear-gradient(160deg,#0a1a2a,#081420);
-          border:2px solid #44aacc;padding:5px;display:flex;flex-direction:column;
-          align-items:center;justify-content:center;gap:3px;position:relative;
-          box-shadow:0 0 10px rgba(68,170,204,0.25);"
-          onclick="openCardModal(${n},'play')" title="Voir ${nom}">
-        ${victoire}
-        <div style="font-family:'Cinzel',serif;font-size:0.42rem;color:#44aacc;">#${n} <span style="opacity:0.6;">${curFace}/${totalFaces}</span></div>
-        <div style="font-size:1.8rem;">${emoji}</div>
-        <div style="font-family:'Cinzel',serif;font-size:0.52rem;font-weight:700;color:#aaeeff;text-align:center;line-height:1.2;">${nom}</div>
-        ${type ? `<span class="card-type-badge type-${(type).replace('â','a').replace('è','e')}" style="font-size:0.38rem;">${type}</span>` : ''}
-        <div style="font-size:0.5rem;color:#44aacc;margin-top:2px;">🕊️</div>
-      </div>`;
-    }).join('');
-    $('#retainedArea').html(retHtml);
+  // ── Zone cartes retenues (carte 83) ──
+  const retained = gameState.retainedCards || [];
+  const $retCol  = $('#retainedColumn');
+  const $retDiv  = $('#retainedDivider');
+  const $retArea = $('#retainedArea');
+  if ($retCol.length) {
+    if (retained.length > 0) {
+      $retCol.show(); $retDiv.show();
+      $retArea.html(retained.map(c => buildRetainedCardHTML(c)).join(''));
+    } else {
+      $retCol.hide(); $retDiv.hide();
+    }
   }
 
-  // Zone de jeu — exclure les cartes retenues
   const $play = $('#playArea');
-  const visiblePlay = gameState.play.filter(c => !retainedNums.has(c.cardDef.numero));
-  $play.html(visiblePlay.length===0
+  $play.html(gameState.play.length===0
     ? '<div class="play-area-empty"><span class="empty-icon">🏰</span><span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span></div>'
-    : visiblePlay.map(c => buildCardFrontHTML(c, gameState.play.indexOf(c))).join(''));
+    : gameState.play.map((c,i) => buildCardFrontHTML(c,i)).join(''));
   $('#statPlay').text(gameState.play.length + gameState.staging.length);
 
   const hasStagingCards = gameState.staging.length > 0;
@@ -431,6 +459,10 @@ function openCardModal(indexOrNum, zone) {
   if (zone === 'staging') {
     modalCardIndex = indexOrNum;
     cardInstance = gameState.staging[indexOrNum].cardInstance;
+  } else if (zone === 'retained') {
+    modalCardIndex = indexOrNum;
+    cardInstance = (gameState.retainedCards || []).find(c => c.cardDef.numero === indexOrNum);
+    if (!cardInstance) return;
   } else {
     modalCardIndex = indexOrNum;
     const idx = _playIdxByNum(indexOrNum);
@@ -474,27 +506,41 @@ function openCardModal(indexOrNum, zone) {
   body += '</p>';
 
   $('#modalCardBody').html(body);
-  const inPlay = zone!=='staging';
+  const inPlay = zone !== 'staging';
+  const isRetained = zone === 'retained';
   const hasModalUpgrade = !!(face.promotion || (face.promotions && face.promotions.length > 0));
-  $('#modalProduceBtn').toggle(inPlay && !!(face.ressources&&face.ressources.length));
-  $('#modalUpgradeBtn').toggle(inPlay && hasModalUpgrade);
+  const hasModalActivable = inPlay && hasActivableEffect(cardInstance);
+  const canModalActivate = hasModalActivable && canActivateEffect(cardInstance);
+  $('#modalProduceBtn')
+    .toggle(inPlay && !!(face.ressources && face.ressources.length))
+    .off('click').on('click', () => {
+      bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+      if (isRetained) stageProduceRetainedCard(modalCardIndex);
+      else stageProduceCard(modalCardIndex);
+      modalCardIndex = null;
+    });
+  $('#modalUpgradeBtn')
+    .toggle(inPlay && hasModalUpgrade)
+    .off('click').on('click', () => {
+      bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+      if (isRetained) stageUpgradeRetainedCard(modalCardIndex);
+      else stageUpgradeCard(modalCardIndex);
+      modalCardIndex = null;
+    });
+  $('#modalActivateBtn')
+    .toggle(hasModalActivable)
+    .prop('disabled', !canModalActivate)
+    .css('opacity', canModalActivate ? 1 : 0.5)
+    .attr('title', canModalActivate ? '' : 'Ressources insuffisantes ou conditions non remplies')
+    .off('click').on('click', () => {
+      bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
+      if (isRetained) stageActivateRetainedEffect(modalCardIndex);
+      else stageActivateEffect(modalCardIndex);
+      modalCardIndex = null;
+    });
   new bootstrap.Modal(document.getElementById('cardModal')).show();
 }
 
-function produceFromModal() {
-  if (modalCardIndex !== null) {
-    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
-    stageProduceCard(modalCardIndex);
-    modalCardIndex = null;
-  }
-}
-function upgradeFromModal() {
-  if (modalCardIndex !== null) {
-    bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
-    stageUpgradeCard(modalCardIndex);
-    modalCardIndex = null;
-  }
-}
 
 function showDiscardPile() {
   const $g = $('#discardPileGrid'); $g.empty();
