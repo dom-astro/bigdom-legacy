@@ -798,7 +798,8 @@ function _showNewCardsModal(discovered) {
       <div style="font-size:0.58rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${card.cardDef.numero}</div>
       <div style="font-size:2.6rem;margin-bottom:8px;">${getCardEmoji(face.type, face.nom)}</div>
       <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
-      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
+      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:10px;">${face.type}</div>
+      ${face.description ? `<div style="font-size:0.72rem;color:#c8bfb0;font-style:italic;font-family:'Crimson Text',serif;line-height:1.4;margin-bottom:10px;padding:0 4px;border-left:2px solid var(--gold);padding-left:8px;text-align:left;">${face.description}</div>` : ''}
       <div style="margin-bottom:4px;">${resHTML}</div>
       ${fameHTML}${effectHTML}${promoHTML}${facesHTML}
     </div>`;
