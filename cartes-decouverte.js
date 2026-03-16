@@ -813,7 +813,7 @@ const CARDS_TO_DISCOVER =
         },
         "effet": {
           "type": "Activable",
-          "description": "Convertit un Bandit en jeu : il est promu en face 2, puis défaussé avec le Missionnaire.",
+          "description": "Convertit un Bandit en jeu.",
           "conversion": true,
           "cout": [
             {
