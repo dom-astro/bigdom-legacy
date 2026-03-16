@@ -307,10 +307,10 @@ function canActivateEffect(cardInstance) {
   const costOk = (act.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
   if (!costOk) return false;
   // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
-  if (act.sacrifice) {
+  if (act.defausse) {
     const playIdx = gameState.play.indexOf(cardInstance);
-    const others = gameState.play.filter((_, i) => i !== playIdx);
-    if (others.length === 0) return false;
+    const allies = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type !== 'Ennemi');
+    if (allies.length === 0) return false;
   }
   // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
   const hasTerrainRes = (act.ressources || []).some(r => {
@@ -360,11 +360,11 @@ function stageActivateEffect(cardNum) {
     return;
   }
 
-  // Effet avec sacrifice : ouvre un modal pour choisir la carte à défausser
-  if (act.sacrifice) {
-    const candidates = gameState.play.filter((_, i) => i !== playIndex);
+  // Effet avec défausse alliée : ouvre un modal pour choisir la carte à défausser
+  if (act.defausse) {
+    const candidates = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type !== 'Ennemi');
     if (candidates.length === 0) {
-      addLog(`❌ Aucune carte disponible à sacrifier pour activer <span class="log-card">${fd.nom}</span>.`);
+      addLog(`❌ Aucune carte alliée disponible à défausser pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
     }
     showSacrificeModal(playIndex, act, candidates);
@@ -506,8 +506,21 @@ function showSacrificeModal(playIndex, act, candidates) {
   });
   const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
 
-  let html = `<p style="margin-bottom:12px;">
-    Choisissez une carte à <strong>défausser</strong> en échange de <strong>${resStr}</strong> :
+  // Titre dynamique
+  $('#sacrificeChoiceTitle').text(`🤝 ${fd.nom} — Choisir une carte à défausser`);
+
+  let html = '';
+
+  // Description de l'effet si disponible
+  if (act.description) {
+    html += `<p style="font-style:italic;color:#c8b070;font-family:'Crimson Text',serif;font-size:0.88rem;
+      border-left:3px solid #c8960c;padding-left:10px;margin-bottom:14px;line-height:1.4;">
+      ${act.description}
+    </p>`;
+  }
+
+  html += `<p style="margin-bottom:12px;font-size:0.9rem;">
+    Choisissez une carte <strong>alliée</strong> à défausser pour gagner <strong>${resStr}</strong> :
   </p>`;
 
   candidates.forEach((ci, idx) => {
@@ -530,10 +543,24 @@ function showSacrificeModal(playIndex, act, candidates) {
     </button>`;
   });
 
+  // Bouton annuler
+  html += `<button onclick="cancelSacrificeModal()" class="btn btn-sm"
+    style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
+    border:1px solid #7a5a20;color:#c8a050;font-family:'Cinzel',serif;font-size:0.75rem;
+    letter-spacing:1px;padding:6px;">
+    ✕ Fermer
+  </button>`;
+
   window._pendingSacrificePlayIndex = playIndex;
   window._pendingSacrificeAct = act;
   $('#sacrificeChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function cancelSacrificeModal() {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+  window._pendingSacrificePlayIndex = null;
+  window._pendingSacrificeAct = null;
 }
 
 function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
@@ -1082,12 +1109,6 @@ function confirmConversion(banditPlayIndex) {
   const face2Name = face2 ? face2.nom : 'face 2';
   banditCard.currentFace = 2;
 
-  // Annuler le malus de gloire du bandit converti
-  const banditEntry = (gameState.bandits || []).find(b => b.banditNum === banditCard.cardDef.numero);
-  if (banditEntry && banditEntry.malusGloire < 0) {
-    gameState.fame = (gameState.fame || 0) - banditEntry.malusGloire;
-    addLog(`⭐ Malus Bandit annulé +${-banditEntry.malusGloire} Gloire (Total: ${gameState.fame})`, true);
-  }
   // Retirer les deux cartes du jeu maintenant (avant l'animation)
   const idxs = [missionairePlayIndex, banditPlayIndex].sort((a, b) => b - a);
   idxs.forEach(i => _playRemove(i));
