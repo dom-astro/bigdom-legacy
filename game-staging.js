@@ -112,10 +112,38 @@ function showPromoChoiceModal(playIndex, promos) {
     const coutStr = formatCost(promo.cout || []);
     const emoji = targetFace ? getCardEmoji(targetFace.type, targetFace.nom) : '📄';
     const fame = targetFace && targetFace.victoire ? ` ⭐+${targetFace.victoire}` : '';
-    html += `<button onclick="selectPromoChoice(${playIndex}, ${i})" class="bandit-choice-btn">
-      ${emoji} <strong>${targetFace ? targetFace.nom : '?'}</strong>
-      <span style="font-size:0.75rem;opacity:0.8;"> — Coût: ${coutStr}${fame}</span>
-    </button>`;
+
+    // Construire le contenu du tooltip parchemin
+    let tooltipLines = [];
+    if (targetFace && targetFace.description) {
+      tooltipLines.push(`<em>${targetFace.description}</em>`);
+    }
+    if (targetFace && targetFace.ressources && targetFace.ressources.length) {
+      const resStr = targetFace.ressources.map(r => {
+        const types = Array.isArray(r.type) ? r.type : [r.type];
+        return types.map(t => `${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}`).join(' ');
+      }).join(' · ');
+      tooltipLines.push(`<span class="promo-tooltip-res">⚒ ${resStr}</span>`);
+    }
+    if (targetFace && targetFace.effet) {
+      const effets = Array.isArray(targetFace.effet) ? targetFace.effet : [targetFace.effet];
+      effets.forEach(e => {
+        const ico = e.type === 'Activable' ? '🟢' : e.type === 'Passif' ? '🔵' : e.type === 'Destruction' ? '🔴' : '⚡';
+        const defLabel = e.defausse === true ? ' · Défausse' : e.defausse === false ? ' · Réutilisable' : '';
+        tooltipLines.push(`<span class="promo-tooltip-effect">${ico} <strong>${e.type}</strong>${defLabel}${e.description ? ' — ' + e.description : ''}</span>`);
+      });
+    }
+    const tooltipHTML = tooltipLines.length
+      ? `<div class="promo-tooltip">${tooltipLines.join('<hr class="promo-tooltip-sep">')}</div>`
+      : '';
+
+    html += `<div class="promo-btn-wrap">
+      <button onclick="selectPromoChoice(${playIndex}, ${i})" class="bandit-choice-btn promo-choice-btn">
+        ${emoji} <strong>${targetFace ? targetFace.nom : '?'}</strong>
+        <span style="font-size:0.75rem;opacity:0.8;"> — Coût: ${coutStr}${fame}</span>
+      </button>
+      ${tooltipHTML}
+    </div>`;
   });
   window._pendingPromos = promos;
   $('#promoChoiceBody').html(html);

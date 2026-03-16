@@ -530,17 +530,17 @@ body.light-mode .face-choice-modal-content { background: linear-gradient(160deg,
 .face-choice-header .modal-title { font-family: 'Cinzel', serif; font-size: 0.9rem; font-weight: 700; color: var(--gold-light); letter-spacing: 2px; text-transform: uppercase; }
 body.light-mode .face-choice-header .modal-title { color: #7a5200; }
 
-.face-choice-btn { width: 260px; min-height: 220px; border-radius: 12px; border: 2px solid var(--border-ornate); background: linear-gradient(160deg, var(--parchment), var(--parchment-dark)); padding: 16px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.face-choice-btn { width: 150px; min-height: 200px; border-radius: 12px; border: 2px solid var(--border-ornate); background: linear-gradient(160deg, var(--parchment), var(--parchment-dark)); padding: 12px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 .face-choice-btn::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(139,105,20,0.3); border-radius: 8px; pointer-events: none; }
 .face-choice-btn:hover { transform: translateY(-6px) scale(1.04); border-color: var(--gold-light); box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 20px rgba(200,150,12,0.5); }
 .face-choice-btn:hover::after { content: '✔ Choisir'; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 700; color: var(--gold-light); letter-spacing: 1px; text-transform: uppercase; }
 
-.face-choice-emoji  { font-size: 2.4rem; margin: 4px 0; }
+.face-choice-emoji  { font-size: 2.2rem; margin: 4px 0; }
 .face-choice-type   { font-family: 'Crimson Text', serif; font-size: 0.55rem; font-style: italic; color: white; padding: 2px 8px; border-radius: 10px; }
-.face-choice-name   { font-family: 'Cinzel', serif; font-size: 0.82rem; font-weight: 700; color: #2c1810; text-align: center; line-height: 1.2; }
-.face-choice-res    { font-family: 'Crimson Text', serif; font-size: 0.82rem; color: #3a2408; text-align: center; font-weight: 600; }
+.face-choice-name   { font-family: 'Cinzel', serif; font-size: 0.68rem; font-weight: 700; color: var(--ink); text-align: center; line-height: 1.2; }
+.face-choice-res    { font-family: 'Crimson Text', serif; font-size: 0.72rem; color: var(--stone); text-align: center; }
 .face-choice-effect { font-family: 'Crimson Text', serif; font-size: 0.65rem; font-style: italic; color: var(--stone); text-align: center; }
-.face-choice-fame   { font-family: 'Cinzel', serif; font-size: 0.75rem; font-weight: 700; color: #7a4e00; }
+.face-choice-fame   { font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700; color: var(--gold); }
 
 /* ============================================================
    SACRIFICE CHOICE MODAL
@@ -759,4 +759,90 @@ body.light-mode .confirm-modal-btn-ok {
   border: 2px solid #88cc44;
   animation: convGlow 1.2s ease-out forwards;
   pointer-events: none;
+}
+/* ============================================================
+   TOOLTIP PARCHEMIN — choix de promotion
+   ============================================================ */
+.promo-btn-wrap {
+  position: relative;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.promo-tooltip {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: 320px;
+  background: radial-gradient(ellipse at 60% 40%, #f9edcf, #e8d5a3);
+  border: 2px solid #b8920a;
+  border-radius: 6px;
+  padding: 12px 14px;
+  box-shadow: 3px 6px 20px rgba(0,0,0,0.65), inset 0 0 30px rgba(200,150,12,0.08);
+  font-family: 'Crimson Text', serif;
+  font-size: 0.82rem;
+  color: #3a2408;
+  line-height: 1.45;
+  pointer-events: none;
+  text-align: left;
+}
+
+/* Flèche pointant vers le haut (vers le bouton) */
+.promo-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 9px solid transparent;
+  border-bottom-color: #b8920a;
+}
+.promo-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-bottom-color: #f9edcf;
+}
+
+.promo-tooltip em {
+  display: block;
+  font-style: italic;
+  color: #5c3d10;
+  margin-bottom: 4px;
+}
+
+.promo-tooltip-res {
+  display: block;
+  font-weight: 600;
+  color: #2c1810;
+  margin: 2px 0;
+}
+
+.promo-tooltip-effect {
+  display: block;
+  color: #3a2408;
+  margin: 2px 0;
+  font-size: 0.78rem;
+}
+
+.promo-tooltip-sep {
+  border: none;
+  border-top: 1px solid rgba(139,105,20,0.35);
+  margin: 6px 0;
+}
+
+.promo-btn-wrap:hover .promo-tooltip {
+  display: block;
+  animation: tooltipFadeIn 0.18s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
