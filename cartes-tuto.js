@@ -38,7 +38,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
+          "defausse": true,
+          "description": "Sacrifice : défaussez cette carte ainsi qu'une autre carte alliée en jeu pour récolter 2 Or d'un coup — au lieu du seul 1 Or de production normale.",
           "ressources": [
             {
               "type": "Or",
@@ -94,7 +95,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Reste en jeu",
-          "description": "Cette carte n’est pas défaussée à la fin du tour. Elle est cependant défaussée lorsque vous produisez une carte avec elle ou utilisez un effet ou une action activée sur elle. À la fin d’un tour, toutes les cartes sont défaussées, y compris celle-ci."
+          "defausse": false,
+          "description": "Effet passif : cette Grange reste en jeu à la fin du tour. Elle est cependant défaussée si vous la choisissez pour produire ou activer un effet. En fin de manche, toutes les cartes sont défaussées, y compris celle-ci."
         }
       }
     ]
@@ -137,7 +139,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
+          "defausse": true,
+          "description": "Sacrifice : défaussez cette carte ainsi qu'une autre carte alliée en jeu pour récolter 2 Or d'un coup — au lieu du seul 1 Or de production normale.",
           "ressources": [
             {
               "type": "Or",
@@ -193,7 +196,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Reste en jeu",
-          "description": "Cette carte n’est pas défaussée à la fin du tour. Elle est cependant défaussée lorsque vous produisez une carte avec elle ou utilisez un effet ou une action activée sur elle. À la fin d’un tour, toutes les cartes sont défaussées, y compris celle-ci."
+          "defausse": false,
+          "description": "Effet passif : cette Grange reste en jeu à la fin du tour. Elle est cependant défaussée si vous la choisissez pour produire ou activer un effet. En fin de manche, toutes les cartes sont défaussées, y compris celle-ci."
         }
       }
     ]
@@ -236,7 +240,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
+          "defausse": true,
+          "description": "Sacrifice : défaussez cette carte ainsi qu'une autre carte alliée en jeu pour récolter 2 Or d'un coup — au lieu du seul 1 Or de production normale.",
           "ressources": [
             {
               "type": "Or",
@@ -292,7 +297,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Reste en jeu",
-          "description": "Cette carte n’est pas défaussée à la fin du tour. Elle est cependant défaussée lorsque vous produisez une carte avec elle ou utilisez un effet ou une action activée sur elle. À la fin d’un tour, toutes les cartes sont défaussées, y compris celle-ci."
+          "defausse": false,
+          "description": "Effet passif : cette Grange reste en jeu à la fin du tour. Elle est cependant défaussée si vous la choisissez pour produire ou activer un effet. En fin de manche, toutes les cartes sont défaussées, y compris celle-ci."
         }
       }
     ]
@@ -335,7 +341,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Au lieu de produire 1 pièce d'or avec cette carte, vous pouvez la défausser avec une autre carte alliée pour gagner 2 pièces d'or.",
+          "defausse": true,
+          "description": "Sacrifice : défaussez cette carte ainsi qu'une autre carte alliée en jeu pour récolter 2 Or d'un coup — au lieu du seul 1 Or de production normale.",
           "ressources": [
             {
               "type": "Or",
@@ -391,7 +398,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Reste en jeu",
-          "description": "Cette carte n’est pas défaussée à la fin du tour. Elle est cependant défaussée lorsque vous produisez une carte avec elle ou utilisez un effet ou une action activée sur elle. À la fin d’un tour, toutes les cartes sont défaussées, y compris celle-ci."
+          "defausse": false,
+          "description": "Effet passif : cette Grange reste en jeu à la fin du tour. Elle est cependant défaussée si vous la choisissez pour produire ou activer un effet. En fin de manche, toutes les cartes sont défaussées, y compris celle-ci."
         }
       }
     ]
@@ -434,6 +442,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette carte et dépensez 1 Or pour extraire 2 Pierres supplémentaires de la zone rocheuse.",
           "cout": [
             {
               "type": "Or",
@@ -508,7 +518,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
-          "description": "Décrouvrez une mine",
+          "defausse": false,
+          "description": "Détruisez cette mine peu profonde pour en creuser une plus grande : découvrez la carte #84 ou #85 (Mine) et ajoutez-la à votre deck.",
           "cartes": [
             84,
             85
@@ -555,6 +566,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette carte et dépensez 1 Or pour extraire 2 Pierres supplémentaires de la zone rocheuse.",
           "cout": [
             {
               "type": "Or",
@@ -629,7 +642,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
-          "description": "Décrouvrez une mine",
+          "defausse": false,
+          "description": "Détruisez cette mine peu profonde pour en creuser une plus grande : découvrez la carte #84 ou #85 (Mine) et ajoutez-la à votre deck.",
           "cartes": [
             84,
             85
@@ -663,6 +677,8 @@ const BEGIN_CARDS =
         },
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Coupe Rase : abattez tous les arbres pour récolter 3 Bois d'un coup. La forêt bascule sur sa face 'Coupe Rase' (terrain dégagé) et est aussitôt défaussée. Le terrain pourra repousser ou être aménagé par la suite.",
           "ressources": [
             {
               "type": [
@@ -738,6 +754,8 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "defausse": false,
+          "description": "Détruisez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre deck.",
           "cartes": [
             82,
             83
@@ -771,6 +789,8 @@ const BEGIN_CARDS =
         },
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Coupe Rase : abattez tous les arbres pour récolter 3 Bois d'un coup. La forêt bascule sur sa face 'Coupe Rase' (terrain dégagé) et est aussitôt défaussée. Le terrain pourra repousser ou être aménagé par la suite.",
           "ressources": [
             {
               "type": [
@@ -846,6 +866,8 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "defausse": false,
+          "description": "Détruisez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre deck.",
           "cartes": [
             82,
             83
@@ -912,6 +934,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cet Hôtel de Ville pour récupérer la production d'un Terrain ET d'un Bâtiment en jeu simultanément, sans les défausser.",
           "ressource": [
             {
               "type": "Terrain",
@@ -956,6 +980,8 @@ const BEGIN_CARDS =
         },
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ce Donjon pour récupérer la production d'un Terrain ET d'un Bâtiment en jeu simultanément, sans les défausser.",
           "ressource": [
             {
               "type": "Terrain",
@@ -983,6 +1009,8 @@ const BEGIN_CARDS =
         "victoire": 12,
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ce Château pour piocher une carte supplémentaire depuis le sommet de votre deck et la jouer immédiatement ce tour.",
           "ressource": [
             {
               "type": "Carte",
@@ -1001,7 +1029,8 @@ const BEGIN_CARDS =
         "description": "Une marchande itinérante qui apporte des ressources précieuses et des opportunités commerciales.",
         "effet": {
           "type": "Activable",
-          "description": "Echanger une ressource Or pour une ressource Bois",
+          "defausse": true,
+          "description": "Défaussez cette marchande et dépensez 1 Or pour obtenir 1 Bois — un échange commercial avantageux pour les chantiers de construction.",
           "cout": [
             {
               "type": "Or",
@@ -1036,7 +1065,8 @@ const BEGIN_CARDS =
         "victoire": 1,
         "effet": {
           "type": "Activable",
-          "description": "Echanger une ressource Or pour une ressource Bois ou Pierre",
+          "defausse": true,
+          "description": "Défaussez ce bazar et dépensez 1 Or pour obtenir 1 Bois ou 1 Pierre au choix — les étals du marché proposent ce qu'il vous faut.",
           "cout": [
             {
               "type": "Or",
@@ -1072,7 +1102,8 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Activable",
-          "description": "Echanger une ressource Or pour une ressource Bois, Pierre ou Métal",
+          "defausse": true,
+          "description": "Défaussez ce marché et dépensez 1 Or pour obtenir 1 Bois, 1 Pierre ou 1 Or supplémentaire au choix — les marchands du bourg ont tout ce dont votre royaume a besoin.",
           "cout": [
             {
               "type": "Or",
@@ -1129,6 +1160,8 @@ const BEGIN_CARDS =
         "description": "Une dense jungle regorgeant de ressources naturelles, mais difficile à exploiter.",
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette jungle et dépensez 1 Or pour faire défricher un coin de la forêt dense et récolter 1 Bois.",
           "cout": [
             {
               "type": "Or",
@@ -1166,6 +1199,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ces arbres géants et dépensez 1 Or pour organiser une coupe intensive et récolter 2 Bois supplémentaires.",
           "cout": [
             {
               "type": "Or",
@@ -1232,7 +1267,8 @@ const BEGIN_CARDS =
         "victoire": 4,
         "effet": {
           "type": "Passif",
-          "description": "Reste en jeu"
+          "defausse": false,
+          "description": "Effet passif : cette cabane perchée dans les arbres reste en jeu à la fin du tour. Elle offre un refuge durable et continue de produire chaque tour sans être défaussée."
         }
       }
     ]
@@ -1320,7 +1356,8 @@ const BEGIN_CARDS =
         "victoire": 4,
         "effet": {
           "type": "Activable",
-          "description": "Nouveau territoire",
+          "defausse": true,
+          "description": "Défaussez ces explorateurs pour partir en expédition : découvrez l'un des nouveaux territoires (#71, #72, #73 ou #74) et ajoutez-le à votre deck.",
           "cartes": [
             71,
             72,
@@ -1342,7 +1379,8 @@ const BEGIN_CARDS =
         "description": "Un travailleur acharné qui exploite les ressources de votre royaume pour en tirer le meilleur parti.",
         "effet": {
           "type": "Activable",
-          "description": "Exploiter une carte Terrain en jeu pour obtenir des ressources",
+          "defausse": true,
+          "description": "Défaussez cet exploitant pour activer immédiatement la production d'une carte Terrain en jeu, comme si vous l'aviez produite normalement (sans la défausser).",
           "ressources": [
             {
               "type": [
@@ -1359,6 +1397,8 @@ const BEGIN_CARDS =
         "description": "Un serviteur dévoué qui s'occupe des tâches quotidiennes de votre royaume, vous permettant de vous concentrer sur la gestion et le développement.",
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ce domestique pour recevoir gratuitement 1 ressource au choix parmi Or, Bois ou Pierre — le serviteur se met en quête de ce dont le royaume a besoin.",
           "ressources": [
             {
               "type": [
@@ -1383,6 +1423,8 @@ const BEGIN_CARDS =
         "effet": [
           {
             "type": "Obligatoire",
+            "defausse": false,
+            "description": "Effet forcé : dès que ce bandit entre en jeu, il bloque une carte alliée qui produit de l'Or. Cette carte bloquée ne peut plus être utilisée tant que le bandit est présent.",
             "blocage": {
               "type": "Carte",
               "production": "Or"
@@ -1390,7 +1432,8 @@ const BEGIN_CARDS =
           },
           {
             "type": "Activable",
-            "description": "Vaincre",
+            "defausse": true,
+            "description": "Dépensez 1 ⚔️ Épée pour vaincre ce bandit : il est défaussé et vous gagnez 2 ressources au choix parmi Or, Bois, Pierre ou Métal en récompense.",
             "cout": [
               {
                 "type": [
@@ -1419,6 +1462,8 @@ const BEGIN_CARDS =
         "description": "Un ouvrier dévoué qui travaille dur pour construire et développer votre royaume, contribuant à son expansion et à sa prospérité.",
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ce travailleur pour activer la production d'un Bâtiment en jeu, comme si vous l'aviez produit normalement (sans le défausser).",
           "ressources": [
             {
               "type": [
@@ -1470,6 +1515,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette carte et dépensez 1 Or pour extraire 2 Pierres supplémentaires de la zone rocheuse.",
           "cout": [
             {
               "type": "Or",
@@ -1562,6 +1609,8 @@ const BEGIN_CARDS =
         "effet": [
           {
             "type": "Obligatoire",
+            "defausse": false,
+            "description": "Effet forcé : dès que ce bandit entre en jeu, il bloque une carte alliée qui produit de l'Or. Cette carte bloquée ne peut plus être utilisée tant que le bandit est présent.",
             "blocage": {
               "type": "Carte",
               "production": "Or"
@@ -1569,7 +1618,8 @@ const BEGIN_CARDS =
           },
           {
             "type": "Activable",
-            "description": "Vaincre",
+            "defausse": true,
+            "description": "Dépensez 1 ⚔️ Épée pour vaincre ce bandit : il est défaussé et vous gagnez 2 ressources au choix parmi Or, Bois, Pierre ou Métal en récompense.",
             "cout": [
               {
                 "type": [
@@ -1598,7 +1648,8 @@ const BEGIN_CARDS =
         "description": "Un travailleur acharné qui exploite les ressources de votre royaume pour en tirer le meilleur parti.",
         "effet": {
           "type": "Activable",
-          "description": "Exploiter une carte Terrain en jeu pour obtenir des ressources",
+          "defausse": true,
+          "description": "Défaussez cet exploitant pour activer immédiatement la production d'une carte Terrain en jeu, comme si vous l'aviez produite normalement (sans la défausser).",
           "ressources": [
             {
               "type": [
@@ -1658,7 +1709,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Défaussez cette carte pour découvrir la carte #103.",
+          "defausse": true,
+          "description": "Défaussez cette chapelle et dépensez 3 Or pour faire venir un Missionnaire (#103) dans votre royaume — la foi attire les hommes de Dieu.",
           "cout": [
             {
               "type": "Or",
@@ -1698,6 +1750,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette église et dépensez 4 Or pour invoquer un personnage sacré (carte #104) et l'ajouter à votre royaume.",
           "cout": [
             {
               "type": "Or",
@@ -1741,7 +1795,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Passif",
-          "description": "Gagne 1 Or supplémentaire pour chaque carte Personne en jeu",
+          "defausse": false,
+          "description": "Effet passif permanent : cette cathédrale produit 1 Or supplémentaire par carte Personne présente en jeu ce tour — la dévotion des ouailles enrichit le royaume.",
           "ressources": [
             {
               "type": [
@@ -1815,7 +1870,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Rénitialiser pour découvrir des Bijoux",
+          "defausse": true,
+          "description": "Défaussez cette forge pour la réinitialiser et découvrir la carte #90 (Bijoux) — les forgerons élaborent de précieux ornements pour le commerce.",
           "cartes": [
             90
           ]
@@ -1841,7 +1897,8 @@ const BEGIN_CARDS =
         "victoire": 4,
         "effet": {
           "type": "Passif",
-          "description": "Gagner une épée pour chaque personne en jeu",
+          "defausse": false,
+          "description": "Effet passif : cette armurerie produit 1 ⚔️ Épée supplémentaire pour chaque carte Personne présente en jeu ce tour — les armuriers équipent chaque soldat.",
           "ressources": [
             {
               "type": [
@@ -1878,7 +1935,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Passif",
-          "description": "Reste en jeu"
+          "defausse": false,
+          "description": "Effet passif : cette muraille reste en jeu à la fin du tour. Elle offre une présence permanente pour protéger votre royaume, et continue de produire des ⚔️ Épées chaque tour."
         }
       }
     ]
@@ -1908,6 +1966,8 @@ const BEGIN_CARDS =
         },
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Coupe Rase : abattez tous les arbres pour récolter 3 Bois d'un coup. La forêt bascule sur sa face 'Coupe Rase' (terrain dégagé) et est aussitôt défaussée. Le terrain pourra repousser ou être aménagé par la suite.",
           "ressources": [
             {
               "type": [
@@ -1983,6 +2043,8 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "defausse": false,
+          "description": "Détruisez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre deck.",
           "cartes": [
             82,
             83
@@ -2280,6 +2342,8 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez ce bateau pour organiser une expédition de pêche : découvrez la carte #75 et ajoutez-la à votre deck.",
           "carte": [
             75
           ]
@@ -2292,7 +2356,8 @@ const BEGIN_CARDS =
         "victoire": 5,
         "effet": {
           "type": "Passif",
-          "description": "Reste en jeu",
+          "defausse": false,
+          "description": "Effet passif : ce phare reste en jeu à la fin du tour. En contrepartie, défaussez la carte au sommet de votre pioche à chaque fin de tour (elle est perdue sans produire).",
           "action": "Défaussez la carte au sommet de votre pioche"
         }
       }

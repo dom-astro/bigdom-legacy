@@ -38,6 +38,8 @@ const CARDS_TO_DISCOVER =
         ],
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Défaussez cette carte et dépensez 1 Or pour extraire 2 Pierres supplémentaires de la zone rocheuse.",
           "cout": [
             {
               "type": "Or",
@@ -112,7 +114,8 @@ const CARDS_TO_DISCOVER =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
-          "description": "Décrouvrez une mine",
+          "defausse": false,
+          "description": "Détruisez cette carte pour découvrir une nouvelle mine (carte #84 ou #85) et l'ajouter à votre deck.",
           "cartes": [
             84,
             85
@@ -146,6 +149,8 @@ const CARDS_TO_DISCOVER =
         },
         "effet": {
           "type": "Activable",
+          "defausse": true,
+          "description": "Coupe Rase : abattez tous les arbres de la forêt pour récolter 3 Bois d'un coup. La forêt bascule sur sa face 'Coupe Rase' (terrain dégagé) et est aussitôt défaussée. Elle pourra repousser ou être aménagée par la suite.",
           "ressources": [
             {
               "type": [
@@ -221,6 +226,8 @@ const CARDS_TO_DISCOVER =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "defausse": false,
+          "description": "Détruisez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre deck.",
           "cartes": [
             82,
             83
@@ -303,7 +310,8 @@ const CARDS_TO_DISCOVER =
         ],
         "effet": {
           "type": "Passif",
-          "description": "Reste en jeu"
+          "defausse": false,
+          "description": "Cette muraille reste en jeu à la fin du tour (ne se défausse pas). Elle offre une présence permanente pour protéger votre royaume."
         }
       }
     ]
@@ -370,7 +378,8 @@ const CARDS_TO_DISCOVER =
         ],
         "effet": {
           "type": "Obligatoiref",
-          "description": "Découvrez le pirate",
+          "defausse": false,
+          "description": "Effet forcé : dès que cette route commerciale entre en jeu, découvrez immédiatement le Pirate (carte #76) qui rejoindra votre deck — une menace inévitable sur les mers.",
           "carte": 76
         }
       }
@@ -386,8 +395,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 1,
-            "description": "Défaussez cette carte pour qu'une carte en jeu reste au tour suivant."
+            "description": "Défaussez cette carte pour qu'une carte en jeu reste au tour suivant (ne sera pas défaussée en fin de tour)."
           }
         ],
         "promotion": {
@@ -408,8 +418,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 2,
-            "description": "Défaussez cette carte pour que 2 cartes en jeu restent au tour suivant."
+            "description": "Défaussez ce sanctuaire pour que 2 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ],
         "promotion": {
@@ -434,8 +445,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 3,
-            "description": "Défaussez cette carte pour que 3 cartes en jeu restent au tour suivant."
+            "description": "Défaussez cet oratoire pour que 3 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ],
         "promotion": {
@@ -464,8 +476,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 4,
-            "description": "Défaussez cette carte pour que 4 cartes en jeu restent au tour suivant."
+            "description": "Défaussez ce temple pour que 4 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ]
       },
@@ -503,8 +516,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 2,
-            "description": "Défaussez cette carte pour que 2 cartes en jeu restent au tour suivant."
+            "description": "Défaussez ce sanctuaire pour que 2 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ],
         "promotion": {
@@ -529,8 +543,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 3,
-            "description": "Défaussez cette carte pour que 3 cartes en jeu restent au tour suivant."
+            "description": "Défaussez cet oratoire pour que 3 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ],
         "promotion": {
@@ -559,8 +574,9 @@ const CARDS_TO_DISCOVER =
         "effet": [
           {
             "type": "Retention",
+            "defausse": true,
             "retenir": 4,
-            "description": "Défaussez cette carte pour que 4 cartes en jeu restent au tour suivant."
+            "description": "Défaussez ce temple pour que 4 cartes de votre choix en jeu restent sur la table au prochain tour (elles ne seront pas défaussées en fin de tour)."
           }
         ]
       },
@@ -813,7 +829,8 @@ const CARDS_TO_DISCOVER =
         },
         "effet": {
           "type": "Activable",
-          "description": "Convertit un Bandit en jeu.",
+          "defausse": true,
+          "description": "Défaussez ce missionnaire et dépensez 3 Or pour convertir un Bandit présent en jeu : le bandit est retiré du jeu sans combat et ne bloquera plus aucune carte.",
           "conversion": true,
           "cout": [
             {
@@ -829,7 +846,8 @@ const CARDS_TO_DISCOVER =
         "description": "Un apiculteur expert, capable de produire du miel de qualité supérieure.",
         "effet": {
           "type": "Activable",
-          "description": "Cochez une case. Au bout de 4 cases ajouter une ressource au choix pour la production de la carte"
+          "defausse": false,
+          "description": "Activez sans défausser pour cocher une case de progression. Lorsque les 4 cases sont cochées, choisissez une ressource et ajoutez-la définitivement à la production de cette carte (effet permanent)."
         }
       }
     ]

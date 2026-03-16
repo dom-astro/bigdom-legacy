@@ -484,10 +484,30 @@ function openCardModal(indexOrNum, zone) {
   if (face.effet) {
     const efs = Array.isArray(face.effet)?face.effet:[face.effet];
     efs.forEach(e => {
-      body += `<p><strong>Effet (${e.type}):</strong> ${e.description||''}`;
-      if (e.ressources) body += ' '+e.ressources.map(x=>`${x.quantite}× ${RESOURCE_ICONS[normalizeRes(Array.isArray(x.type)?x.type[0]:x.type)]||x.type}`).join(', ');
-      if (e.cout) body += ` (Coût: ${formatCost(e.cout)})`;
-      body += '</p>';
+      const _typeCfg = {
+        Activable:    { border:'#2e7d32', bg:'rgba(27,94,32,0.20)' },
+        Passif:       { border:'#1565c0', bg:'rgba(13,71,161,0.20)' },
+        Destruction:  { border:'#bf360c', bg:'rgba(191,54,12,0.20)' },
+        Retention:    { border:'#6a1b9a', bg:'rgba(106,27,154,0.20)' },
+        Obligatoiref: { border:'#e65100', bg:'rgba(230,81,0,0.20)' },
+        Obligatoire:  { border:'#e65100', bg:'rgba(230,81,0,0.20)' },
+        'Reste en jeu':{ border:'#558b2f', bg:'rgba(85,139,47,0.20)' }
+      };
+      const _cfg = _typeCfg[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.15)' };
+      const _defTag = e.defausse === true
+        ? `<span style="background:#b71c1c;color:#fff;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px;">⚠️ Défausse</span>`
+        : e.defausse === false
+          ? `<span style="background:#1b5e20;color:#fff;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px;">♾ Réutilisable</span>`
+          : '';
+      body += `<div style="background:${_cfg.bg};border:1px solid ${_cfg.border}40;border-left:4px solid ${_cfg.border};border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;">`;
+      body += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`
+             + `<span style="background:${_cfg.border};color:#fff;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.04em;font-family:'Cinzel',serif;">${e.type}</span>`
+             + _defTag
+             + `</div>`;
+      if (e.description) body += `<p style="margin:2px 0 4px;font-size:0.85rem;color:#f0ece6;line-height:1.4;">${e.description}</p>`;
+      if (e.ressources) body += `<p style="margin:4px 0 2px;font-size:0.82rem;"><span style="background:rgba(0,0,0,0.35);color:#ffd54f;font-weight:600;padding:1px 6px;border-radius:4px;">🎁 Gains</span> <span style="color:#f0ece6;">`+e.ressources.map(x=>`${x.quantite}× ${RESOURCE_ICONS[normalizeRes(Array.isArray(x.type)?x.type[0]:x.type)]||x.type}`).join(', ')+`</span></p>`;
+      if (e.cout) body += `<p style="margin:2px 0;font-size:0.82rem;"><span style="background:rgba(0,0,0,0.35);color:#ffcc80;font-weight:600;padding:1px 6px;border-radius:4px;">💰 Coût</span> <span style="color:#f0ece6;">${formatCost(e.cout)}</span></p>`;
+      body += `</div>`;
     });
   }
   const allModalPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
