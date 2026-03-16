@@ -1001,6 +1001,7 @@ const BEGIN_CARDS =
         "description": "Une marchande itinérante qui apporte des ressources précieuses et des opportunités commerciales.",
         "effet": {
           "type": "Activable",
+          "description": "Echanger une ressource Or pour une ressource Bois",
           "cout": [
             {
               "type": "Or",
@@ -1035,6 +1036,7 @@ const BEGIN_CARDS =
         "victoire": 1,
         "effet": {
           "type": "Activable",
+          "description": "Echanger une ressource Or pour une ressource Bois ou Pierre",
           "cout": [
             {
               "type": "Or",
@@ -1070,6 +1072,7 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Activable",
+          "description": "Echanger une ressource Or pour une ressource Bois, Pierre ou Métal",
           "cout": [
             {
               "type": "Or",
@@ -1112,7 +1115,7 @@ const BEGIN_CARDS =
               "Pierre",
               "Métal"
             ],
-            "quantite": 2
+            "quantite": 1
           }
         ]
       }
