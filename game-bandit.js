@@ -86,7 +86,9 @@ function processPendingBandits() {
 
   const queue = unregistered.map(banditCi => {
     const banditNum = banditCi.cardDef.numero;
-    gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: false });
+    // Le malus de gloire est appliqué à la découverte (confirmNewCards)
+    const malusGloire = (gameState.banditMalus && gameState.banditMalus[banditNum]) || 0;
+    gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: false, malusGloire });
     const goldCards = gameState.play.filter(c =>
       c !== banditCi && !isBandit(c) && producesGold(c) &&
       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero)

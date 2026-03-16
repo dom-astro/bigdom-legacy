@@ -798,8 +798,7 @@ function _showNewCardsModal(discovered) {
       <div style="font-size:0.58rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${card.cardDef.numero}</div>
       <div style="font-size:2.6rem;margin-bottom:8px;">${getCardEmoji(face.type, face.nom)}</div>
       <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
-      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:10px;">${face.type}</div>
-      ${face.description ? `<div style="font-size:0.72rem;color:#c8bfb0;font-style:italic;font-family:'Crimson Text',serif;line-height:1.4;margin-bottom:10px;padding:0 4px;border-left:2px solid var(--gold);padding-left:8px;text-align:left;">${face.description}</div>` : ''}
+      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
       <div style="margin-bottom:4px;">${resHTML}</div>
       ${fameHTML}${effectHTML}${promoHTML}${facesHTML}
     </div>`;
@@ -828,6 +827,19 @@ function confirmNewCards() {
   _pendingNewRound = null;
   _drawLocked = true;
   setTimeout(() => { _drawLocked = false; }, 600);
+
+  // Appliquer le malus de gloire pour les bandits découverts
+  discovered.forEach(card => {
+    const face = getFaceData(card);
+    if (face.type === 'Ennemi' && face.nom === 'Bandit' && face.victoire !== undefined && face.victoire < 0) {
+      gameState.fame = (gameState.fame || 0) + face.victoire;
+      // Mémoriser le malus dans la structure bandits pour annulation ultérieure
+      if (!gameState.banditMalus) gameState.banditMalus = {};
+      gameState.banditMalus[card.cardDef.numero] = face.victoire;
+      addLog(`💀 <span class="log-card">Bandit</span> découvert — Gloire ${face.victoire} (Total : ${gameState.fame})`, true);
+    }
+  });
+
   _finalizeNewRound(allCards, discovered);
   drawCards(4);
 }
