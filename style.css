@@ -530,17 +530,17 @@ body.light-mode .face-choice-modal-content { background: linear-gradient(160deg,
 .face-choice-header .modal-title { font-family: 'Cinzel', serif; font-size: 0.9rem; font-weight: 700; color: var(--gold-light); letter-spacing: 2px; text-transform: uppercase; }
 body.light-mode .face-choice-header .modal-title { color: #7a5200; }
 
-.face-choice-btn { width: 150px; min-height: 200px; border-radius: 12px; border: 2px solid var(--border-ornate); background: linear-gradient(160deg, var(--parchment), var(--parchment-dark)); padding: 12px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.face-choice-btn { width: 260px; min-height: 220px; border-radius: 12px; border: 2px solid var(--border-ornate); background: linear-gradient(160deg, var(--parchment), var(--parchment-dark)); padding: 16px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; transition: all 0.25s ease; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 .face-choice-btn::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(139,105,20,0.3); border-radius: 8px; pointer-events: none; }
 .face-choice-btn:hover { transform: translateY(-6px) scale(1.04); border-color: var(--gold-light); box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 20px rgba(200,150,12,0.5); }
 .face-choice-btn:hover::after { content: '✔ Choisir'; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 700; color: var(--gold-light); letter-spacing: 1px; text-transform: uppercase; }
 
-.face-choice-emoji  { font-size: 2.2rem; margin: 4px 0; }
+.face-choice-emoji  { font-size: 2.4rem; margin: 4px 0; }
 .face-choice-type   { font-family: 'Crimson Text', serif; font-size: 0.55rem; font-style: italic; color: white; padding: 2px 8px; border-radius: 10px; }
-.face-choice-name   { font-family: 'Cinzel', serif; font-size: 0.68rem; font-weight: 700; color: var(--ink); text-align: center; line-height: 1.2; }
-.face-choice-res    { font-family: 'Crimson Text', serif; font-size: 0.72rem; color: var(--stone); text-align: center; }
+.face-choice-name   { font-family: 'Cinzel', serif; font-size: 0.82rem; font-weight: 700; color: #2c1810; text-align: center; line-height: 1.2; }
+.face-choice-res    { font-family: 'Crimson Text', serif; font-size: 0.82rem; color: #3a2408; text-align: center; font-weight: 600; }
 .face-choice-effect { font-family: 'Crimson Text', serif; font-size: 0.65rem; font-style: italic; color: var(--stone); text-align: center; }
-.face-choice-fame   { font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700; color: var(--gold); }
+.face-choice-fame   { font-family: 'Cinzel', serif; font-size: 0.75rem; font-weight: 700; color: #7a4e00; }
 
 /* ============================================================
    SACRIFICE CHOICE MODAL

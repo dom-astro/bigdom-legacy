@@ -225,7 +225,7 @@ function showFaceChoiceModal(playIndex) {
     Cette carte a <strong>deux identités possibles</strong>. Choisissez celle qu'elle sera
     <em>définitivement</em> pour le reste de la partie.
   </p>
-  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">`;
+  <div style="display:flex;gap:20px;justify-content:center;flex-wrap:nowrap;align-items:stretch;">`;
 
   ci.cardDef.faces.forEach(f => {
     const hasRes = f.ressources && f.ressources.length > 0;
@@ -235,21 +235,38 @@ function showFaceChoiceModal(playIndex) {
     }).join(' · ') : '';
 
     const hasEffect = !!f.effet;
-    const effectLabel = hasEffect
-      ? (Array.isArray(f.effet) ? f.effet.map(e => e.type).join('/') : f.effet.type)
-      : '';
+    const effets = hasEffect ? (Array.isArray(f.effet) ? f.effet : [f.effet]) : [];
 
     const typeColors = { Personne:'#3a5a8a', Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Ennemi:'#6a0a0a' };
     const bgColor = typeColors[f.type] || '#444';
+
+    const effectsHTML = effets.map(e => {
+      const ico = e.type === 'Activable' ? '🟢' : e.type === 'Passif' ? '🔵' : e.type === 'Destruction' ? '🔴' : '⚡';
+      const typeColors2 = { Activable:'#2e7d32', Passif:'#1565c0', Destruction:'#bf360c' };
+      const ec = typeColors2[e.type] || '#c8a00c';
+      const defTag = e.defausse === true
+        ? `<span style="background:#b71c1c;color:#fff;font-size:0.6rem;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:4px;">⚠️ Défausse</span>`
+        : e.defausse === false
+          ? `<span style="background:#1b5e20;color:#fff;font-size:0.6rem;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:4px;">♾ Réutil.</span>`
+          : '';
+      return `<div style="background:rgba(0,0,0,0.3);border-left:3px solid ${ec};border-radius:0 4px 4px 0;padding:5px 8px;margin-top:6px;text-align:left;">`
+        + `<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">`
+        + `<span style="background:${ec};color:#fff;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:8px;">${ico} ${e.type}</span>`
+        + defTag
+        + `</div>`
+        + (e.description ? `<div style="font-size:0.68rem;color:#f0ece6;font-style:italic;line-height:1.35;">${e.description}</div>` : '')
+        + `</div>`;
+    }).join('');
 
     html += `
       <button onclick="confirmFaceChoice(${playIndex}, ${f.face})" class="face-choice-btn">
         <div class="face-choice-emoji">${getCardEmoji(f.type, f.nom)}</div>
         <div class="face-choice-type" style="background:${bgColor};">${f.type}</div>
         <div class="face-choice-name">${f.nom}</div>
+        ${f.description ? `<div style="font-size:0.72rem;color:#5c4a38;font-style:italic;font-family:'Crimson Text',serif;line-height:1.35;margin:6px 0 4px;padding:0 2px;border-left:2px solid var(--gold);padding-left:7px;text-align:left;">${f.description}</div>` : ''}
         ${resHTML ? `<div class="face-choice-res">⚒ ${resHTML}</div>` : ''}
-        ${hasEffect ? `<div class="face-choice-effect">${effectLabel === 'Activable' ? '🟢' : effectLabel === 'Passif' ? '🔵' : '⚡'} Effet ${effectLabel}</div>` : ''}
         ${f.victoire ? `<div class="face-choice-fame">★ ${f.victoire} Gloire</div>` : ''}
+        ${effectsHTML}
       </button>`;
   });
 
