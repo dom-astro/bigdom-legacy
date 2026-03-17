@@ -99,19 +99,18 @@ function confirmNewRound() {
 }
 
 function endTurn() {
-  if (!gameState.stayInPlay) gameState.stayInPlay = [];
-  // Remettre les cartes en staging dans leur zone d'origine
-  gameState.staging.forEach(entry => {
-    if (entry.fromStayInPlay) {
-      gameState.stayInPlay.push(entry.cardInstance);
-    } else {
-      gameState.play.push(entry.cardInstance);
-    }
-  });
+  // Remettre les cartes en staging dans play (si on passe sans confirmer)
+  gameState.staging.forEach(entry => gameState.play.push(entry.cardInstance));
   gameState.staging = [];
 
-  // Les cartes en play sont défaussées normalement (les Reste en jeu sont déjà dans stayInPlay)
-  gameState.play.forEach(c => gameState.discard.push(c));
+  [...gameState.play].forEach(c => {
+    if (isStayInPlay(getFaceData(c))) {
+      if (!gameState.permanent.find(p => p.cardDef.numero === c.cardDef.numero))
+        gameState.permanent.push(c);
+    } else {
+      gameState.discard.push(c);
+    }
+  });
   gameState.play = [];
   gameState.bandits = []; // Les bandits sont défaussés en fin de tour
   clearResources();
@@ -191,9 +190,7 @@ function _showHeritageRuleModal(allCards) {
       white-space:pre-wrap;">
 ${desc.trim()}
     </div>
-    <p style="text-align:center;margin-top:16px;font-family:'Crimson Text',serif;font-size:0.8rem;color:#aa8866;font-style:italic;">
-      ⚠️ Une fois engagé dans la voie de l'Héritage, le jeu ne peut plus être réinitialisé.
-    </p>`;
+    `;
 
   document.getElementById('heritageRuleBody').innerHTML = html;
   window._heritageAllCards = allCards;
@@ -709,11 +706,7 @@ function newRound() {
   const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
   const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
 
-  // Les cartes "Reste en jeu" retournent dans le deck à chaque nouvelle manche
-  const sipCards = gameState.stayInPlay || [];
-  gameState.stayInPlay = [];
-
-  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards];
+  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms];
   gameState.permanent = [...heritagePerms]; // Les cartes Héritage restent permanentes !
   gameState.discard = []; gameState.deck = [];
   clearResources();
