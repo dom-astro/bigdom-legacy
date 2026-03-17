@@ -110,18 +110,6 @@ function drawCards(n) {
   });
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
-
-  // Cartes "Reste en jeu" : les déplacer de play vers stayInPlay
-  if (!gameState.stayInPlay) gameState.stayInPlay = [];
-  const _sip = gameState.play.filter(c => isStayInPlay(getFaceData(c)));
-  _sip.forEach(c => {
-    if (!gameState.stayInPlay.find(p => p.cardDef.numero === c.cardDef.numero)) {
-      gameState.stayInPlay.push(c);
-      addLog(`🏚️ <span class="log-card">${getFaceData(c).nom}</span> — reste en jeu cette manche.`, true);
-    }
-  });
-  gameState.play = gameState.play.filter(c => !isStayInPlay(getFaceData(c)));
-
   processPendingFaceChoices();
   updateUI();
   window._dealExistingNums = null;
@@ -196,10 +184,7 @@ function clearResources() {
 function isStayInPlay(faceData) {
   if (!faceData.effet) return false;
   const effets = Array.isArray(faceData.effet) ? faceData.effet : [faceData.effet];
-  return effets.some(e =>
-    e.type === 'Reste en jeu' ||
-    (e.type === 'Passif' && e.description === 'Reste en jeu')
-  );
+  return effets.some(e => e.type === 'Passif' && e.description === 'Reste en jeu');
 }
 
 // Une carte nécessite un choix de face si :
@@ -342,6 +327,11 @@ function canActivateEffect(cardInstance) {
     const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
     if (bandits.length === 0) return false;
   }
+  // Si l'effet recrute un Terrain depuis la défausse, vérifier qu'il y en a un
+  if (act.recruteTerrain) {
+    const terrainsDefausse = gameState.discard.filter(ci => getFaceData(ci).type === 'Terrain');
+    if (terrainsDefausse.length === 0) return false;
+  }
   return true;
 }
 
@@ -362,6 +352,17 @@ function stageActivateEffect(cardNum) {
       addLog(`💰 Ressources insuffisantes pour activer <span class="log-card">${fd.nom}</span>. Coût: ${formatCost(act.cout)}`);
       return;
     }
+  }
+
+  // Effet Hôtel de Ville : chercher un Terrain dans la défausse et le jouer
+  if (act.recruteTerrain) {
+    const terrainsDefausse = gameState.discard.filter(ci => getFaceData(ci).type === 'Terrain');
+    if (terrainsDefausse.length === 0) {
+      addLog(`❌ Aucun Terrain dans la défausse pour activer <span class="log-card">${fd.nom}</span>.`);
+      return;
+    }
+    showRecruteTerrainModal(playIndex, act, terrainsDefausse);
+    return;
   }
 
   // Effet de conversion (Missionnaire) : choisir un Bandit en jeu
@@ -687,6 +688,82 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
   addLog(`🟢 <span class="log-card">${exploitantName}</span> exploite <span class="log-card">${terrainFace.nom}</span> — ${resStr} en attente.`);
   updateUI();
 }
+
+// ── HÔTEL DE VILLE : recruter un Terrain depuis la défausse ──
+function showRecruteTerrainModal(playIndex, act, terrains) {
+  const cardInstance = gameState.play[playIndex];
+  const fd = getFaceData(cardInstance);
+
+  let html = `
+    <p style="font-style:italic;color:#c8b070;font-family:'Crimson Text',serif;font-size:0.88rem;
+       border-left:3px solid #c8960c;padding-left:10px;margin-bottom:16px;line-height:1.4;">
+      ${act.description}
+    </p>
+    <p style="margin-bottom:12px;font-size:0.9rem;">Choisissez un <strong>Terrain</strong> dans votre défausse :</p>`;
+
+  terrains.forEach((ci, idx) => {
+    const f = getFaceData(ci);
+    const discardIdx = gameState.discard.indexOf(ci);
+    const emoji = getCardEmoji(f.type, f.nom);
+    const resInfo = (f.ressources || []).length
+      ? f.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return `${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+        }).join(' ')
+      : '(aucune production)';
+    const promos = f.promotions ? f.promotions : (f.promotion ? [f.promotion] : []);
+    const promoStr = promos.length ? ` · ▲ ${promos.length} promo.` : '';
+    html += `<button onclick="confirmRecruteTerrain(${playIndex}, ${discardIdx})" class="sacrifice-choice-btn">
+      <span class="sacrifice-emoji">${emoji}</span>
+      <span class="sacrifice-info">
+        <strong>${f.nom}</strong> <span style="font-size:0.65rem;color:#888;">#${ci.cardDef.numero}</span>
+        <span class="sacrifice-type">Terrain</span>
+        <span class="sacrifice-res">${resInfo}${promoStr}</span>
+      </span>
+    </button>`;
+  });
+
+  html += `<button onclick="cancelRecruteTerrainModal()" class="btn btn-sm"
+    style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
+    border:1px solid #7a5a20;color:#c8a050;font-family:'Cinzel',serif;font-size:0.75rem;
+    letter-spacing:1px;padding:6px;">
+    ✕ Annuler
+  </button>`;
+
+  window._pendingRecrutePlayIndex = playIndex;
+  $('#recruteTerrainBody').html(html);
+  new bootstrap.Modal(document.getElementById('recruteTerrainModal')).show();
+}
+
+function cancelRecruteTerrainModal() {
+  bootstrap.Modal.getInstance(document.getElementById('recruteTerrainModal'))?.hide();
+  window._pendingRecrutePlayIndex = null;
+}
+
+function confirmRecruteTerrain(hotelPlayIndex, discardIdx) {
+  bootstrap.Modal.getInstance(document.getElementById('recruteTerrainModal'))?.hide();
+  window._pendingRecrutePlayIndex = null;
+
+  const hotelCard   = gameState.play[hotelPlayIndex];
+  const terrainCard = gameState.discard[discardIdx];
+  if (!hotelCard || !terrainCard) return;
+
+  const hotelName   = getFaceData(hotelCard).nom;
+  const terrainName = getFaceData(terrainCard).nom;
+
+  // Défausser l'Hôtel de Ville
+  _playRemove(hotelPlayIndex);
+  gameState.discard.push(hotelCard);
+
+  // Retirer le Terrain de la défausse et le placer en jeu
+  gameState.discard.splice(discardIdx, 1);
+  gameState.play.push(terrainCard);
+
+  addLog(`🏛 <span class="log-card">${hotelName}</span> — défaussée pour recruter <span class="log-card">${terrainName}</span> depuis la défausse.`, true);
+  updateUI();
+}
+
+
 
 // ── DOMESTIQUE : choisir 1 ressource parmi plusieurs types ──
 function showResourceChoiceModal(playIndex, act) {

@@ -912,16 +912,9 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "ressource": [
-            {
-              "type": "Terrain",
-              "quantite": 1
-            },
-            {
-              "type": "Bâtiment",
-              "quantite": 1
-            }
-          ]
+          "defausse": true,
+          "recruteTerrain": true,
+          "description": "Au lieu de produire avec cette carte, défaussez-la pour fouiller votre défausse et y récupérer un Terrain (bandeau vert). Placez-le immédiatement en jeu."
         }
       },
       { "face": 3,
