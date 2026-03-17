@@ -139,7 +139,7 @@ function buildStagingCardHTML(entry, stagingIndex) {
         <div class="staging-emoji">${getCardEmoji(face.type, face.nom)}</div>
         <div class="staging-name">${face.nom}</div>
         <div class="staging-summary" style="color:${accentColor};">${actionSummary}</div>
-        <button class="staging-cancel" onclick="cancelStaging(${stagingIndex})">✕ Annuler</button>
+        <button class="staging-cancel" onclick="cancelStagingStay(${stagingIndex})">✕ Annuler</button>
       </div>
     </div>`;
 }
@@ -239,6 +239,55 @@ function buildPermanentCardHTML(cardInstance) {
         <div class="card-img-area" style="font-size:1.3rem;flex:1;">${getCardEmoji(face.type, face.nom)}</div>
         <div class="card-resources">${resHTML}</div>
         <div style="text-align:center;font-size:0.42rem;color:#6a9adf;font-family:'Cinzel',serif;margin-top:2px;">🔵 PERMANENT</div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+//  RENDER — cartes "Reste en jeu" (stayInPlay)
+// ============================================================
+function buildStayInPlayCardHTML(cardInstance) {
+  const face = getFaceData(cardInstance);
+  const cardNum = cardInstance.cardDef.numero;
+  const totalFaces = cardInstance.cardDef.faces.length;
+  const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
+
+  const resHTML = (face.ressources||[]).map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+  }).join('');
+
+  const projected = getProjectedResources();
+  const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
+  const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
+    allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
+  const hasResources = face.ressources && face.ressources.length > 0;
+
+  const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
+
+  const actionBtns = [];
+  if (!alreadyStaged) {
+    if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceStayCard(${cardNum})" title="Produire (la carte est défaussée après)">⚒ Prod.</button>`);
+    if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeStayCard(${cardNum})" title="Promouvoir">▲ Prom.</button>`);
+  }
+
+  return `
+    <div class="card-wrapper" data-sip-num="${cardNum}">
+      <div class="card card-front" onclick="openCardModal(${cardNum},'stayInPlay')"
+           style="cursor:pointer;background:linear-gradient(160deg,#1a1408,#120e06);border-color:#c87820;">
+        ${face.victoire!==undefined ? `<div class="card-victory" style="background:#7a4a10;">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
+        <div class="card-serial" style="color:#e8a040;">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
+        <div class="card-name" style="color:#f0c060;">${face.nom}</div>
+        <span class="card-type-badge" style="background:#7a4a10;font-size:0.42rem;">${face.type}</span>
+        <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
+        <div class="card-resources">${resHTML}</div>
+        ${allPromos.length > 0 ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
+        <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:#c87820;border-radius:0 0 0 8px;"></div></div>
+        <div style="text-align:center;font-size:0.42rem;color:#e8a040;font-family:'Cinzel',serif;margin-top:2px;">🏚️ RESTE EN JEU</div>
+      </div>
+      <div class="card-actions">
+        ${actionBtns.join('')}
       </div>
     </div>`;
 }
@@ -377,6 +426,20 @@ function updateUI() {
     }
   }
 
+  // ── Zone cartes "Reste en jeu" (stayInPlay) ──
+  const sipCards = gameState.stayInPlay || [];
+  const $sipCol  = $('#stayInPlayColumn');
+  const $sipDiv  = $('#stayInPlayDivider');
+  const $sipArea = $('#stayInPlayArea');
+  if ($sipCol.length) {
+    if (sipCards.length > 0) {
+      $sipCol.show(); $sipDiv.show();
+      $sipArea.html(sipCards.map(c => buildStayInPlayCardHTML(c)).join(''));
+    } else {
+      $sipCol.hide(); $sipDiv.hide();
+    }
+  }
+
   const $play = $('#playArea');
   $play.html(gameState.play.length===0
     ? '<div class="play-area-empty"><span class="empty-icon">🏰</span><span class="empty-text">Zone de Jeu<br>Piochez des cartes pour commencer</span></div>'
@@ -462,6 +525,10 @@ function openCardModal(indexOrNum, zone) {
   } else if (zone === 'retained') {
     modalCardIndex = indexOrNum;
     cardInstance = (gameState.retainedCards || []).find(c => c.cardDef.numero === indexOrNum);
+    if (!cardInstance) return;
+  } else if (zone === 'stayInPlay') {
+    modalCardIndex = indexOrNum;
+    cardInstance = (gameState.stayInPlay || []).find(c => c.cardDef.numero === indexOrNum);
     if (!cardInstance) return;
   } else {
     modalCardIndex = indexOrNum;

@@ -998,7 +998,7 @@ const BEGIN_CARDS =
       { "face": 1,
         "nom": "Commerçante",
         "type": "Personne",
-        "description": "Une marchande itinérante qui apporte des ressources précieuses et des opportunités commerciales.",
+        "description": "Une marchande itinérante qui apporte des ressources précieuses et des opportunités commerciales.<br>",
         "effet": {
           "type": "Activable",
           "description": "Echanger une ressource Or pour une ressource Bois",

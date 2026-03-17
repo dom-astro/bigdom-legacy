@@ -110,6 +110,18 @@ function drawCards(n) {
   });
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
+
+  // Cartes "Reste en jeu" : les déplacer de play vers stayInPlay
+  if (!gameState.stayInPlay) gameState.stayInPlay = [];
+  const _sip = gameState.play.filter(c => isStayInPlay(getFaceData(c)));
+  _sip.forEach(c => {
+    if (!gameState.stayInPlay.find(p => p.cardDef.numero === c.cardDef.numero)) {
+      gameState.stayInPlay.push(c);
+      addLog(`🏚️ <span class="log-card">${getFaceData(c).nom}</span> — reste en jeu cette manche.`, true);
+    }
+  });
+  gameState.play = gameState.play.filter(c => !isStayInPlay(getFaceData(c)));
+
   processPendingFaceChoices();
   updateUI();
   window._dealExistingNums = null;
@@ -184,7 +196,10 @@ function clearResources() {
 function isStayInPlay(faceData) {
   if (!faceData.effet) return false;
   const effets = Array.isArray(faceData.effet) ? faceData.effet : [faceData.effet];
-  return effets.some(e => e.type === 'Passif' && e.description === 'Reste en jeu');
+  return effets.some(e =>
+    e.type === 'Reste en jeu' ||
+    (e.type === 'Passif' && e.description === 'Reste en jeu')
+  );
 }
 
 // Une carte nécessite un choix de face si :

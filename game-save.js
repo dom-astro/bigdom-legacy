@@ -41,6 +41,7 @@ function _buildSaveObject() {
       en_jeu:     { label: 'Cartes dans la zone de jeu', nombre: gameState.play.length, cartes: readableList(gameState.play) },
       en_attente: { label: 'Cartes en attente (staging)', nombre: gameState.staging.length, cartes: readableStaging(gameState.staging) },
       permanentes:{ label: 'Cartes permanentes', nombre: gameState.permanent.length, cartes: readableList(gameState.permanent) },
+      reste_en_jeu:{ label: 'Cartes reste en jeu (manche)', nombre: (gameState.stayInPlay||[]).length, cartes: readableList(gameState.stayInPlay||[]) },
       defaussees: { label: 'Cartes défaussées', nombre: gameState.discard.length, cartes: readableList(gameState.discard) },
       detruites:  { label: 'Cartes détruites / sacrifiées', nombre: (gameState.destroyed||[]).length, cartes: readableList(gameState.destroyed||[]) },
       pioche:     { label: 'Cartes en pioche', nombre: gameState.deck.length, cartes: readableList(gameState.deck) },
@@ -56,6 +57,7 @@ function _buildSaveObject() {
       nextDiscoverIndex: gameState.nextDiscoverIndex,
       cardStateMap: cardStateMap,
       choiceNeeded: [...choiceNeeded],
+      stayInPlay: serializeCards(gameState.stayInPlay || []),
       deck:      serializeCards(gameState.deck),
       play:      serializeCards(gameState.play),
       discard:   serializeCards(gameState.discard),
@@ -105,7 +107,7 @@ function doRestartGame() {
   ALL_CARDS = [ ...BEGIN_CARDS, ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []) ];
   gameState = {
     deck: [], play: [], staging: [], discard: [], permanent: [], destroyed: [],
-    retained: [], retainedCards: [], box: [], nextDiscoverIndex: 0,
+    retained: [], retainedCards: [], stayInPlay: [], box: [], nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false, kingdomName: '',
@@ -195,6 +197,7 @@ function _applyImport(raw) {
     .map(b => ({ banditNum: b.bN, blockedNum: b.blN ?? null }));
 
   gameState = {
+    stayInPlay: resolve(save.stayInPlay || []),
     deck: resolve(save.deck), play, staging,
     discard: resolve(save.discard), permanent: resolve(save.permanent),
     destroyed: resolve(save.destroyed || []),

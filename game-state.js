@@ -20,6 +20,7 @@ let gameState = {
   staging: [],
   discard: [],
   permanent: [],
+  stayInPlay: [], // cartes "Reste en jeu" — jouables à tout tour de la manche, défaussées en fin de manche
   box: [],
   nextDiscoverIndex: 0,
   resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },

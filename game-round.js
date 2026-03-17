@@ -99,18 +99,19 @@ function confirmNewRound() {
 }
 
 function endTurn() {
-  // Remettre les cartes en staging dans play (si on passe sans confirmer)
-  gameState.staging.forEach(entry => gameState.play.push(entry.cardInstance));
-  gameState.staging = [];
-
-  [...gameState.play].forEach(c => {
-    if (isStayInPlay(getFaceData(c))) {
-      if (!gameState.permanent.find(p => p.cardDef.numero === c.cardDef.numero))
-        gameState.permanent.push(c);
+  if (!gameState.stayInPlay) gameState.stayInPlay = [];
+  // Remettre les cartes en staging dans leur zone d'origine
+  gameState.staging.forEach(entry => {
+    if (entry.fromStayInPlay) {
+      gameState.stayInPlay.push(entry.cardInstance);
     } else {
-      gameState.discard.push(c);
+      gameState.play.push(entry.cardInstance);
     }
   });
+  gameState.staging = [];
+
+  // Les cartes en play sont défaussées normalement (les Reste en jeu sont déjà dans stayInPlay)
+  gameState.play.forEach(c => gameState.discard.push(c));
   gameState.play = [];
   gameState.bandits = []; // Les bandits sont défaussés en fin de tour
   clearResources();
@@ -708,7 +709,11 @@ function newRound() {
   const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
   const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
 
-  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms];
+  // Les cartes "Reste en jeu" retournent dans le deck à chaque nouvelle manche
+  const sipCards = gameState.stayInPlay || [];
+  gameState.stayInPlay = [];
+
+  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards];
   gameState.permanent = [...heritagePerms]; // Les cartes Héritage restent permanentes !
   gameState.discard = []; gameState.deck = [];
   clearResources();

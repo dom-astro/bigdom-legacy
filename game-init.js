@@ -109,7 +109,7 @@ function _startGameWithName(name) {
   shuffleDeck(deck);
 
   gameState = {
-    deck, play: [], staging: [], discard: [], permanent: [], destroyed: [],
+    deck, play: [], staging: [], discard: [], permanent: [], stayInPlay: [], destroyed: [],
     retained: [],
     box: boxCards.map(card => createCardInstance(card)), nextDiscoverIndex: 0,
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },

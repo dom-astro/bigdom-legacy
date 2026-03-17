@@ -201,3 +201,90 @@ function cancelStaging(stagingIndex) {
   addLog(msg);
   updateUI();
 }
+// ============================================================
+//  STAY-IN-PLAY — actions depuis la zone "Reste en jeu"
+// ============================================================
+
+// Staging production depuis stayInPlay (la carte reste dans stayInPlay après confirmation)
+function stageProduceStayCard(cardNum) {
+  if (!gameState.stayInPlay) return;
+  const ci = gameState.stayInPlay.find(c => c.cardDef.numero === cardNum);
+  if (!ci) return;
+  const faceData = getFaceData(ci);
+
+  if (!faceData.ressources || faceData.ressources.length === 0) {
+    addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
+    return;
+  }
+
+  const resourcesGained = {};
+  faceData.ressources.forEach(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    const key = normalizeRes(types[0]);
+    if (key && gameState.resources[key] !== undefined)
+      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
+  });
+
+  // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
+  gameState.stayInPlay = gameState.stayInPlay.filter(c => c.cardDef.numero !== cardNum);
+  gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromStayInPlay: true });
+  addLog(`⏳ <span class="log-card">${faceData.nom}</span> — production en attente (quitte la zone).`);
+  updateUI();
+}
+
+// Staging promotion depuis stayInPlay
+function stageUpgradeStayCard(cardNum) {
+  if (!gameState.stayInPlay) return;
+  const ci = gameState.stayInPlay.find(c => c.cardDef.numero === cardNum);
+  if (!ci) return;
+  const faceData = getFaceData(ci);
+
+  if (gameState.staging.some(e => e.action === 'upgrade')) {
+    addLog(`❌ Vous ne pouvez promouvoir qu'une seule carte par tour.`);
+    return;
+  }
+
+  const allPromos = faceData.promotions ? faceData.promotions : (faceData.promotion ? [faceData.promotion] : []);
+  if (allPromos.length === 0) {
+    addLog(`❌ <span class="log-card">${faceData.nom}</span> ne peut pas être promue.`);
+    return;
+  }
+
+  const projected = getProjectedResources();
+  const affordablePromos = allPromos.filter(promo =>
+    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
+  );
+
+  if (affordablePromos.length === 0) {
+    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
+    addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
+    return;
+  }
+
+  gameState.stayInPlay = gameState.stayInPlay.filter(c => c.cardDef.numero !== cardNum);
+
+  // Simuler _doStageUpgrade avec la carte issue de stayInPlay
+  const promo = affordablePromos[0];
+  const cout = promo.cout || [];
+  const newFace = promo.face;
+  const newFaceData = ci.cardDef.faces.find(f => f.face === newFace);
+  const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
+  gameState.staging.push({ cardInstance: ci, action: 'upgrade', resourcesGained: {}, fameGained, newFace, cout, fromStayInPlay: true });
+  addLog(`⏳ <span class="log-card">${faceData.nom}</span> → <span class="log-card">${newFaceData ? newFaceData.nom : '?'}</span> — promotion en attente.`);
+  updateUI();
+}
+
+// Annulation : remet la carte dans stayInPlay si elle en venait
+function cancelStagingStay(stagingIndex) {
+  const entry = gameState.staging[stagingIndex];
+  if (!entry) return;
+  if (entry.fromStayInPlay) {
+    gameState.staging.splice(stagingIndex, 1);
+    if (!gameState.stayInPlay) gameState.stayInPlay = [];
+    gameState.stayInPlay.push(entry.cardInstance);
+    addLog(`↩ <span class="log-card">${getFaceData(entry.cardInstance).nom}</span> — action annulée, retour en zone reste en jeu.`);
+    updateUI();
+  } else {
+    cancelStaging(stagingIndex);
+  }
+}
