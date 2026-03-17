@@ -10,6 +10,7 @@
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
 
@@ -82,13 +83,6 @@
       <div class="permanent-cards-container" id="permanentArea">
         <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;letter-spacing:1px;padding:8px;">Aucune carte permanente</div>
       </div>
-    </div>
-    <!-- Séparateur vertical (masqué si aucune carte "Reste en jeu") -->
-    <div class="retained-divider" id="stayInPlayDivider" style="display:none;"></div>
-    <!-- Colonne milieu : cartes "Reste en jeu" -->
-    <div class="retained-column" id="stayInPlayColumn" style="display:none;">
-      <div class="zone-title" style="margin-bottom:6px;">🏚️ Reste en Jeu <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(jouable à tout tour de la manche)</span></div>
-      <div class="permanent-cards-container" id="stayInPlayArea"></div>
     </div>
     <!-- Séparateur vertical (masqué si aucune carte retenue) -->
     <div class="retained-divider" id="retainedDivider" style="display:none;"></div>

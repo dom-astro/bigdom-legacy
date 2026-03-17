@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="shieldGrad" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#2a1a08"/>
+      <stop offset="100%" stop-color="#0e0a04"/>
+    </radialGradient>
+    <linearGradient id="swordGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0d060"/>
+      <stop offset="50%" stop-color="#c8960c"/>
+      <stop offset="100%" stop-color="#8a5a08"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ombre portée du bouclier -->
+  <path d="M16 31 C8 27 3 21 3 14 L3 5 L29 5 L29 14 C29 21 24 27 16 31Z"
+        fill="rgba(0,0,0,0.4)" transform="translate(0.5,1)"/>
+
+  <!-- Corps du bouclier -->
+  <path d="M16 30 C8 26 3 20 3 13 L3 4 L29 4 L29 13 C29 20 24 26 16 30Z"
+        fill="url(#shieldGrad)"/>
+
+  <!-- Bordure dorée du bouclier -->
+  <path d="M16 30 C8 26 3 20 3 13 L3 4 L29 4 L29 13 C29 20 24 26 16 30Z"
+        fill="none" stroke="#c8960c" stroke-width="1.4"/>
+
+  <!-- Reflet haut gauche -->
+  <path d="M5 5 L14 5 L5 12Z" fill="rgba(255,220,100,0.07)"/>
+
+  <!-- Bande horizontale centrale (séparation héraldique) -->
+  <line x1="4" y1="15" x2="28" y2="15" stroke="#c8960c" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Épée verticale -->
+  <!-- Lame -->
+  <rect x="15.1" y="5.5" width="1.8" height="15" rx="0.4" fill="url(#swordGrad)" filter="url(#glow)"/>
+  <!-- Pointe de la lame -->
+  <polygon points="15.1,20.5 16,23 16.9,20.5" fill="url(#swordGrad)"/>
+  <!-- Garde (crossguard) -->
+  <rect x="11" y="9.5" width="10" height="1.8" rx="0.7" fill="url(#swordGrad)"/>
+  <!-- Poignée -->
+  <rect x="15.3" y="11.3" width="1.4" height="4" rx="0.4" fill="#8a5a08"/>
+  <!-- Pommeau -->
+  <circle cx="16" cy="7.5" r="1.5" fill="url(#swordGrad)"/>
+  <circle cx="16" cy="7.5" r="0.7" fill="#f0d060"/>
+
+  <!-- Étoile / gloire en bas du bouclier -->
+  <text x="16" y="28" text-anchor="middle" font-size="5" fill="#c8960c" opacity="0.85" font-family="serif">★</text>
+</svg>
