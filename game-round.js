@@ -745,14 +745,14 @@ function newRound() {
   gameState.bandits = [];
 
   // ── Rétention (cartes 82/83) : les cartes retenues sont déjà dans retainedCards,
-  //    hors de play[]. On récupère directement cette liste.
+  //    hors de play[]. En fin de manche elles rejoignent la défausse et seront
+  //    remélangées dans la nouvelle pioche.
   const retainedCards = gameState.retainedCards || [];
   if (retainedCards.length > 0) {
-    addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — retenue${retainedCards.length > 1 ? 's' : ''} pour la prochaine manche.`, true);
+    addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — défaussée${retainedCards.length > 1 ? 's' : ''} en fin de manche.`, true);
   }
   gameState.retained = [];
   gameState.retainedCards = [];
-  gameState._retainedForNextRound = retainedCards;
   // Défausser toutes les cartes restantes en jeu
   gameState.play.forEach(c => gameState.discard.push(c));
   gameState.play = [];
@@ -766,7 +766,7 @@ function newRound() {
   const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
   const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
 
-  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards];
+  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards, ...retainedCards];
   if (sipCards.length > 0) {
     addLog(`🏚️ ${sipCards.map(c => `<span class="log-card">${getFaceData(c).nom}</span>`).join(', ')} — remélangée${sipCards.length > 1 ? 's' : ''} dans la pioche.`);
   }
@@ -920,17 +920,8 @@ function _finalizeNewRound(allCards, discovered) {
   let newDeck = allCards.map(c => createCardInstance(c.cardDef));
   shuffleDeck(newDeck);
 
-  // Placer les cartes retenues directement en jeu (déjà hors du deck)
-  const retainedCards = gameState._retainedForNextRound || [];
-  gameState._retainedForNextRound = [];
   gameState.deck = newDeck;
-  if (retainedCards.length > 0) {
-    gameState.play = retainedCards;
-    gameState.turnStarted = true; // le tour est déjà commencé avec les cartes retenues
-    addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — en jeu dès le début de la manche.`, true);
-  }
-
-  gameState.turn = 1; gameState.round++; gameState.turnStarted = retainedCards.length > 0;
+  gameState.turn = 1; gameState.round++; gameState.turnStarted = false;
   addLog(`🔄 Manche ${gameState.round} commence ! Pioche : ${newDeck.length} cartes.`, true);
   updateUI();
 }

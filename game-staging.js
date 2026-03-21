@@ -278,7 +278,13 @@ function stageUpgradeStayCard(cardNum) {
 function cancelStagingStay(stagingIndex) {
   const entry = gameState.staging[stagingIndex];
   if (!entry) return;
-  if (entry.fromStayInPlay) {
+  if (entry.fromRetainedCards) {
+    gameState.staging.splice(stagingIndex, 1);
+    if (!gameState.retainedCards) gameState.retainedCards = [];
+    gameState.retainedCards.push(entry.cardInstance);
+    addLog(`↩ <span class="log-card">${getFaceData(entry.cardInstance).nom}</span> — action annulée, retour en zone retenue.`);
+    updateUI();
+  } else if (entry.fromStayInPlay) {
     gameState.staging.splice(stagingIndex, 1);
     if (!gameState.stayInPlay) gameState.stayInPlay = [];
     gameState.stayInPlay.push(entry.cardInstance);
@@ -286,5 +292,117 @@ function cancelStagingStay(stagingIndex) {
     updateUI();
   } else {
     cancelStaging(stagingIndex);
+  }
+}
+
+// ============================================================
+//  RETAINED CARDS — actions depuis la zone "Cartes Retenues"
+// ============================================================
+
+function stageProduceRetainedCard(cardNum) {
+  if (!gameState.retainedCards) return;
+  const ci = gameState.retainedCards.find(c => c.cardDef.numero === cardNum);
+  if (!ci) return;
+  const faceData = getFaceData(ci);
+
+  if (!faceData.ressources || faceData.ressources.length === 0) {
+    addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
+    return;
+  }
+
+  const resourcesGained = {};
+  faceData.ressources.forEach(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    const key = normalizeRes(types[0]);
+    if (key && gameState.resources[key] !== undefined)
+      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
+  });
+
+  gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
+  gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromRetainedCards: true });
+  addLog(`⏳ <span class="log-card">${faceData.nom}</span> — production en attente.`);
+  updateUI();
+}
+
+function stageUpgradeRetainedCard(cardNum) {
+  if (!gameState.retainedCards) return;
+  const ci = gameState.retainedCards.find(c => c.cardDef.numero === cardNum);
+  if (!ci) return;
+  const faceData = getFaceData(ci);
+
+  if (gameState.staging.some(e => e.action === 'upgrade')) {
+    addLog(`❌ Vous ne pouvez promouvoir qu'une seule carte par tour.`);
+    return;
+  }
+
+  const allPromos = faceData.promotions ? faceData.promotions : (faceData.promotion ? [faceData.promotion] : []);
+  if (allPromos.length === 0) {
+    addLog(`❌ <span class="log-card">${faceData.nom}</span> ne peut pas être promue.`);
+    return;
+  }
+
+  const projected = getProjectedResources();
+  const affordablePromos = allPromos.filter(promo =>
+    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
+  );
+
+  if (affordablePromos.length === 0) {
+    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
+    addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
+    return;
+  }
+
+  if (affordablePromos.length === 1) {
+    _doStageUpgradeRetained(ci, affordablePromos[0]);
+  } else {
+    // Plusieurs promotions payables : placer temporairement dans play[] pour réutiliser showPromoChoiceModal
+    gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
+    gameState.play.push(ci);
+    const playIdx = gameState.play.length - 1;
+    // Marquer pour que _doStageUpgrade sache d'où elle vient
+    window._pendingRetainedUpgradeNum = cardNum;
+    showPromoChoiceModal(playIdx, affordablePromos);
+  }
+}
+
+function _doStageUpgradeRetained(ci, promo) {
+  const faceData = getFaceData(ci);
+  const cout = promo.cout || [];
+  const newFace = promo.face;
+  const newFaceData = ci.cardDef.faces.find(f => f.face === newFace);
+  const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
+
+  gameState.retainedCards = (gameState.retainedCards || []).filter(c => c.cardDef.numero !== ci.cardDef.numero);
+  gameState.staging.push({ cardInstance: ci, action: 'upgrade', resourcesGained: {}, fameGained, newFace, cout, fromRetainedCards: true });
+  addLog(`⏳ <span class="log-card">${faceData.nom}</span> → <span class="log-card">${newFaceData ? newFaceData.nom : '?'}</span> — promotion en attente.`);
+  updateUI();
+}
+
+function stageActivateRetainedEffect(cardNum) {
+  if (!gameState.retainedCards) return;
+  const ci = gameState.retainedCards.find(c => c.cardDef.numero === cardNum);
+  if (!ci) return;
+
+  // Déplacer temporairement la carte dans play[] pour réutiliser stageActivateEffect
+  gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
+  gameState.play.push(ci);
+
+  // Mémoriser le numéro pour marquer l'entrée de staging après coup
+  window._pendingRetainedActivateNum = cardNum;
+  stageActivateEffect(cardNum);
+
+  // Si stageActivateEffect a bien mis la carte en staging, marquer fromRetainedCards
+  const stagingEntry = gameState.staging.find(e => e.cardInstance.cardDef.numero === cardNum);
+  if (stagingEntry) {
+    stagingEntry.fromRetainedCards = true;
+  } else {
+    // L'activation a échoué ou ouvert un modal — si la carte est revenue dans play[], la remettre en retainedCards
+    const playIdx = gameState.play.findIndex(c => c.cardDef.numero === cardNum);
+    if (playIdx >= 0) {
+      gameState.play.splice(playIdx, 1);
+      if (!gameState.retainedCards) gameState.retainedCards = [];
+      gameState.retainedCards.push(ci);
+    }
+    window._pendingRetainedActivateNum = null;
   }
 }

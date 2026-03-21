@@ -244,13 +244,27 @@ function buildPermanentCardHTML(cardInstance) {
 }
 
 // ============================================================
-//  RENDER — cartes "Reste en jeu" (stayInPlay)
+//  RENDER — Zone de Retenue (cartes retenues + cartes "Reste en jeu")
 // ============================================================
-function buildStayInPlayCardHTML(cardInstance) {
+function buildHeldCardHTML(cardInstance, source) {
+  // source : 'retained' | 'stayInPlay'
   const face = getFaceData(cardInstance);
   const cardNum = cardInstance.cardDef.numero;
   const totalFaces = cardInstance.cardDef.faces.length;
   const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
+
+  const isRetained   = source === 'retained';
+  const isStayInPlay = source === 'stayInPlay';
+
+  // Palette : dorée chaude pour les deux, badge texte différencié
+  const borderColor    = '#c8960c';
+  const bgGradient     = 'linear-gradient(160deg,#1a1608,#100e04)';
+  const serialColor    = '#e8b840';
+  const nameColor      = '#f5d060';
+  const badgeBg        = '#7a5a08';
+  const progressColor  = '#c8960c';
+  const badgeLabel     = isRetained ? '🕊️ RETENUE' : '🏚️ RESTE EN JEU';
+  const badgeColor     = isRetained ? '#e8b840' : '#d0a030';
 
   const resHTML = (face.ressources||[]).map(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
@@ -263,83 +277,43 @@ function buildStayInPlayCardHTML(cardInstance) {
   const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
     allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
   const hasResources = face.ressources && face.ressources.length > 0;
-
+  const hasActivable = hasActivableEffect(cardInstance);
+  const canActivate  = hasActivable && canActivateEffect(cardInstance);
   const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
 
   const actionBtns = [];
   if (!alreadyStaged) {
-    if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceStayCard(${cardNum})" title="Produire (la carte est défaussée après)">⚒ Prod.</button>`);
-    if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeStayCard(${cardNum})" title="Promouvoir">▲ Prom.</button>`);
+    if (isRetained) {
+      if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})">⚒ Prod.</button>`);
+      if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})">🟢 Activer</button>`);
+      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})">▲ Prom.</button>`);
+    } else {
+      if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceStayCard(${cardNum})">⚒ Prod.</button>`);
+      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeStayCard(${cardNum})">▲ Prom.</button>`);
+    }
   }
 
   return `
-    <div class="card-wrapper" data-sip-num="${cardNum}">
-      <div class="card card-front" onclick="openCardModal(${cardNum},'stayInPlay')"
-           style="cursor:pointer;background:linear-gradient(160deg,#1a1408,#120e06);border-color:#c87820;">
-        ${face.victoire!==undefined ? `<div class="card-victory" style="background:#7a4a10;">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial" style="color:#e8a040;">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
-        <div class="card-name" style="color:#f0c060;">${face.nom}</div>
-        <span class="card-type-badge" style="background:#7a4a10;font-size:0.42rem;">${face.type}</span>
+    <div class="card-wrapper" data-held-num="${cardNum}" data-held-source="${source}">
+      <div class="card card-front" onclick="openCardModal(${cardNum},'${source}')"
+           style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
+        ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
+        <div class="card-serial" style="color:${serialColor};">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
+        <div class="card-name" style="color:${nameColor};">${face.nom}</div>
+        <span class="card-type-badge" style="background:${badgeBg};font-size:0.42rem;">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         <div class="card-resources">${resHTML}</div>
         ${allPromos.length > 0 ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
-        <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:#c87820;border-radius:0 0 0 8px;"></div></div>
-        <div style="text-align:center;font-size:0.42rem;color:#e8a040;font-family:'Cinzel',serif;margin-top:2px;">🏚️ RESTE EN JEU</div>
+        <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:${progressColor};border-radius:0 0 0 8px;"></div></div>
+        <div style="text-align:center;font-size:0.42rem;color:${badgeColor};font-family:'Cinzel',serif;margin-top:2px;">${badgeLabel}</div>
       </div>
-      <div class="card-actions">
-        ${actionBtns.join('')}
-      </div>
+      <div class="card-actions">${actionBtns.join('')}</div>
     </div>`;
 }
 
-// ============================================================
-//  RENDER — cartes retenues (zone rétention carte 83)
-// ============================================================
-function buildRetainedCardHTML(cardInstance) {
-  const face = getFaceData(cardInstance);
-  const cardNum = cardInstance.cardDef.numero;
-  const totalFaces = cardInstance.cardDef.faces.length;
-  const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
-
-  const resHTML = (face.ressources||[]).map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
-  }).join('');
-
-  const projected = getProjectedResources();
-  const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
-  const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
-  const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
-    allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
-
-  const hasActivable = hasActivableEffect(cardInstance);
-  const canActivate  = hasActivable && canActivateEffect(cardInstance);
-  const hasResources = face.ressources && face.ressources.length > 0;
-
-  const actionBtns = [];
-  if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})" title="Produire (défausse la carte retenue)">⚒ Prod.</button>`);
-  if (hasActivable)  actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})" title="Effet activable">🟢 Activer</button>`);
-  if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})" title="Promouvoir">▲ Prom.</button>`);
-
-  return `
-    <div class="card-wrapper card-wrapper-retained" data-retained-num="${cardNum}">
-      <div class="card card-front card-retained" onclick="openCardModal(${cardNum},'retained')"
-           style="cursor:pointer;background:linear-gradient(160deg,#1a1a2a,#0e0e1e);border-color:#8866cc;">
-        ${face.victoire!==undefined ? `<div class="card-victory" style="background:#553399;">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial" style="color:#b088ee;">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
-        <div class="card-name" style="color:#d0aaff;">${face.nom}</div>
-        <span class="card-type-badge" style="background:#553399;font-size:0.42rem;">${face.type}</span>
-        <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
-        <div class="card-resources">${resHTML}</div>
-        ${allPromos.length > 0 ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
-        <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:#8866cc;border-radius:0 0 0 8px;"></div></div>
-        <div style="text-align:center;font-size:0.42rem;color:#b088ee;font-family:'Cinzel',serif;margin-top:2px;">🕊️ RETENUE</div>
-      </div>
-      <div class="card-actions">
-        ${actionBtns.join('')}
-      </div>
-    </div>`;
-}
+// Alias conservés pour compatibilité avec openCardModal zone detection
+function buildStayInPlayCardHTML(ci) { return buildHeldCardHTML(ci, 'stayInPlay'); }
+function buildRetainedCardHTML(ci)   { return buildHeldCardHTML(ci, 'retained'); }
 
 function buildDiscardTopHTML(cardInstance) {
   const face = getFaceData(cardInstance);
@@ -412,31 +386,22 @@ function updateUI() {
       ? '<div style="font-family:\'Cinzel\',serif;font-size:0.55rem;color:rgba(200,150,12,0.25);text-align:center;padding:8px;">Aucune carte permanente</div>'
       : gameState.permanent.map(c => buildPermanentCardHTML(c)).join(''));
 
-  // ── Zone cartes retenues (carte 83) ──
-  const retained = gameState.retainedCards || [];
-  const $retCol  = $('#retainedColumn');
-  const $retDiv  = $('#retainedDivider');
-  const $retArea = $('#retainedArea');
-  if ($retCol.length) {
-    if (retained.length > 0) {
-      $retCol.show(); $retDiv.show();
-      $retArea.html(retained.map(c => buildRetainedCardHTML(c)).join(''));
+  // ── Zone de Retenue : cartes retenues (82/83) + cartes "Reste en jeu" (Muraille) ──
+  const retained  = gameState.retainedCards || [];
+  const sipCards  = gameState.stayInPlay || [];
+  const heldCards = [...retained, ...sipCards]; // retenues d'abord, puis reste-en-jeu
+  const $heldCol  = $('#heldColumn');
+  const $heldDiv  = $('#heldDivider');
+  const $heldArea = $('#heldArea');
+  if ($heldCol.length) {
+    if (heldCards.length > 0) {
+      $heldCol.show(); $heldDiv.show();
+      $heldArea.html([
+        ...retained.map(c  => buildHeldCardHTML(c, 'retained')),
+        ...sipCards.map(c  => buildHeldCardHTML(c, 'stayInPlay')),
+      ].join(''));
     } else {
-      $retCol.hide(); $retDiv.hide();
-    }
-  }
-
-  // ── Zone cartes "Reste en jeu" (stayInPlay) ──
-  const sipCards = gameState.stayInPlay || [];
-  const $sipCol  = $('#stayInPlayColumn');
-  const $sipDiv  = $('#stayInPlayDivider');
-  const $sipArea = $('#stayInPlayArea');
-  if ($sipCol.length) {
-    if (sipCards.length > 0) {
-      $sipCol.show(); $sipDiv.show();
-      $sipArea.html(sipCards.map(c => buildStayInPlayCardHTML(c)).join(''));
-    } else {
-      $sipCol.hide(); $sipDiv.hide();
+      $heldCol.hide(); $heldDiv.hide();
     }
   }
 

@@ -193,6 +193,21 @@ function clearResources() {
   gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
 }
 
+// Si une carte était en retainedCards et a été temporairement déplacée dans play[]
+// pour une activation via modal, la remettre dans retainedCards si le modal est annulé.
+function _restoreRetainedIfNeeded(playIndex) {
+  if (playIndex == null || window._pendingRetainedActivateNum == null) return;
+  const cardNum = window._pendingRetainedActivateNum;
+  window._pendingRetainedActivateNum = null;
+  const idx = gameState.play.findIndex(c => c.cardDef.numero === cardNum);
+  if (idx >= 0) {
+    const [ci] = gameState.play.splice(idx, 1);
+    if (!gameState.retainedCards) gameState.retainedCards = [];
+    gameState.retainedCards.push(ci);
+    updateUI();
+  }
+}
+
 function isStayInPlay(faceData) {
   if (!faceData.effet) return false;
   const effets = Array.isArray(faceData.effet) ? faceData.effet : [faceData.effet];
@@ -686,8 +701,10 @@ function showSacrificeModal(playIndex, act, candidates) {
 
 function cancelSacrificeModal() {
   bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+  const playIndex = window._pendingSacrificePlayIndex;
   window._pendingSacrificePlayIndex = null;
   window._pendingSacrificeAct = null;
+  _restoreRetainedIfNeeded(playIndex);
 }
 
 function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
@@ -848,7 +865,9 @@ function showRecruteTerrainModal(playIndex, act, terrains) {
 
 function cancelRecruteTerrainModal() {
   bootstrap.Modal.getInstance(document.getElementById('recruteTerrainModal'))?.hide();
+  const playIndex = window._pendingRecrutePlayIndex;
   window._pendingRecrutePlayIndex = null;
+  _restoreRetainedIfNeeded(playIndex);
 }
 
 function confirmRecruteTerrain(hotelPlayIndex, discardIdx) {
