@@ -277,13 +277,18 @@ function buildHeldCardHTML(cardInstance, source) {
   const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
     allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
   const hasResources = face.ressources && face.ressources.length > 0;
-  const hasActivable = hasActivableEffect(cardInstance);
+  const hasActivable = !isBandit(cardInstance) && hasActivableEffect(cardInstance);
   const canActivate  = hasActivable && canActivateEffect(cardInstance);
   const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
 
   const actionBtns = [];
   if (!alreadyStaged) {
-    if (isRetained) {
+    const isBanditCard = isBandit(cardInstance);
+    if (isBanditCard) {
+      // Bandit dans la zone de retenue : seul le bouton Vaincre est disponible
+      const canDefeat = (projected['Epée'] || 0) >= 1;
+      actionBtns.push(`<button class="card-action-btn btn-defeat-bandit${canDefeat ? '' : ' btn-upgrade-disabled'}" onclick="event.stopPropagation();defeatBandit(${cardNum})" ${canDefeat ? '' : 'disabled'}>⚔️ Vaincre (1⚔️)</button>`);
+    } else if (isRetained) {
       if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})">⚒ Prod.</button>`);
       if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})">🟢 Activer</button>`);
       if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})">▲ Prom.</button>`);

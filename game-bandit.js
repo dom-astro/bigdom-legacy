@@ -36,6 +36,12 @@ function isBlockedByBandit(playIndex) {
   return gameState.bandits.some(b => b.blockedNum === ci.cardDef.numero);
 }
 
+// Vérifie si une carte (identifiée par son numéro) est bloquée par un bandit
+// Fonctionne quelle que soit la zone (play[], retainedCards[], stayInPlay[])
+function isBlockedByBanditByNum(cardNum) {
+  return gameState.bandits.some(b => b.blockedNum === cardNum);
+}
+
 // Après le tirage (animations terminées), résout les bandits un par un
 // Résout une file de bandits séquentiellement après les animations.
 // Chaque entrée : { banditNum, goldCards[] } pré-calculés au moment du tirage.
@@ -79,7 +85,11 @@ function _resolveBanditQueue(queue) {
 
 // Fallback : utilisé après résolution d'un pendingFaceChoice (sans file pré-calculée)
 function processPendingBandits() {
-  const unregistered = gameState.play.filter(ci =>
+  const allCardsInPlay = [
+    ...gameState.play,
+    ...(gameState.retainedCards || []),
+  ];
+  const unregistered = allCardsInPlay.filter(ci =>
     isBandit(ci) && !gameState.bandits.some(b => b.banditNum === ci.cardDef.numero)
   );
   if (unregistered.length === 0) return;
@@ -89,7 +99,8 @@ function processPendingBandits() {
     // Le malus de gloire est appliqué à la découverte (confirmNewCards)
     const malusGloire = (gameState.banditMalus && gameState.banditMalus[banditNum]) || 0;
     gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: false, malusGloire });
-    const goldCards = gameState.play.filter(c =>
+    const allTargets = [...gameState.play, ...(gameState.retainedCards || [])];
+    const goldCards = allTargets.filter(c =>
       c !== banditCi && !isBandit(c) && producesGold(c) &&
       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero)
     );
