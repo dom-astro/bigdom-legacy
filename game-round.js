@@ -52,8 +52,11 @@ function confirmTurn() {
       // Appliquer l'effet de destruction de la nouvelle face si applicable
       applyDestructionEffect(cardInstance);
       if (isStayInPlay(newFaceData)) {
-        gameState.permanent.push(cardInstance);
-        addLog(`🏛 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — permanente !`, true);
+        // La carte promue en "Reste en jeu" rejoint stayInPlay :
+        // elle est jouable jusqu'à la fin de la manche puis défaussée.
+        if (!gameState.stayInPlay) gameState.stayInPlay = [];
+        gameState.stayInPlay.push(cardInstance);
+        addLog(`🏚️ <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — reste en jeu jusqu'à la fin de la manche !`, true);
       } else {
         gameState.discard.push(cardInstance);
         addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue !`, true);
@@ -112,6 +115,12 @@ function endTurn() {
     }
   });
   gameState.play = [];
+
+  // ── Muraille & cartes "Reste en jeu" : elles restent disponibles jusqu'à la fin
+  //    de la manche. En fin de tour elles ne bougent PAS — elles resteront dans
+  //    stayInPlay jusqu'au newRound() qui les défaussera.
+  // (stayInPlay est intentionnellement conservé ici)
+
   gameState.bandits = []; // Les bandits sont défaussés en fin de tour
   clearResources();
   gameState.turnStarted = false;
@@ -701,6 +710,15 @@ function newRound() {
   gameState._retainedForNextRound = retainedCards; // transmis à _finalizeNewRound
   playToDiscard.forEach(c => gameState.discard.push(c));
   gameState.play = [];
+
+  // ── Cartes "Reste en jeu" (Muraille, etc.) : si elles n'ont pas été jouées
+  //    pendant la manche, elles sont défaussées et remélangées normalement.
+  const sipCards = gameState.stayInPlay || [];
+  if (sipCards.length > 0) {
+    sipCards.forEach(c => gameState.discard.push(c));
+    addLog(`🏚️ ${sipCards.map(c => `<span class="log-card">${getFaceData(c).nom}</span>`).join(', ')} — défaussée${sipCards.length > 1 ? 's' : ''} (fin de manche).`);
+    gameState.stayInPlay = [];
+  }
 
   // Séparer les permanentes normales des permanentes Héritage (level-1)
   const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);

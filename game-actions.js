@@ -8,8 +8,9 @@ let _drawSnapshot = null;
 function _saveDrawSnapshot() {
   const serializeCI = ci => ({ cardDef: ci.cardDef, currentFace: ci.currentFace });
   _drawSnapshot = {
-    deck:      gameState.deck.map(serializeCI),
-    play:      gameState.play.map(serializeCI),
+    deck:       gameState.deck.map(serializeCI),
+    play:       gameState.play.map(serializeCI),
+    stayInPlay: (gameState.stayInPlay || []).map(serializeCI),
     staging:   JSON.parse(JSON.stringify(gameState.staging.map(e => ({
                  ...e,
                  cardInstance: serializeCI(e.cardInstance),
@@ -35,6 +36,7 @@ function undoDraw() {
   const rehydrate = list => list.map(s => ({ cardDef: s.cardDef, currentFace: s.currentFace }));
   gameState.deck      = rehydrate(snap.deck);
   gameState.play      = rehydrate(snap.play);
+  gameState.stayInPlay = rehydrate(snap.stayInPlay || []);
   gameState.discard   = rehydrate(snap.discard);
   gameState.staging   = snap.staging.map(e => ({
     ...e,
@@ -79,7 +81,17 @@ function drawCards(n) {
     const card = gameState.deck.shift();
     if (!isBandit(card)) {
       newCardNums.add(card.cardDef.numero);
-      gameState.play.push(card);
+      // ── Effet Passif "Reste en jeu" : la carte va directement dans stayInPlay ──
+      if (isStayInPlay(getFaceData(card))) {
+        if (!gameState.stayInPlay) gameState.stayInPlay = [];
+        // Éviter les doublons (la carte peut déjà y être d'un tour précédent)
+        if (!gameState.stayInPlay.some(c => c.cardDef.numero === card.cardDef.numero)) {
+          gameState.stayInPlay.push(card);
+          addLog(`🏚️ <span class="log-card">${getFaceData(card).nom}</span> — entre en jeu et reste jusqu'à la fin de la manche.`, true);
+        }
+      } else {
+        gameState.play.push(card);
+      }
     } else {
       _banditsToPlace.push(card);
     }

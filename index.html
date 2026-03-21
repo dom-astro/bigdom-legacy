@@ -91,6 +91,13 @@
       <div class="zone-title" style="margin-bottom:6px;">🕊️ Cartes Retenues <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(jusqu'à la fin de la manche)</span></div>
       <div class="permanent-cards-container" id="retainedArea"></div>
     </div>
+    <!-- Séparateur vertical (masqué si aucune carte "reste en jeu") -->
+    <div class="retained-divider" id="stayInPlayDivider" style="display:none;"></div>
+    <!-- Colonne : cartes "Reste en jeu" (Muraille, etc.) -->
+    <div class="retained-column" id="stayInPlayColumn" style="display:none;">
+      <div class="zone-title" style="margin-bottom:6px;">🏚️ Reste en Jeu <span style="font-size:0.6rem;color:var(--stone-light);font-family:'Crimson Text',serif;font-style:italic;">(jouable ce tour, défaussée en fin de manche)</span></div>
+      <div class="permanent-cards-container" id="stayInPlayArea"></div>
+    </div>
   </div>
 
   <!-- ZONE DE STAGING (cachée par défaut) -->
