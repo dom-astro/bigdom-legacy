@@ -738,6 +738,7 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "description": "Sacrifiez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre défausse.",
           "cartes": [
             82,
             83
@@ -846,6 +847,7 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "description": "Sacrifiez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre défausse.",
           "cartes": [
             82,
             83
@@ -1976,6 +1978,7 @@ const BEGIN_CARDS =
         "victoire": 2,
         "effet": {
           "type": "Destruction",
+          "description": "Sacrifiez ce puits sacré pour ouvrir le chemin du sanctuaire : découvrez la carte #82 ou #83 (Autel) et ajoutez-la à votre défausse.",
           "cartes": [
             82,
             83

@@ -51,14 +51,12 @@ function confirmTurn() {
       const newFaceData = getFaceData(cardInstance);
       // Appliquer l'effet de destruction de la nouvelle face si applicable
       applyDestructionEffect(cardInstance);
+      // Une promotion envoie toujours la carte en défausse, quelle que soit la face cible.
+      // (Les cartes "Reste en jeu" tirées depuis la pioche sont gérées séparément dans drawCards.)
+      gameState.discard.push(cardInstance);
       if (isStayInPlay(newFaceData)) {
-        // La carte promue en "Reste en jeu" rejoint stayInPlay :
-        // elle est jouable jusqu'à la fin de la manche puis défaussée.
-        if (!gameState.stayInPlay) gameState.stayInPlay = [];
-        gameState.stayInPlay.push(cardInstance);
-        addLog(`🏚️ <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — reste en jeu jusqu'à la fin de la manche !`, true);
+        addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue et défaussée !`, true);
       } else {
-        gameState.discard.push(cardInstance);
         addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue !`, true);
       }
     }
@@ -572,11 +570,10 @@ function triggerRetentionEffect(cardNum) {
   const fd = getFaceData(cardInstance);
   const count = _getRetentionCount(cardInstance);
 
-  // Retirer la carte du jeu (sacrifiée)
+  // Retirer temporairement la carte de play[] sans la défausser encore.
+  // Elle sera défaussée à la confirmation, ou remise en jeu si le joueur ferme.
   _playRemove(playIndex);
-  if (!gameState.destroyed) gameState.destroyed = [];
-  gameState.destroyed.push(cardInstance);
-  addLog(`🕊️ <span class="log-card">${fd.nom}</span> — défaussée pour retenir ${count} carte${count>1?'s':''}.`, true);
+  window._retentionSourceCard = cardInstance;
 
   // Ouvrir le modal de sélection des cartes à retenir
   _showRetentionModal(count);
@@ -605,26 +602,44 @@ function _showRetentionModal(count) {
 
   eligible.forEach((ci, i) => {
     const face = getFaceData(ci);
+    const playIdx = gameState.play.indexOf(ci);
+    const blocked = isBlockedByBandit(playIdx);
+    const isBanditCard = isBandit(ci);
     const typeColors = { Personne:'#2a4a7a', Terrain:'#1e4a1a', Bâtiment:'#5a4a3a', Batiment:'#5a4a3a', Ennemi:'#5a0a0a' };
-    const bg = typeColors[face.type] || '#3a3a3a';
+    const bg = blocked ? '#5a3a00' : (typeColors[face.type] || '#3a3a3a');
+    const isDisabled = blocked; // une carte bloquée ne peut pas être retenue
+
     html += `
-      <button id="retBtn_${i}" onclick="toggleRetentionCard(${i}, ${toSelect})" style="
-          width:100%;text-align:left;background:linear-gradient(135deg,#1a1408,#0e0e06);
+      <button id="retBtn_${i}"
+        ${isDisabled ? 'disabled' : `onclick="toggleRetentionCard(${i}, ${toSelect})"`}
+        style="
+          width:100%;text-align:left;
+          background:${isDisabled ? 'rgba(40,20,0,0.5)' : 'linear-gradient(135deg,#1a1408,#0e0e06)'};
           border:2px solid ${bg};border-radius:10px;padding:10px 14px;
-          cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.2s;"
+          cursor:${isDisabled ? 'not-allowed' : 'pointer'};
+          display:flex;align-items:center;gap:12px;transition:all 0.2s;
+          opacity:${isDisabled ? '0.45' : '1'};"
         data-cardnum="${ci.cardDef.numero}">
         <div style="min-width:34px;text-align:center;background:rgba(0,0,0,0.4);border:1px solid ${bg};border-radius:5px;padding:3px 2px;font-family:'Cinzel',serif;color:var(--gold);font-size:0.6rem;">#${ci.cardDef.numero}</div>
         <div style="font-size:1.8rem;">${getCardEmoji(face.type, face.nom)}</div>
         <div style="flex:1;">
-          <div style="font-family:'Cinzel',serif;font-weight:700;color:var(--gold-light);font-size:0.82rem;">${face.nom}</div>
+          <div style="font-family:'Cinzel',serif;font-weight:700;color:${isDisabled ? '#aa6622' : 'var(--gold-light)'};font-size:0.82rem;">${face.nom}</div>
           <div style="font-size:0.6rem;color:#888;">${face.type}</div>
+          ${isDisabled ? `<div style="font-size:0.58rem;color:#cc6600;margin-top:2px;">🔒 Bloquée par un Bandit — ne peut pas être retenue</div>` : ''}
+          ${isBanditCard ? `<div style="font-size:0.58rem;color:#ffaaaa;margin-top:2px;">⚔️ Retenir ce Bandit lèvera son blocage</div>` : ''}
         </div>
         <div id="retCheck_${i}" style="font-size:1.4rem;opacity:0;">✅</div>
       </button>`;
   });
 
   html += `</div>
-    <div style="text-align:center;margin-top:16px;">
+    <div style="text-align:center;margin-top:16px;display:flex;gap:10px;justify-content:center;">
+      <button onclick="closeRetentionModal()" style="
+        font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+        background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);
+        color:var(--stone-light);padding:10px 20px;border-radius:6px;cursor:pointer;">
+        ✕ Fermer
+      </button>
       <button id="retConfirmBtn" onclick="confirmRetentionSelection()" disabled style="
         font-family:'Cinzel',serif;font-weight:700;font-size:0.75rem;letter-spacing:1px;
         background:rgba(0,0,0,0.4);border:2px solid #444;color:#666;
@@ -673,17 +688,54 @@ function toggleRetentionCard(idx, max) {
   confirmBtn.textContent = `✓ Confirmer (${sel.length} / ${max})`;
 }
 
+function closeRetentionModal() {
+  bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
+  window._retentionSelected = [];
+  // Remettre la carte source en jeu — l'effet n'est pas activé
+  if (window._retentionSourceCard) {
+    gameState.play.push(window._retentionSourceCard);
+    window._retentionSourceCard = null;
+    updateUI();
+  }
+}
+
 function confirmRetentionSelection() {
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
   const selected = window._retentionSelected || [];
   window._retentionSelected = [];
+
+  // Défausser la carte source maintenant que l'effet est confirmé
+  const sourceCard = window._retentionSourceCard;
+  window._retentionSourceCard = null;
+  if (sourceCard) {
+    gameState.discard.push(sourceCard);
+    const fd = getFaceData(sourceCard);
+    addLog(`🕊️ <span class="log-card">${fd.nom}</span> — défaussée pour retenir ${selected.length} carte${selected.length > 1 ? 's' : ''}.`, true);
+  }
+
   if (!gameState.retained) gameState.retained = [];
-  selected.forEach(n => { if (!gameState.retained.includes(n)) gameState.retained.push(n); });
+  if (!gameState.retainedCards) gameState.retainedCards = [];
+  selected.forEach(n => {
+    if (!gameState.retained.includes(n)) {
+      gameState.retained.push(n);
+      // Récupérer l'instance depuis play[] et la déplacer dans retainedCards
+      const idx = gameState.play.findIndex(c => c.cardDef.numero === n);
+      if (idx >= 0) {
+        const [ci] = gameState.play.splice(idx, 1);
+        gameState.retainedCards.push(ci);
+        // Si c'est un bandit, lever son blocage sur la carte cible
+        if (isBandit(ci)) {
+          updateBanditIndices(ci.cardDef.numero);
+          addLog(`🗡️ <span class="log-card">Bandit</span> retenu — blocage levé.`);
+        }
+      }
+    }
+  });
   const names = selected.map(n => {
-    const ci = gameState.play.find(c => c.cardDef.numero === n);
+    const ci = gameState.retainedCards.find(c => c.cardDef.numero === n);
     return ci ? `<span class="log-card">${getFaceData(ci).nom}</span>` : `#${n}`;
   });
-  addLog(`🕊️ Retenues : ${names.join(', ')} — resteront en jeu à la prochaine manche.`, true);
+  addLog(`🕊️ Retenue${names.length > 1 ? 's' : ''} : ${names.join(', ')} — visible${names.length > 1 ? 's' : ''} jusqu'à la fin de la manche.`, true);
   updateUI();
 }
 
@@ -692,39 +744,32 @@ function newRound() {
   gameState.staging = [];
   gameState.bandits = [];
 
-  // ── Rétention (cartes 82/83) : extraire les cartes retenues avant la défausse ──
-  const retainedNums = new Set(gameState.retained || []);
-  const retainedCards = [];
-  const playToDiscard = [];
-  gameState.play.forEach(ci => {
-    if (retainedNums.has(ci.cardDef.numero)) {
-      retainedCards.push(ci);
-    } else {
-      playToDiscard.push(ci);
-    }
-  });
+  // ── Rétention (cartes 82/83) : les cartes retenues sont déjà dans retainedCards,
+  //    hors de play[]. On récupère directement cette liste.
+  const retainedCards = gameState.retainedCards || [];
   if (retainedCards.length > 0) {
     addLog(`🕊️ ${retainedCards.map(ci => `<span class="log-card">${getFaceData(ci).nom}</span>`).join(', ')} — retenue${retainedCards.length > 1 ? 's' : ''} pour la prochaine manche.`, true);
   }
-  gameState.retained = []; // réinitialiser pour la prochaine manche
-  gameState._retainedForNextRound = retainedCards; // transmis à _finalizeNewRound
-  playToDiscard.forEach(c => gameState.discard.push(c));
+  gameState.retained = [];
+  gameState.retainedCards = [];
+  gameState._retainedForNextRound = retainedCards;
+  // Défausser toutes les cartes restantes en jeu
+  gameState.play.forEach(c => gameState.discard.push(c));
   gameState.play = [];
 
-  // ── Cartes "Reste en jeu" (Muraille, etc.) : si elles n'ont pas été jouées
-  //    pendant la manche, elles sont défaussées et remélangées normalement.
+  // ── Cartes "Reste en jeu" (Muraille, etc.) : en fin de manche elles
+  //    rejoignent le pool qui sera remélangé dans la nouvelle pioche.
   const sipCards = gameState.stayInPlay || [];
-  if (sipCards.length > 0) {
-    sipCards.forEach(c => gameState.discard.push(c));
-    addLog(`🏚️ ${sipCards.map(c => `<span class="log-card">${getFaceData(c).nom}</span>`).join(', ')} — défaussée${sipCards.length > 1 ? 's' : ''} (fin de manche).`);
-    gameState.stayInPlay = [];
-  }
+  gameState.stayInPlay = [];
 
   // Séparer les permanentes normales des permanentes Héritage (level-1)
   const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
   const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
 
-  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms];
+  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards];
+  if (sipCards.length > 0) {
+    addLog(`🏚️ ${sipCards.map(c => `<span class="log-card">${getFaceData(c).nom}</span>`).join(', ')} — remélangée${sipCards.length > 1 ? 's' : ''} dans la pioche.`);
+  }
   gameState.permanent = [...heritagePerms]; // Les cartes Héritage restent permanentes !
   gameState.discard = []; gameState.deck = [];
   clearResources();

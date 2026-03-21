@@ -9,7 +9,7 @@ let ALL_CARDS = [
 ];
 
 const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', Troc:'🏺' };
-const TYPE_ICONS = { Terrain:'🌿', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
+const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
 
 let cardStateMap = {};
 let choiceNeeded = new Set();
@@ -65,7 +65,7 @@ function getCardEmoji(type, nom) {
     'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
     'Autel':'⛩️',
     'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👷',
-    'Colinne':'⛰️','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
+    'Colline':'🌄','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯',
     'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍎',
     'Lac':'🏞️','Bateau de Pêche':'⛵','Phare':'🗼',
