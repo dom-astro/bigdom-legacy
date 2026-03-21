@@ -537,67 +537,409 @@ function openCardModal(indexOrNum, zone) {
     if (!cardInstance) return;
   }
   const face = getFaceData(cardInstance);
+  const totalFaces = cardInstance.cardDef.faces.length;
 
-  $('#modalCardName').text(`${getCardEmoji(face.type,face.nom)} ${face.nom}`);
-  let body = `<p><strong>Type:</strong> ${face.type} &nbsp;|&nbsp; <strong>#${cardInstance.cardDef.numero}</strong></p>`;
+  // ── En-tête ──────────────────────────────────────────────
+  const typeColors = {
+    Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Batiment:'#7a6a5a',
+    Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+    Maritime:'#1a4a6a', Etat:'#5a4a2a', Parchemin:'#7a5a0a'
+  };
+  const typeBg = typeColors[face.type] || '#5a5040';
+
+  $('#modalCardSubtitle').text(`Carte #${cardInstance.cardDef.numero} · Face ${cardInstance.currentFace}/${totalFaces}`);
+  $('#modalCardName').text(`${getCardEmoji(face.type, face.nom)}  ${face.nom}`);
+  $('#modalCardTypeBadge').html(
+    `<span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;` +
+    `font-size:0.58rem;letter-spacing:1px;padding:2px 10px;border-radius:10px;">${face.type}</span>` +
+    (face.victoire !== undefined
+      ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};` +
+        `border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.5)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};` +
+        `font-family:'Cinzel',serif;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;">` +
+        `${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</span>`
+      : '')
+  );
+
+  // ── Corps ─────────────────────────────────────────────────
+  let body = '';
+
+  // — Grande illustration centrale
+  body += `<div style="text-align:center;margin:4px 0 16px;">
+    <div style="font-size:4rem;line-height:1;filter:drop-shadow(0 2px 8px rgba(200,150,12,0.3));">
+      ${getCardEmoji(face.type, face.nom)}
+    </div>
+  </div>`;
+
+  // — Description (le cœur du parchemin)
   if (face.description) {
-    body += `<p style="font-style:italic;color:var(--stone,#888);font-size:0.88rem;border-left:3px solid var(--gold,#c8a00c);padding-left:10px;margin:6px 0 10px;">${face.description}</p>`;
+    body += `<div style="
+      background: linear-gradient(135deg, rgba(200,150,12,0.06), rgba(200,150,12,0.02));
+      border: 1px solid rgba(200,150,12,0.2);
+      border-left: 4px solid var(--gold);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 0 0 16px;
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 1rem;
+      color: #e8d5a3;
+      line-height: 1.65;
+    ">
+      <span style="font-family:'Cinzel',serif;font-size:0.55rem;font-style:normal;letter-spacing:2px;color:var(--gold);display:block;margin-bottom:6px;text-transform:uppercase;">✦ Description</span>
+      ${face.description}
+    </div>`;
   }
+
+  // — Production
   if (face.ressources && face.ressources.length) {
-    const rs = face.ressources.map(r => { const t=Array.isArray(r.type)?r.type:[r.type]; return t.map(x=>`${r.quantite}× ${RESOURCE_ICONS[normalizeRes(x)]||x} ${x}`).join(', '); }).join('; ');
-    body += `<p><strong>Production:</strong> ${rs}</p>`;
+    const resPips = face.ressources.map(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return types.map(t => {
+        const icon = RESOURCE_ICONS[normalizeRes(t)] || t;
+        return `<span style="display:inline-flex;align-items:center;gap:4px;
+          background:rgba(200,150,12,0.12);border:1px solid rgba(200,150,12,0.3);
+          border-radius:12px;padding:3px 10px;font-size:0.88rem;">
+          ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;">×${r.quantite}</strong>
+          <span style="font-size:0.65rem;opacity:0.7;">${t}</span>
+        </span>`;
+      }).join('');
+    }).join('');
+    body += `<div style="margin-bottom:14px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚒ Production</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${resPips}</div>
+    </div>`;
   }
-  if (face.victoire!==undefined) body += `<p><strong>${face.victoire>=0?'⭐':'💀'} Gloire:</strong> ${face.victoire}</p>`;
+
+  // projected est utilisé par les effets (mini-diagramme) ET les promotions
+  const projected = getProjectedResources();
+
+  // — Effets
   if (face.effet) {
-    const efs = Array.isArray(face.effet)?face.effet:[face.effet];
+    const efs = Array.isArray(face.effet) ? face.effet : [face.effet];
+    const _typeCfg = {
+      Activable:      { border:'#2e7d32', bg:'rgba(27,94,32,0.18)',   icon:'🟢' },
+      Passif:         { border:'#1565c0', bg:'rgba(13,71,161,0.18)',  icon:'🔵' },
+      Destruction:    { border:'#bf360c', bg:'rgba(191,54,12,0.18)',  icon:'🔴' },
+      Retention:      { border:'#6a1b9a', bg:'rgba(106,27,154,0.18)',icon:'🕊️' },
+      Obligatoiref:   { border:'#e65100', bg:'rgba(230,81,0,0.18)',   icon:'⚠️' },
+      Obligatoire:    { border:'#e65100', bg:'rgba(230,81,0,0.18)',   icon:'⚠️' },
+      'Reste en jeu': { border:'#558b2f', bg:'rgba(85,139,47,0.18)',  icon:'♾️' },
+    };
+    const typeColors3 = {
+      Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Batiment:'#7a6a5a',
+      Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+      Maritime:'#1a4a6a', Etat:'#5a4a2a'
+    };
+
+    body += `<div style="margin-bottom:14px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚡ Effets</div>`;
+
     efs.forEach(e => {
-      const _typeCfg = {
-        Activable:    { border:'#2e7d32', bg:'rgba(27,94,32,0.20)' },
-        Passif:       { border:'#1565c0', bg:'rgba(13,71,161,0.20)' },
-        Destruction:  { border:'#bf360c', bg:'rgba(191,54,12,0.20)' },
-        Retention:    { border:'#6a1b9a', bg:'rgba(106,27,154,0.20)' },
-        Obligatoiref: { border:'#e65100', bg:'rgba(230,81,0,0.20)' },
-        Obligatoire:  { border:'#e65100', bg:'rgba(230,81,0,0.20)' },
-        'Reste en jeu':{ border:'#558b2f', bg:'rgba(85,139,47,0.20)' }
-      };
-      const _cfg = _typeCfg[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.15)' };
-      const _defTag = e.defausse === true
-        ? `<span style="background:#b71c1c;color:#fff;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px;">⚠️ Défausse</span>`
+      const cfg = _typeCfg[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.12)', icon:'⚡' };
+      const defTag = e.defausse === true
+        ? `<span style="background:#b71c1c;color:#fff;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">⚠️ Se défausse</span>`
         : e.defausse === false
-          ? `<span style="background:#1b5e20;color:#fff;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px;">♾ Réutilisable</span>`
+          ? `<span style="background:#1b5e20;color:#fff;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">♾ Réutilisable</span>`
           : '';
-      body += `<div style="background:${_cfg.bg};border:1px solid ${_cfg.border}40;border-left:4px solid ${_cfg.border};border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;">`;
-      body += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`
-             + `<span style="background:${_cfg.border};color:#fff;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.04em;font-family:'Cinzel',serif;">${e.type}</span>`
-             + _defTag
-             + `</div>`;
-      if (e.description) body += `<p style="margin:2px 0 4px;font-size:0.85rem;color:#f0ece6;line-height:1.4;">${e.description}</p>`;
-      if (e.ressources) body += `<p style="margin:4px 0 2px;font-size:0.82rem;"><span style="background:rgba(0,0,0,0.35);color:#ffd54f;font-weight:600;padding:1px 6px;border-radius:4px;">🎁 Gains</span> <span style="color:#f0ece6;">`+e.ressources.map(x=>`${x.quantite}× ${RESOURCE_ICONS[normalizeRes(Array.isArray(x.type)?x.type[0]:x.type)]||x.type}`).join(', ')+`</span></p>`;
-      if (e.cout) body += `<p style="margin:2px 0;font-size:0.82rem;"><span style="background:rgba(0,0,0,0.35);color:#ffcc80;font-weight:600;padding:1px 6px;border-radius:4px;">💰 Coût</span> <span style="color:#f0ece6;">${formatCost(e.cout)}</span></p>`;
+      body += `<div style="background:${cfg.bg};border:1px solid ${cfg.border}50;border-left:4px solid ${cfg.border};
+        border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+          <span style="background:${cfg.border};color:#fff;font-size:0.65rem;font-weight:700;
+            padding:2px 8px;border-radius:8px;font-family:'Cinzel',serif;letter-spacing:0.5px;">
+            ${cfg.icon} ${e.type}</span>${defTag}
+        </div>`;
+      if (e.description) {
+        body += `<p style="margin:0 0 6px;font-family:'Crimson Text',serif;font-size:0.95rem;
+          color:#e8d5a3;line-height:1.55;">${e.description}</p>`;
+      }
+      if (e.ressources) {
+        const gainStr = e.ressources.map(x => {
+          const t = Array.isArray(x.type) ? x.type[0] : x.type;
+          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`;
+        }).join('  ');
+        body += `<div style="margin-top:4px;font-size:0.82rem;">
+          <span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span>
+          <span style="color:#e8d5a3;margin-left:6px;">${gainStr}</span></div>`;
+      }
+      if (e.cout) {
+        body += `<div style="margin-top:4px;font-size:0.82rem;">
+          <span style="background:rgba(0,0,0,0.3);color:#ffcc80;font-weight:600;padding:1px 7px;border-radius:4px;">💰 Coût</span>
+          <span style="color:#e8d5a3;margin-left:6px;">${formatCost(e.cout)}</span></div>`;
+      }
+
+      // — Mini-diagramme de promotion si l'effet entraîne un changement de face
+      if (e.promotion && e.promotion.face) {
+        const targetFaceNum = e.promotion.face;
+        const srcFd  = face; // face courante = source
+        const tgtFd  = cardInstance.cardDef.faces.find(f => f.face === targetFaceNum);
+        if (tgtFd) {
+          const srcTypeBg = typeColors3[srcFd.type] || '#5a5040';
+          const tgtTypeBg = typeColors3[tgtFd.type] || '#5a5040';
+
+          // Coût de l'effet lui-même (peut être nul)
+          const coutEff = e.cout || [];
+          const canAffordEff = coutEff.every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+          const arrowCol = canAffordEff ? '#44ccff' : '#664422';
+
+          const coutPillsEff = coutEff.map(c =>
+            `<span style="display:inline-flex;align-items:center;gap:2px;
+              background:rgba(0,0,0,0.5);border:1px solid ${arrowCol}66;border-radius:6px;
+              padding:1px 5px;font-size:0.52rem;
+              color:${canAffordEff ? '#e8d5a3' : '#886644'};white-space:nowrap;">
+              ${RESOURCE_ICONS[normalizeRes(c.type)] || c.type} ${c.quantite}
+            </span>`
+          ).join('');
+
+          const arrowLabel = coutEff.length > 0
+            ? `<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">${coutPillsEff}</div>`
+            : `<span style="font-size:0.46rem;color:#44ccff;font-family:'Cinzel',serif;">⚡ effet</span>`;
+
+          const miniNode = (fd, isSrc) => {
+            const isCur = fd.face === cardInstance.currentFace;
+            const bg2   = isCur ? 'rgba(200,150,12,0.15)' : 'rgba(0,0,0,0.3)';
+            const bdr   = isCur ? '#f0c04088' : 'rgba(255,255,255,0.12)';
+            const nc    = isCur ? '#f0c040' : isSrc ? '#e8d5a3' : '#88ccff';
+            const typBg = isCur ? (typeColors3[fd.type] || '#5a5040') : (isSrc ? srcTypeBg : tgtTypeBg);
+            return `<div style="
+                display:flex;flex-direction:column;align-items:center;
+                background:${bg2};border:2px solid ${bdr};border-radius:8px;
+                padding:6px 8px 5px;min-width:64px;max-width:80px;text-align:center;flex-shrink:0;">
+              <div style="font-size:1.4rem;line-height:1;">${getCardEmoji(fd.type, fd.nom)}</div>
+              <div style="font-family:'Cinzel',serif;font-size:0.48rem;font-weight:700;
+                   color:${nc};margin-top:3px;line-height:1.2;word-break:break-word;">${fd.nom}</div>
+              <div style="background:${typBg};color:#fff;font-family:'Cinzel',serif;
+                   font-size:0.36rem;padding:1px 5px;border-radius:4px;margin-top:2px;">${fd.type}</div>
+              ${fd.victoire ? `<div style="font-size:0.5rem;color:${fd.victoire<0?'#ff8888':'#f0c040'};margin-top:2px;">${fd.victoire>0?'⭐':'💀'}${fd.victoire}</div>` : ''}
+            </div>`;
+          };
+
+          body += `<div style="
+              display:flex;align-items:center;gap:0;
+              margin-top:10px;padding:8px 10px;
+              background:rgba(0,0,0,0.2);border:1px solid ${arrowCol}33;border-radius:8px;">
+            ${miniNode(srcFd, true)}
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;min-width:46px;padding:0 3px;">
+              <div style="text-align:center;margin-bottom:4px;">${arrowLabel}</div>
+              <div style="display:flex;align-items:center;">
+                <div style="height:2px;width:18px;background:${arrowCol};opacity:0.8;"></div>
+                <div style="width:0;height:0;
+                  border-top:5px solid transparent;border-bottom:5px solid transparent;
+                  border-left:8px solid ${arrowCol};opacity:0.8;"></div>
+              </div>
+            </div>
+            ${miniNode(tgtFd, false)}
+          </div>`;
+        }
+      }
+
       body += `</div>`;
     });
+    body += `</div>`;
   }
+
+  // — Promotions disponibles
   const allModalPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
   if (allModalPromos.length > 0) {
+    body += `<div style="margin-bottom:14px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">▲ Promotions</div>`;
     allModalPromos.forEach(promo => {
-      const nfd = cardInstance.cardDef.faces.find(f=>f.face===promo.face);
-      body += `<p><strong>Promotion →</strong> <em>${nfd?nfd.nom:'?'}</em> — Coût: ${formatCost(promo.cout||[])}</p>`;
+      const nfd = cardInstance.cardDef.faces.find(f => f.face === promo.face);
+      const canAfford = (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+      const nfdEmoji = nfd ? getCardEmoji(nfd.type, nfd.nom) : '📄';
+      body += `<div style="display:flex;align-items:center;gap:10px;
+        background:rgba(0,0,0,0.25);border:1px solid ${canAfford ? 'rgba(68,200,68,0.35)' : 'rgba(200,150,12,0.2)'};
+        border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+        <span style="font-size:1.5rem;">${nfdEmoji}</span>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:${canAfford ? '#88ff88' : '#f0c040'};">
+            ${nfd ? nfd.nom : '?'}
+          </div>
+          <div style="font-size:0.72rem;color:#a09080;">Coût : ${formatCost(promo.cout || [])}</div>
+          ${nfd && nfd.victoire ? `<div style="font-size:0.65rem;color:#f0c040;">⭐ ${nfd.victoire} Gloire</div>` : ''}
+        </div>
+        ${canAfford
+          ? `<span style="font-size:0.65rem;color:#88ff88;font-family:'Cinzel',serif;">✓ Possible</span>`
+          : `<span style="font-size:0.65rem;color:#aa8866;font-family:'Cinzel',serif;">🔒</span>`}
+      </div>`;
     });
+    body += `</div>`;
   }
-  const saved = cardStateMap[cardInstance.cardDef.numero]||1;
-  body += `<hr><p style="font-size:0.8rem;color:#666;"><strong>Progression:</strong><br>`;
+
+  // — Diagramme chemin de la carte
+  const saved = cardStateMap[cardInstance.cardDef.numero] || 1;
+
+  // Construire la liste des nœuds avec leurs transitions sortantes
+  // Chaque face peut avoir promotion (objet) ou promotions (tableau)
+  // On construit un graphe : faceNum → [{ targetFace, cout }]
+  const transitions = {}; // faceNum → [{ targetFace, cout }]
   cardInstance.cardDef.faces.forEach(f => {
-    const ic = f.face===cardInstance.currentFace; const rch = f.face<=saved;
-    body += `<span style="${ic?'font-weight:bold;':rch?'color:#666;':'color:#aaa;'}">${ic?'▶ ':rch?'✓ ':'🔒 '}Face ${f.face}: <em>${f.nom}</em>${ic?' (actuelle)':''}</span><br>`;
+    const promos = f.promotions ? f.promotions : (f.promotion ? [f.promotion] : []);
+    // Aussi gérer l'effet activable avec promotion intégrée (ex: Forêt → Coupe Rase)
+    const effets = f.effet ? (Array.isArray(f.effet) ? f.effet : [f.effet]) : [];
+    const effectPromos = effets
+      .filter(e => e.promotion && e.promotion.face)
+      .map(e => ({ face: e.promotion.face, cout: e.cout || [], viaEffect: true }));
+    transitions[f.face] = [...promos.map(p => ({ face: p.face, cout: p.cout || [], viaEffect: false })), ...effectPromos];
   });
-  body += '</p>';
+
+  // Construire tous les chemins complets depuis la face 1 jusqu'à chaque feuille.
+  // Un chemin est complet : il part de face 1 et se termine sur un nœud sans successeur.
+  // Les cartes à bifurcation (ex: face 1 → face 2 ET face 1 → face 4) produisent
+  // autant de lignes que de branches, chacune affichant le chemin entier.
+  function buildPaths(startFace, visited = new Set()) {
+    if (visited.has(startFace)) return [[startFace]]; // cycle — on s'arrête
+    const newVisited = new Set(visited);
+    newVisited.add(startFace);
+    const nexts = (transitions[startFace] || []).filter(t => !visited.has(t.face));
+    if (nexts.length === 0) return [[startFace]]; // feuille terminale
+    const paths = [];
+    nexts.forEach(t => {
+      buildPaths(t.face, newVisited).forEach(subPath => {
+        paths.push([startFace, ...subPath]);
+      });
+    });
+    return paths;
+  }
+
+  const rawPaths = buildPaths(1);
+
+  // Si une seule face (pas de transition), un chemin d'un seul nœud
+  const allPaths = rawPaths.length > 0 ? rawPaths : [[1]];
+
+  // Rendu d'un nœud (face)
+  function renderNode(f) {
+    const isCurrent = f.face === cardInstance.currentFace;
+    const isReached  = f.face <= saved;
+    const isLocked   = !isReached && !isCurrent;
+
+    const typeColors2 = {
+      Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Batiment:'#7a6a5a',
+      Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+      Maritime:'#1a4a6a', Etat:'#5a4a2a'
+    };
+    const typeBg2 = typeColors2[f.type] || '#5a5040';
+
+    let nodeBorder, nodeBg, nameCol;
+    if (isCurrent) {
+      nodeBorder = '#f0c040'; nodeBg = 'rgba(200,150,12,0.2)'; nameCol = '#f0c040';
+    } else if (isReached) {
+      nodeBorder = 'rgba(100,180,100,0.5)'; nodeBg = 'rgba(50,100,50,0.15)'; nameCol = '#80cc80';
+    } else {
+      nodeBorder = 'rgba(255,255,255,0.12)'; nodeBg = 'rgba(0,0,0,0.3)'; nameCol = '#555';
+    }
+
+    const glHTML = (f.victoire !== undefined && f.victoire !== 0)
+      ? `<div style="font-size:0.55rem;color:${f.victoire < 0 ? '#ff8888' : '#f0c040'};margin-top:2px;">
+          ${f.victoire > 0 ? '⭐' : '💀'} ${f.victoire > 0 ? '+' : ''}${f.victoire}
+        </div>`
+      : '';
+
+    const badge = isCurrent
+      ? `<div style="font-family:'Cinzel',serif;font-size:0.42rem;color:#1a0e04;
+           background:#f0c040;border-radius:4px;padding:1px 5px;margin-top:3px;letter-spacing:0.5px;">
+           ▶ ACTUELLE</div>`
+      : isReached
+        ? `<div style="font-size:0.5rem;color:#80cc80;margin-top:2px;">✓</div>`
+        : `<div style="font-size:0.6rem;color:#444;margin-top:2px;">🔒</div>`;
+
+    return `<div style="
+        display:flex;flex-direction:column;align-items:center;
+        background:${nodeBg};
+        border:2px solid ${nodeBorder};
+        border-radius:10px;
+        padding:7px 8px 6px;
+        min-width:72px;max-width:86px;
+        text-align:center;
+        opacity:${isLocked ? 0.45 : 1};
+        flex-shrink:0;
+        box-shadow:${isCurrent ? '0 0 12px rgba(200,150,12,0.35)' : 'none'};
+        transition:all 0.2s;">
+      <div style="font-size:1.6rem;line-height:1;">${getCardEmoji(f.type, f.nom)}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.52rem;font-weight:700;color:${nameCol};
+           margin-top:4px;line-height:1.25;word-break:break-word;">${f.nom}</div>
+      <div style="display:inline-block;background:${typeBg2};color:#fff;font-family:'Cinzel',serif;
+           font-size:0.38rem;padding:1px 5px;border-radius:4px;margin-top:3px;letter-spacing:0.5px;">${f.type}</div>
+      ${glHTML}
+      ${badge}
+    </div>`;
+  }
+
+  // Rendu d'une flèche avec coût entre fromFace → toFace
+  function renderArrow(fromFace, toFace) {
+    const t = (transitions[fromFace] || []).find(tr => tr.face === toFace);
+    const cout = t ? t.cout : [];
+    const viaEffect = t ? t.viaEffect : false;
+    const canAfford2 = cout.length === 0 || cout.every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+    const arrowColor = viaEffect ? '#44ccff' : canAfford2 ? '#88cc44' : '#664422';
+
+    const coutPills = cout.map(c =>
+      `<span style="
+        display:inline-flex;align-items:center;gap:2px;
+        background:rgba(0,0,0,0.5);
+        border:1px solid ${arrowColor}66;
+        border-radius:6px;padding:1px 5px;
+        font-size:0.52rem;color:${canAfford2 ? '#e8d5a3' : '#886644'};
+        white-space:nowrap;">
+        ${RESOURCE_ICONS[normalizeRes(c.type)] || c.type} ${c.quantite}
+      </span>`
+    ).join('');
+
+    const label = viaEffect
+      ? `<span style="font-size:0.48rem;color:#44ccff;font-family:'Cinzel',serif;">⚡ effet</span>`
+      : cout.length > 0
+        ? `<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">${coutPills}</div>`
+        : `<span style="font-size:0.48rem;color:#888;font-family:'Cinzel',serif;">gratuit</span>`;
+
+    return `<div style="
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        flex-shrink:0;min-width:50px;max-width:70px;padding:0 3px;">
+      <div style="text-align:center;margin-bottom:4px;">${label}</div>
+      <div style="display:flex;align-items:center;">
+        <div style="height:2px;width:20px;background:${arrowColor};opacity:0.75;"></div>
+        <div style="width:0;height:0;
+          border-top:5px solid transparent;
+          border-bottom:5px solid transparent;
+          border-left:9px solid ${arrowColor};
+          opacity:0.75;"></div>
+      </div>
+    </div>`;
+  }
+
+  body += `<div style="border-top:1px solid rgba(200,150,12,0.15);padding-top:14px;margin-top:4px;">
+    <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);
+         text-transform:uppercase;margin-bottom:12px;">📜 Chemin de la carte</div>`;
+
+  // Afficher chaque chemin sur une rangée (complet, de face 1 à la feuille terminale)
+  allPaths.forEach((path, pi) => {
+    body += `<div style="
+      display:flex;align-items:center;flex-wrap:nowrap;
+      overflow-x:auto;gap:0;
+      padding-bottom:${pi < allPaths.length - 1 ? '10px' : '0'};
+      ${pi > 0 ? 'border-top:1px dashed rgba(200,150,12,0.15);padding-top:10px;' : ''}">`;
+
+    path.forEach((faceNum, idx) => {
+      const fData = cardInstance.cardDef.faces.find(f => f.face === faceNum);
+      if (!fData) return;
+      body += renderNode(fData);
+      if (idx < path.length - 1) {
+        body += renderArrow(faceNum, path[idx + 1]);
+      }
+    });
+
+    body += `</div>`;
+  });
+
+  body += `</div>`;
 
   $('#modalCardBody').html(body);
+
+  // ── Boutons d'action ──────────────────────────────────────
   const inPlay = zone !== 'staging';
   const isRetained = zone === 'retained';
   const hasModalUpgrade = !!(face.promotion || (face.promotions && face.promotions.length > 0));
   const hasModalActivable = inPlay && hasActivableEffect(cardInstance);
   const canModalActivate = hasModalActivable && canActivateEffect(cardInstance);
+
   $('#modalProduceBtn')
     .toggle(inPlay && !!(face.ressources && face.ressources.length))
     .off('click').on('click', () => {
@@ -625,6 +967,7 @@ function openCardModal(indexOrNum, zone) {
       else stageActivateEffect(modalCardIndex);
       modalCardIndex = null;
     });
+
   new bootstrap.Modal(document.getElementById('cardModal')).show();
 }
 
@@ -642,4 +985,291 @@ function showDiscardPile() {
     </div></div>`);
   });
   new bootstrap.Modal(document.getElementById('discardModal')).show();
+}
+// ============================================================
+//  MODAL — détail d'une carte découverte (pas encore en jeu)
+// ============================================================
+
+function _renderDiscoveredFaceDetail(cardDef, faceNum) {
+  const face = cardDef.faces.find(f => f.face === faceNum) || cardDef.faces[0];
+  const typeColors = {
+    Terrain:'#2d5a27','Bâtiment':'#7a6a5a', Batiment:'#7a6a5a',
+    Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+    Maritime:'#1a4a6a', Etat:'#5a4a2a'
+  };
+  let html = '';
+
+  if (face.description) {
+    html += `<div style="background:linear-gradient(135deg,rgba(200,150,12,0.06),rgba(200,150,12,0.02));border:1px solid rgba(200,150,12,0.2);border-left:4px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 12px;font-family:'Crimson Text',serif;font-style:italic;font-size:0.92rem;color:#e8d5a3;line-height:1.6;"><span style="font-family:'Cinzel',serif;font-size:0.52rem;font-style:normal;letter-spacing:2px;color:var(--gold);display:block;margin-bottom:5px;text-transform:uppercase;">✦ Description</span>${face.description}</div>`;
+  }
+
+  if (face.ressources && face.ressources.length) {
+    const resPips = face.ressources.map(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return types.map(t => {
+        const icon = RESOURCE_ICONS[normalizeRes(t)] || t;
+        return `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(200,150,12,0.12);border:1px solid rgba(200,150,12,0.3);border-radius:12px;padding:3px 10px;font-size:0.85rem;">${icon} <strong style="font-family:'Cinzel',serif;font-size:0.72rem;">×${r.quantite}</strong><span style="font-size:0.62rem;opacity:0.7;">${t}</span></span>`;
+      }).join('');
+    }).join('');
+    html += `<div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚒ Production</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${resPips}</div></div>`;
+  }
+
+  if (face.victoire !== undefined && face.victoire !== 0) {
+    html += `<div style="margin-bottom:12px;"><span style="background:${face.victoire < 0 ? 'rgba(139,0,0,0.3)' : 'rgba(200,150,12,0.15)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:10px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</span></div>`;
+  }
+
+  if (face.effet) {
+    const efs = Array.isArray(face.effet) ? face.effet : [face.effet];
+    const cfgMap = {
+      Activable:  { border:'#2e7d32', bg:'rgba(27,94,32,0.18)',    icon:'🟢' },
+      Passif:     { border:'#1565c0', bg:'rgba(13,71,161,0.18)',   icon:'🔵' },
+      Destruction:{ border:'#bf360c', bg:'rgba(191,54,12,0.18)',   icon:'🔴' },
+      Retention:  { border:'#6a1b9a', bg:'rgba(106,27,154,0.18)', icon:'🕊️' },
+    };
+    html += `<div style="margin-bottom:4px;"><div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚡ Effet</div>`;
+    efs.forEach(e => {
+      const cfg = cfgMap[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.12)', icon:'⚡' };
+      const defTag = e.defausse === true
+        ? `<span style="background:#b71c1c;color:#fff;font-size:0.58rem;font-weight:600;padding:1px 6px;border-radius:6px;">⚠️ Se défausse</span>`
+        : e.defausse === false
+          ? `<span style="background:#1b5e20;color:#fff;font-size:0.58rem;font-weight:600;padding:1px 6px;border-radius:6px;">♾ Réutilisable</span>`
+          : '';
+      html += `<div style="background:${cfg.bg};border:1px solid ${cfg.border}50;border-left:4px solid ${cfg.border};border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;"><span style="background:${cfg.border};color:#fff;font-size:0.62rem;font-weight:700;padding:2px 7px;border-radius:7px;font-family:'Cinzel',serif;">${cfg.icon} ${e.type}</span>${defTag}</div>`;
+      if (e.description) html += `<p style="margin:0 0 5px;font-family:'Crimson Text',serif;font-size:0.92rem;color:#e8d5a3;line-height:1.5;">${e.description}</p>`;
+      if (e.cout) html += `<div style="font-size:0.8rem;margin-top:3px;"><span style="background:rgba(0,0,0,0.3);color:#ffcc80;font-weight:600;padding:1px 7px;border-radius:4px;">💰 Coût</span> <span style="color:#e8d5a3;margin-left:4px;">${formatCost(e.cout)}</span></div>`;
+      if (e.ressources) {
+        const gainStr = (Array.isArray(e.ressources) ? e.ressources : [e.ressources]).map(x => {
+          const t = Array.isArray(x.type) ? x.type[0] : x.type;
+          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`;
+        }).join('  ');
+        html += `<div style="font-size:0.8rem;margin-top:3px;"><span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span> <span style="color:#e8d5a3;margin-left:4px;">${gainStr}</span></div>`;
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  const promos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
+  if (promos.length > 0) {
+    html += `<div style="margin-top:10px;"><div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">▲ Évolution possible</div>`;
+    promos.forEach(p => {
+      const nfd = cardDef.faces.find(f => f.face === p.face);
+      if (!nfd) return;
+      html += `<div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.25);border:1px solid rgba(200,150,12,0.2);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><span style="font-size:1.4rem;">${getCardEmoji(nfd.type, nfd.nom)}</span><div style="flex:1;"><div style="font-family:'Cinzel',serif;font-size:0.72rem;color:#f0c040;">${nfd.nom}</div><div style="font-size:0.68rem;color:#a09080;">Coût : ${formatCost(p.cout || [])}</div></div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+// Bascule le panneau de détail d'une face dans la modale de découverte
+function selectDiscoveredFaceTab(cardNum, faceNum) {
+  const cardDef = window._discoveredCardDef;
+  if (!cardDef || cardDef.numero !== cardNum) return;
+
+  const typeColors = {
+    Terrain:'#2d5a27','Bâtiment':'#7a6a5a', Batiment:'#7a6a5a',
+    Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+    Maritime:'#1a4a6a', Etat:'#5a4a2a'
+  };
+
+  // Style des boutons onglets
+  cardDef.faces.forEach(f => {
+    const btn = document.getElementById('discBtn_' + cardNum + '_face' + f.face);
+    if (!btn) return;
+    const isActive = f.face === faceNum;
+    btn.style.background    = isActive ? 'rgba(200,150,12,0.2)'       : 'rgba(0,0,0,0.4)';
+    btn.style.borderColor   = isActive ? '#f0c040'                    : 'rgba(200,150,12,0.35)';
+    btn.style.boxShadow     = isActive ? '0 0 12px rgba(200,150,12,0.35)' : 'none';
+    btn.style.transform     = isActive ? 'translateY(-2px)'           : 'none';
+  });
+
+  const detailEl = document.getElementById('discoveredFaceDetail_' + cardNum);
+  if (!detailEl) return;
+
+  const face = cardDef.faces.find(f => f.face === faceNum);
+  if (!face) return;
+
+  const typeBg = typeColors[face.type] || '#5a5040';
+
+  const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(200,150,12,0.2);">
+    <div style="font-size:2.2rem;line-height:1;">${getCardEmoji(face.type, face.nom)}</div>
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:0.48rem;color:#888;letter-spacing:2px;margin-bottom:2px;">FACE ${faceNum}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--gold-light);">${face.nom}</div>
+      <span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;font-size:0.46rem;padding:1px 7px;border-radius:4px;margin-top:3px;">${face.type}</span>
+      ${face.victoire !== undefined && face.victoire !== 0
+        ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire}</span>`
+        : ''}
+    </div>
+  </div>`;
+
+  detailEl.style.transition = 'opacity 0.15s';
+  detailEl.style.opacity = '0';
+  setTimeout(() => {
+    detailEl.innerHTML = header + _renderDiscoveredFaceDetail(cardDef, faceNum);
+    detailEl.style.opacity = '1';
+  }, 150);
+}
+
+function showDiscoveredCardModal(cardNum) {
+  // Résoudre la cardInstance depuis _pendingNewRound ou ALL_CARDS
+  let cardInstance = null;
+  if (window._pendingNewRound && window._pendingNewRound.discovered) {
+    cardInstance = window._pendingNewRound.discovered.find(c => c.cardDef.numero === cardNum);
+  }
+  if (!cardInstance) {
+    const cardDef = ALL_CARDS.find(c => c.numero === cardNum);
+    if (cardDef) cardInstance = { cardDef, currentFace: 1 };
+  }
+  if (!cardInstance) return;
+
+  const cardDef = cardInstance.cardDef;
+
+  // IMPORTANT : assigner AVANT de construire le HTML (les onclick en auront besoin)
+  window._discoveredCardDef = cardDef;
+
+  const isChoice  = isChoiceCard(cardDef);
+  const totalFaces = cardDef.faces.length;
+  const face1 = cardDef.faces[0];
+  const typeColors = {
+    Terrain:'#2d5a27','Bâtiment':'#7a6a5a', Batiment:'#7a6a5a',
+    Personne:'#3a5a8a', Evènement:'#4a2a5a', Ennemi:'#8b0000',
+    Maritime:'#1a4a6a', Etat:'#5a4a2a'
+  };
+
+  // — En-tête
+  if (isChoice) {
+    $('#discoveredCardSubtitle').text('Carte #' + cardNum + ' · Identité double — choix permanent');
+    $('#discoveredCardName').html('⚖️&nbsp; Identité à choisir');
+    $('#discoveredCardTypeBadge').html(
+      '<span style="display:inline-block;background:rgba(180,120,20,0.3);color:#f0c040;' +
+      'font-family:\'Cinzel\',serif;font-size:0.58rem;letter-spacing:1px;padding:2px 10px;' +
+      'border-radius:10px;border:1px solid rgba(200,150,12,0.4);">⚠️ Carte à double identité</span>'
+    );
+  } else {
+    const typeBg = typeColors[face1.type] || '#5a5040';
+    $('#discoveredCardSubtitle').text('Carte #' + cardNum + ' · ' + totalFaces + ' face' + (totalFaces > 1 ? 's' : '') + ' au total');
+    $('#discoveredCardName').text(getCardEmoji(face1.type, face1.nom) + '  ' + face1.nom);
+    $('#discoveredCardTypeBadge').html(
+      '<span style="display:inline-block;background:' + typeBg + ';color:#fff;font-family:\'Cinzel\',serif;' +
+      'font-size:0.58rem;letter-spacing:1px;padding:2px 10px;border-radius:10px;">' + face1.type + '</span>' +
+      (face1.victoire !== undefined && face1.victoire !== 0
+        ? '<span style="display:inline-block;margin-left:6px;background:' + (face1.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)') +
+          ';border:1px solid ' + (face1.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.5)') +
+          ';color:' + (face1.victoire < 0 ? '#ffaaaa' : '#f0c040') +
+          ';font-family:\'Cinzel\',serif;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;">' +
+          (face1.victoire >= 0 ? '⭐' : '💀') + ' ' + (face1.victoire > 0 ? '+' : '') + face1.victoire + ' Gloire</span>'
+        : '')
+    );
+  }
+
+  // — Corps
+  let body = '';
+
+  if (isChoice) {
+    // === CARTE À DOUBLE IDENTITÉ ===
+    const face2 = cardDef.faces[1];
+    const typeBg1 = typeColors[face1.type] || '#5a5040';
+    const typeBg2 = typeColors[face2.type] || '#5a5040';
+
+    // Bannière d'explication
+    body += `<div style="background:linear-gradient(135deg,rgba(180,120,0,0.2),rgba(120,80,0,0.15));border:2px solid rgba(200,150,12,0.4);border-radius:10px;padding:14px 16px;margin-bottom:18px;text-align:center;">
+      <div style="font-size:1.6rem;margin-bottom:6px;">⚖️</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;color:var(--gold-light);letter-spacing:1px;margin-bottom:6px;">Carte à Double Identité</div>
+      <div style="font-family:'Crimson Text',serif;font-size:0.88rem;color:#e8d5a3;line-height:1.55;">
+        Quand cette carte entre en jeu pour la première fois, vous devrez choisir
+        <strong style="color:var(--gold);">une identité définitive</strong> entre ces deux faces.
+        Ce choix sera <em>permanent</em> pour toute la partie.
+      </div>
+    </div>`;
+
+    // Deux onglets miniatures cliquables
+    body += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">`;
+    [face1, face2].forEach(f => {
+      const tBg = typeColors[f.type] || '#5a5040';
+      const resStr = (f.ressources || []).map(r => {
+        const types = Array.isArray(r.type) ? r.type : [r.type];
+        return types.map(t => `${RESOURCE_ICONS[normalizeRes(t)]||t}×${r.quantite}`).join(' ');
+      }).join(' · ');
+      const hasEff = !!f.effet;
+      body += `<button
+        id="discBtn_${cardNum}_face${f.face}"
+        onclick="selectDiscoveredFaceTab(${cardNum}, ${f.face})"
+        style="padding:12px 8px;background:rgba(0,0,0,0.4);border:2px solid rgba(200,150,12,0.35);
+          border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s;">
+        <div style="font-family:'Cinzel',serif;font-size:0.42rem;color:#888;margin-bottom:4px;letter-spacing:2px;">FACE ${f.face}</div>
+        <div style="font-size:2rem;margin-bottom:4px;">${getCardEmoji(f.type, f.nom)}</div>
+        <div style="display:inline-block;background:${tBg};color:#fff;font-family:'Cinzel',serif;font-size:0.38rem;padding:1px 6px;border-radius:3px;margin-bottom:5px;">${f.type}</div>
+        <div style="font-family:'Cinzel',serif;font-size:0.6rem;font-weight:700;color:var(--gold-light);line-height:1.2;margin-bottom:4px;">${f.nom}</div>
+        ${resStr ? `<div style="font-size:0.52rem;color:#c8960c;margin-bottom:3px;">${resStr}</div>` : ''}
+        ${f.victoire ? `<div style="font-size:0.52rem;color:${f.victoire<0?'#ff8888':'#f0c040'};margin-bottom:3px;">${f.victoire>0?'⭐':'💀'}${f.victoire}</div>` : ''}
+        ${hasEff ? `<div style="font-size:0.5rem;color:#aaa;">⚡ effet</div>` : ''}
+        <div style="margin-top:8px;padding:3px 8px;background:rgba(200,150,12,0.1);border:1px solid rgba(200,150,12,0.25);border-radius:5px;font-family:'Cinzel',serif;font-size:0.44rem;color:var(--gold-light);letter-spacing:1px;">
+          🔍 Voir le détail
+        </div>
+      </button>`;
+    });
+    body += `</div>`;
+
+    // Zone de détail — initialement vide avec invite
+    body += `<div id="discoveredFaceDetail_${cardNum}" style="
+      background:rgba(0,0,0,0.25);border:1px solid rgba(200,150,12,0.2);
+      border-radius:10px;padding:14px 16px;min-height:80px;transition:opacity 0.15s;">
+      <div style="font-family:'Crimson Text',serif;font-style:italic;color:#555;text-align:center;font-size:0.85rem;padding:16px 0;">
+        ↑ Cliquez sur une face pour afficher son détail
+      </div>
+    </div>`;
+
+  } else {
+    // === CARTE NORMALE ===
+    body += `<div style="text-align:center;margin:4px 0 16px;">
+      <div style="font-size:4rem;line-height:1;filter:drop-shadow(0 2px 8px rgba(200,150,12,0.3));">${getCardEmoji(face1.type, face1.nom)}</div>
+      <div style="margin-top:8px;display:inline-block;background:rgba(200,150,12,0.1);border:1px solid rgba(200,150,12,0.3);border-radius:20px;padding:4px 16px;">
+        <span style="font-family:'Cinzel',serif;font-size:0.6rem;color:var(--gold);letter-spacing:2px;">✦ NOUVELLE DÉCOUVERTE ✦</span>
+      </div>
+    </div>`;
+    body += _renderDiscoveredFaceDetail(cardDef, 1);
+
+    // Chemin d'évolution
+    if (totalFaces > 1) {
+      body += `<div style="border-top:1px solid rgba(200,150,12,0.15);padding-top:14px;margin-top:10px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;">📜 Chemin d'évolution</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;overflow-x:auto;">`;
+      cardDef.faces.forEach((f, idx) => {
+        const tBg = typeColors[f.type] || '#5a5040';
+        const resStr = (f.ressources || []).map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return types.map(t => `${RESOURCE_ICONS[normalizeRes(t)]||t}×${r.quantite}`).join(' ');
+        }).join(' ');
+        const isFirst = idx === 0;
+        const promos = f.promotions ? f.promotions : (f.promotion ? [f.promotion] : []);
+        const promoCost = promos.length > 0 ? formatCost(promos[0].cout || []) : '';
+        body += `<div style="display:flex;align-items:center;gap:4px;">
+          <div style="background:${isFirst ? 'rgba(200,150,12,0.2)' : 'rgba(0,0,0,0.3)'};border:2px solid ${isFirst ? '#f0c040' : 'rgba(255,255,255,0.15)'};border-radius:8px;padding:7px 9px;text-align:center;min-width:68px;max-width:85px;">
+            <div style="font-size:1.3rem;">${getCardEmoji(f.type, f.nom)}</div>
+            <div style="font-family:'Cinzel',serif;font-size:0.46rem;font-weight:700;color:${isFirst ? '#f0c040' : '#a09080'};margin-top:3px;line-height:1.2;">${f.nom}</div>
+            <div style="background:${tBg};color:#fff;font-family:'Cinzel',serif;font-size:0.34rem;padding:1px 4px;border-radius:3px;margin-top:2px;">${f.type}</div>
+            ${resStr ? `<div style="font-size:0.44rem;color:#c8960c;margin-top:2px;">${resStr}</div>` : ''}
+            ${f.victoire ? `<div style="font-size:0.44rem;color:${f.victoire<0?'#ff8888':'#f0c040'};margin-top:1px;">${f.victoire>0?'⭐':'💀'}${f.victoire}</div>` : ''}
+            ${isFirst ? '<div style="font-family:\'Cinzel\',serif;font-size:0.36rem;color:#f0c040;margin-top:2px;">DÉPART</div>' : ''}
+          </div>`;
+        if (idx < cardDef.faces.length - 1) {
+          body += `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;min-width:40px;">
+            ${promoCost ? `<div style="font-size:0.42rem;color:#886633;text-align:center;margin-bottom:2px;">${promoCost}</div>` : ''}
+            <div style="display:flex;align-items:center;">
+              <div style="height:2px;width:12px;background:${promoCost ? '#664422' : 'rgba(255,255,255,0.15)'};"></div>
+              <div style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:7px solid ${promoCost ? '#664422' : 'rgba(255,255,255,0.15)'};"></div>
+            </div>
+          </div>`;
+        }
+        body += `</div>`;
+      });
+      body += `</div></div>`;
+    }
+  }
+
+  $('#discoveredCardBody').html(body);
+  new bootstrap.Modal(document.getElementById('discoveredCardModal')).show();
 }

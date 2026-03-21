@@ -71,7 +71,7 @@
     <div class="resource-item"><span class="resource-icon">🪨</span><span class="resource-name">Pierre</span><span class="resource-count" id="res-pierre">0</span></div>
     <div class="resource-item"><span class="resource-icon">⚙️</span><span class="resource-name">Métal</span><span class="resource-count" id="res-metal">0</span></div>
     <div class="resource-item"><span class="resource-icon">⚔️</span><span class="resource-name">Épée</span><span class="resource-count" id="res-epee">0</span></div>
-    <div class="resource-item"><span class="resource-icon">🛒</span><span class="resource-name">Troc</span><span class="resource-count" id="res-troc">0</span></div>
+    <div class="resource-item"><span class="resource-icon">🏺</span><span class="resource-name">Troc</span><span class="resource-count" id="res-troc">0</span></div>
   </div>
 
   <!-- ZONE PERMANENTE + RETENUES -->
@@ -391,19 +391,79 @@
 
 <!-- CARD DETAIL MODAL -->
 <div class="modal fade" id="cardModal" tabindex="-1">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0">
-        <h5 class="modal-title" id="modalCardName">—</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background: linear-gradient(160deg, #1a1208, #100e06);
+      border: 3px solid var(--border-ornate);
+      border-radius: 14px;
+      box-shadow: 0 0 60px rgba(200,150,12,0.25), 0 20px 60px rgba(0,0,0,0.8);
+      overflow: hidden;">
+
+      <!-- Bandeau décoratif haut -->
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
+
+      <!-- En-tête -->
+      <div style="
+        padding: 16px 20px 10px;
+        border-bottom: 1px solid rgba(200,150,12,0.2);
+        background: linear-gradient(180deg, rgba(200,150,12,0.08), transparent);
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div>
+          <div id="modalCardSubtitle" style="
+            font-family:'Cinzel',serif; font-size:0.55rem;
+            color:var(--stone); letter-spacing:3px; text-transform:uppercase;
+            margin-bottom:4px;"></div>
+          <h5 class="modal-title" id="modalCardName" style="
+            font-family:'Cinzel',serif; font-weight:700; font-size:1.05rem;
+            color:var(--gold-light); letter-spacing:1px; margin:0; line-height:1.2;"></h5>
+          <div id="modalCardTypeBadge" style="margin-top:6px;"></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+          style="opacity:0.5; flex-shrink:0; margin-top:2px;"></button>
       </div>
-      <div class="modal-body" id="modalCardBody"></div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fermer</button>
-        <button type="button" class="btn btn-sm btn-warning" id="modalProduceBtn">⚒ Produire</button>
-        <button type="button" class="btn btn-sm btn-success" id="modalUpgradeBtn">▲ Promouvoir</button>
-        <button type="button" class="btn btn-sm btn-info" id="modalActivateBtn" style="display:none;">🟢 Activer</button>
+
+      <!-- Corps scrollable -->
+      <div class="modal-body" id="modalCardBody" style="
+        padding: 16px 20px;
+        max-height: 65vh;
+        overflow-y: auto;
+        font-family: 'Crimson Text', serif;
+        color: var(--parchment);
+        font-size: 0.95rem;
+        line-height: 1.6;"></div>
+
+      <!-- Pied de page -->
+      <div style="
+        padding: 12px 20px 16px;
+        border-top: 1px solid rgba(200,150,12,0.15);
+        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+        background: rgba(0,0,0,0.2);">
+        <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="
+          font-family:'Cinzel',serif; font-size:0.7rem; letter-spacing:1px;
+          background:rgba(60,40,20,0.6); border:1px solid rgba(139,105,20,0.4);
+          color:var(--stone-light); padding:7px 16px; border-radius:6px;">
+          ✕ Fermer
+        </button>
+        <button type="button" id="modalProduceBtn" style="
+          font-family:'Cinzel',serif; font-size:0.7rem; font-weight:700; letter-spacing:1px;
+          background:linear-gradient(135deg,#4a3010,#a07820); border:2px solid #c8960c;
+          color:#ffe080; padding:7px 16px; border-radius:6px; cursor:pointer;
+          transition:all 0.2s;">⚒ Produire</button>
+        <button type="button" id="modalUpgradeBtn" style="
+          font-family:'Cinzel',serif; font-size:0.7rem; font-weight:700; letter-spacing:1px;
+          background:linear-gradient(135deg,#1a4a1a,#2a7a2a); border:2px solid #44cc44;
+          color:#aaffaa; padding:7px 16px; border-radius:6px; cursor:pointer;
+          transition:all 0.2s;">▲ Promouvoir</button>
+        <button type="button" id="modalActivateBtn" style="
+          display:none;
+          font-family:'Cinzel',serif; font-size:0.7rem; font-weight:700; letter-spacing:1px;
+          background:linear-gradient(135deg,#0a3a50,#1a6a80); border:2px solid #44bbdd;
+          color:#aaeeff; padding:7px 16px; border-radius:6px; cursor:pointer;
+          transition:all 0.2s;">🟢 Activer</button>
       </div>
+
+      <!-- Bandeau décoratif bas -->
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
     </div>
   </div>
 </div>
@@ -844,6 +904,32 @@
         <p style="font-family:'Crimson Text',serif;font-size:0.78rem;color:var(--stone-light);margin:2px 0 0;font-style:italic;">Hôtel de Ville — Fouille de la Défausse</p>
       </div>
       <div class="modal-body" id="recruteTerrainBody" style="padding:14px 20px 10px;max-height:60vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DISCOVERED CARD DETAIL MODAL -->
+<div class="modal fade" id="discoveredCardModal" tabindex="-1">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#1a1208,#100e06);
+      border:3px solid var(--border-ornate);border-radius:14px;
+      box-shadow:0 0 60px rgba(200,150,12,0.25),0 20px 60px rgba(0,0,0,0.8);
+      overflow:hidden;">
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
+      <div style="padding:16px 20px 10px;border-bottom:1px solid rgba(200,150,12,0.2);background:linear-gradient(180deg,rgba(200,150,12,0.08),transparent);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <div id="discoveredCardSubtitle" style="font-family:'Cinzel',serif;font-size:0.55rem;color:var(--stone);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;"></div>
+          <h5 id="discoveredCardName" style="font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;color:var(--gold-light);letter-spacing:1px;margin:0;line-height:1.2;"></h5>
+          <div id="discoveredCardTypeBadge" style="margin-top:6px;"></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="opacity:0.5;flex-shrink:0;margin-top:2px;"></button>
+      </div>
+      <div class="modal-body" id="discoveredCardBody" style="padding:16px 20px;max-height:65vh;overflow-y:auto;font-family:'Crimson Text',serif;color:var(--parchment);font-size:0.95rem;line-height:1.6;"></div>
+      <div style="padding:12px 20px 16px;border-top:1px solid rgba(200,150,12,0.15);display:flex;justify-content:center;background:rgba(0,0,0,0.2);">
+        <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:1px;background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);color:var(--stone-light);padding:7px 16px;border-radius:6px;">✕ Fermer</button>
+      </div>
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
     </div>
   </div>
 </div>

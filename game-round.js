@@ -787,18 +787,21 @@ function _showNewCardsModal(discovered) {
 
     const bgType = typeColors[face.type] || '#3a3a3a';
 
-    return `<div style="
-        flex:1;min-width:170px;max-width:230px;
-        background:linear-gradient(160deg,#1e160a,#120e06);
-        border:2px solid var(--border-ornate);border-radius:10px;
-        padding:18px 14px;text-align:center;
-        box-shadow:0 4px 18px rgba(0,0,0,0.5);">
+    const isChoiceC = isChoiceCard(card.cardDef);
+
+    return `<div
+        onclick="showDiscoveredCardModal(${card.cardDef.numero})"
+        onmouseover="this.style.borderColor='var(--gold)';this.style.boxShadow='0 4px 24px rgba(200,150,12,0.4)'"
+        onmouseout="this.style.borderColor='var(--border-ornate)';this.style.boxShadow='0 4px 18px rgba(0,0,0,0.5)'"
+        style="flex:1;min-width:170px;max-width:230px;background:linear-gradient(160deg,#1e160a,#120e06);border:2px solid var(--border-ornate);border-radius:10px;padding:18px 14px;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,0.5);cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;">
       <div style="font-size:0.58rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${card.cardDef.numero}</div>
+      ${isChoiceC ? `<div style="display:inline-block;background:rgba(180,120,0,0.25);border:1px solid rgba(200,150,12,0.5);border-radius:8px;padding:2px 8px;font-family:'Cinzel',serif;font-size:0.5rem;color:#f0c040;letter-spacing:1px;margin-bottom:6px;">⚖️ Double identité</div>` : ''}
       <div style="font-size:2.6rem;margin-bottom:8px;">${getCardEmoji(face.type, face.nom)}</div>
-      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.85rem;color:var(--gold-light);margin-bottom:6px;">${isChoiceC ? '⚖️ Identité à choisir' : face.nom}</div>
       <div style="display:inline-block;background:${bgType};border-radius:4px;padding:1px 10px;font-size:0.58rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
       <div style="margin-bottom:4px;">${resHTML}</div>
       ${fameHTML}${effectHTML}${promoHTML}${facesHTML}
+      <div style="margin-top:10px;padding:4px 10px;background:rgba(200,150,12,0.1);border:1px solid rgba(200,150,12,0.25);border-radius:6px;font-family:'Cinzel',serif;font-size:0.54rem;color:var(--gold-light);letter-spacing:1px;">🔍 Examiner</div>
     </div>`;
   }).join('');
 
