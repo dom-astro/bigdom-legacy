@@ -221,11 +221,16 @@ function showFaceChoiceModal(playIndex) {
   const ci = gameState.play[playIndex];
   updateUI(); // afficher la carte d'abord
 
-  let html = `<p style="margin-bottom:14px;font-family:'Crimson Text',serif;font-size:1rem;">
-    Cette carte a <strong>deux identités possibles</strong>. Choisissez celle qu'elle sera
-    <em>définitivement</em> pour le reste de la partie.
+  window._faceChoicePending = { playIndex, selectedFace: null };
+
+  const typeColors = { Personne:'#3a5a8a', Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Ennemi:'#6a0a0a' };
+
+  let html = `
+  <p style="margin-bottom:16px;font-family:'Crimson Text',serif;font-size:1rem;text-align:center;">
+    Cette carte a <strong>deux identités possibles</strong>. Cliquez sur une carte pour voir son détail
+    et la sélectionner, puis confirmez.
   </p>
-  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">`;
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;" id="faceChoiceCards">`;
 
   ci.cardDef.faces.forEach(f => {
     const hasRes = f.ressources && f.ressources.length > 0;
@@ -233,44 +238,138 @@ function showFaceChoiceModal(playIndex) {
       const types = Array.isArray(r.type) ? r.type : [r.type];
       return types.map(t => `${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}`).join(' ');
     }).join(' · ') : '';
-
     const hasEffect = !!f.effet;
     const effectLabel = hasEffect
       ? (Array.isArray(f.effet) ? f.effet.map(e => e.type).join('/') : f.effet.type)
       : '';
-
-    const typeColors = { Personne:'#3a5a8a', Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Ennemi:'#6a0a0a' };
     const bgColor = typeColors[f.type] || '#444';
 
     html += `
-      <button onclick="confirmFaceChoice(${playIndex}, ${f.face})" class="face-choice-btn">
+      <button
+        id="faceChoiceBtn_${f.face}"
+        onclick="selectFaceChoice(${playIndex}, ${f.face})"
+        class="face-choice-btn"
+        style="position:relative;">
         <div class="face-choice-emoji">${getCardEmoji(f.type, f.nom)}</div>
         <div class="face-choice-type" style="background:${bgColor};">${f.type}</div>
         <div class="face-choice-name">${f.nom}</div>
         ${resHTML ? `<div class="face-choice-res">⚒ ${resHTML}</div>` : ''}
         ${hasEffect ? `<div class="face-choice-effect">${effectLabel === 'Activable' ? '🟢' : effectLabel === 'Passif' ? '🔵' : '⚡'} Effet ${effectLabel}</div>` : ''}
         ${f.victoire ? `<div class="face-choice-fame">★ ${f.victoire} Gloire</div>` : ''}
+        <div id="faceChoiceCheck_${f.face}" style="
+          display:none;position:absolute;top:8px;right:8px;
+          background:#44cc44;border-radius:50%;width:22px;height:22px;
+          font-size:0.75rem;line-height:22px;text-align:center;color:#fff;
+          box-shadow:0 0 8px rgba(68,204,68,0.6);">✓</div>
       </button>`;
   });
 
-  html += `</div>`;
-  html += `<p style="margin-top:14px;font-size:0.78rem;color:#aa8866;font-style:italic;text-align:center;">
-    ⚠️ Ce choix est permanent et ne pourra pas être modifié.</p>`;
+  html += `</div>
+
+  <!-- Zone de détail inline — se remplit au clic sur une carte -->
+  <div id="faceChoiceDetail" style="
+    margin-top:18px;
+    background:rgba(0,0,0,0.25);
+    border:1px solid rgba(200,150,12,0.2);
+    border-radius:10px;
+    padding:16px 18px;
+    min-height:60px;
+    transition:opacity 0.15s;">
+    <div style="font-family:'Crimson Text',serif;font-style:italic;color:#555;text-align:center;font-size:0.85rem;padding:8px 0;">
+      ↑ Cliquez sur une identité pour afficher son détail
+    </div>
+  </div>
+
+  <div style="margin-top:18px;text-align:center;">
+    <p style="font-size:0.78rem;color:#aa8866;font-style:italic;margin-bottom:14px;">
+      ⚠️ Ce choix est permanent et ne pourra pas être modifié.
+    </p>
+    <button id="btnConfirmFaceChoice" onclick="confirmFaceChoice()" disabled style="
+      font-family:'Cinzel',serif;font-weight:700;font-size:0.82rem;letter-spacing:1.5px;
+      text-transform:uppercase;padding:12px 36px;border-radius:8px;cursor:not-allowed;
+      background:rgba(0,0,0,0.4);border:2px solid #444;color:#666;
+      transition:all 0.25s;">
+      ⚜ Confirmer l'identité
+    </button>
+  </div>`;
 
   $('#faceChoiceCardName').text(`#${ci.cardDef.numero} — Choisissez une identité`);
   $('#faceChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('faceChoiceModal')).show();
 }
 
-function confirmFaceChoice(playIndex, chosenFace) {
+// Sélectionne une face, met à jour le visuel ET affiche le détail inline
+function selectFaceChoice(playIndex, chosenFace) {
+  const ci = gameState.play[playIndex];
+  if (!ci) return;
+  window._faceChoicePending = { playIndex, selectedFace: chosenFace };
+
+  // Mettre à jour le visuel des boutons carte
+  ci.cardDef.faces.forEach(f => {
+    const btn   = document.getElementById(`faceChoiceBtn_${f.face}`);
+    const check = document.getElementById(`faceChoiceCheck_${f.face}`);
+    if (!btn || !check) return;
+    const isSelected = f.face === chosenFace;
+    btn.style.borderColor = isSelected ? '#f0c040' : 'var(--border-ornate)';
+    btn.style.boxShadow   = isSelected ? '0 0 20px rgba(200,150,12,0.55), 0 8px 24px rgba(0,0,0,0.4)' : '';
+    btn.style.transform   = isSelected ? 'translateY(-6px) scale(1.04)' : '';
+    check.style.display   = isSelected ? 'block' : 'none';
+  });
+
+  // Afficher le détail de la face dans la zone inline
+  const detailEl = document.getElementById('faceChoiceDetail');
+  if (detailEl) {
+    const face = ci.cardDef.faces.find(f => f.face === chosenFace);
+    const typeColors = { Personne:'#3a5a8a', Terrain:'#2d5a27', Bâtiment:'#7a6a5a', Ennemi:'#6a0a0a' };
+    const typeBg = typeColors[face.type] || '#5a5040';
+
+    const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(200,150,12,0.2);">
+      <div style="font-size:2.2rem;line-height:1;">${getCardEmoji(face.type, face.nom)}</div>
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:0.48rem;color:#888;letter-spacing:2px;margin-bottom:2px;">FACE ${chosenFace}</div>
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--gold-light);">${face.nom}</div>
+        <span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;font-size:0.46rem;padding:1px 7px;border-radius:4px;margin-top:3px;">${face.type}</span>
+        ${face.victoire !== undefined && face.victoire !== 0
+          ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire}</span>`
+          : ''}
+      </div>
+    </div>`;
+
+    detailEl.style.opacity = '0';
+    setTimeout(() => {
+      detailEl.innerHTML = header + _renderDiscoveredFaceDetail(ci.cardDef, chosenFace);
+      detailEl.style.opacity = '1';
+    }, 120);
+  }
+
+  // Activer le bouton de confirmation
+  const confirmBtn = document.getElementById('btnConfirmFaceChoice');
+  if (confirmBtn) {
+    const fd = ci.cardDef.faces.find(f => f.face === chosenFace);
+    confirmBtn.disabled = false;
+    confirmBtn.style.cursor      = 'pointer';
+    confirmBtn.style.background  = 'linear-gradient(135deg,#7a4a08,#c8960c,#7a4a08)';
+    confirmBtn.style.borderColor = '#f0c040';
+    confirmBtn.style.color       = '#1a0e04';
+    confirmBtn.style.boxShadow   = '0 4px 16px rgba(200,150,12,0.4)';
+    confirmBtn.textContent       = `⚜ Confirmer : ${fd ? fd.nom : '?'}`;
+  }
+}
+
+function confirmFaceChoice() {
+  const pending = window._faceChoicePending;
+  if (!pending || pending.selectedFace === null) return;
+  const { playIndex, selectedFace } = pending;
+  window._faceChoicePending = null;
+
   bootstrap.Modal.getInstance(document.getElementById('faceChoiceModal'))?.hide();
 
   const ci = gameState.play[playIndex];
   if (!ci) return;
 
   // Appliquer le choix de manière définitive
-  ci.currentFace = chosenFace;
-  cardStateMap[ci.cardDef.numero] = chosenFace;
+  ci.currentFace = selectedFace;
+  cardStateMap[ci.cardDef.numero] = selectedFace;
   choiceNeeded.delete(ci.cardDef.numero); // ne plus jamais demander pour cette carte
 
   const fd = getFaceData(ci);

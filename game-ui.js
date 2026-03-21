@@ -654,8 +654,11 @@ function openCardModal(indexOrNum, zone) {
       }
       if (e.ressources) {
         const gainStr = e.ressources.map(x => {
-          const t = Array.isArray(x.type) ? x.type[0] : x.type;
-          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`;
+          const types = Array.isArray(x.type) ? x.type : [x.type];
+          if (types.length > 1) {
+            return types.map(t => `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`).join(' <em style="color:#888;">ou</em> ');
+          }
+          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
         }).join('  ');
         body += `<div style="margin-top:4px;font-size:0.82rem;">
           <span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span>
@@ -1039,8 +1042,11 @@ function _renderDiscoveredFaceDetail(cardDef, faceNum) {
       if (e.cout) html += `<div style="font-size:0.8rem;margin-top:3px;"><span style="background:rgba(0,0,0,0.3);color:#ffcc80;font-weight:600;padding:1px 7px;border-radius:4px;">💰 Coût</span> <span style="color:#e8d5a3;margin-left:4px;">${formatCost(e.cout)}</span></div>`;
       if (e.ressources) {
         const gainStr = (Array.isArray(e.ressources) ? e.ressources : [e.ressources]).map(x => {
-          const t = Array.isArray(x.type) ? x.type[0] : x.type;
-          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`;
+          const types = Array.isArray(x.type) ? x.type : [x.type];
+          if (types.length > 1) {
+            return types.map(t => `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`).join(' <em style="color:#888;">ou</em> ');
+          }
+          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
         }).join('  ');
         html += `<div style="font-size:0.8rem;margin-top:3px;"><span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span> <span style="color:#e8d5a3;margin-left:4px;">${gainStr}</span></div>`;
       }
