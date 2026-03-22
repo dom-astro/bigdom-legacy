@@ -36,12 +36,6 @@ function isBlockedByBandit(playIndex) {
   return gameState.bandits.some(b => b.blockedNum === ci.cardDef.numero);
 }
 
-// Vérifie si une carte (identifiée par son numéro) est bloquée par un bandit
-// Fonctionne quelle que soit la zone (play[], retainedCards[], stayInPlay[])
-function isBlockedByBanditByNum(cardNum) {
-  return gameState.bandits.some(b => b.blockedNum === cardNum);
-}
-
 // Après le tirage (animations terminées), résout les bandits un par un
 // Résout une file de bandits séquentiellement après les animations.
 // Chaque entrée : { banditNum, goldCards[] } pré-calculés au moment du tirage.
@@ -85,11 +79,7 @@ function _resolveBanditQueue(queue) {
 
 // Fallback : utilisé après résolution d'un pendingFaceChoice (sans file pré-calculée)
 function processPendingBandits() {
-  const allCardsInPlay = [
-    ...gameState.play,
-    ...(gameState.retainedCards || []),
-  ];
-  const unregistered = allCardsInPlay.filter(ci =>
+  const unregistered = gameState.play.filter(ci =>
     isBandit(ci) && !gameState.bandits.some(b => b.banditNum === ci.cardDef.numero)
   );
   if (unregistered.length === 0) return;
@@ -99,8 +89,7 @@ function processPendingBandits() {
     // Le malus de gloire est appliqué à la découverte (confirmNewCards)
     const malusGloire = (gameState.banditMalus && gameState.banditMalus[banditNum]) || 0;
     gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: false, malusGloire });
-    const allTargets = [...gameState.play, ...(gameState.retainedCards || [])];
-    const goldCards = allTargets.filter(c =>
+    const goldCards = gameState.play.filter(c =>
       c !== banditCi && !isBandit(c) && producesGold(c) &&
       !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero)
     );
@@ -255,19 +244,35 @@ function confirmBanditDefeat() {
   const banditNum = pendingBanditDefeat;
   pendingBanditDefeat = null;
 
-  // Résoudre l'index à partir du numéro (stable)
+  // Chercher le bandit dans play[] en priorité, puis dans retainedCards[]
   const banditPlayIndex = _playIndexOf(banditNum);
-  if (banditPlayIndex < 0) return;
+  let banditCard = null;
 
-  // Dépenser 1 Épée
+  if (banditPlayIndex >= 0) {
+    // Bandit en zone de jeu — _playRemove nettoie aussi bandits[]
+    banditCard = gameState.play[banditPlayIndex];
+    _playRemove(banditPlayIndex);
+  } else {
+    // Bandit dans la zone de retenue
+    const retIdx = (gameState.retainedCards || []).findIndex(c => c.cardDef.numero === banditNum);
+    if (retIdx < 0) return; // introuvable nulle part
+    banditCard = gameState.retainedCards[retIdx];
+    gameState.retainedCards.splice(retIdx, 1);
+    // Nettoyer manuellement bandits[] et retained[] (normalement géré par _playRemove)
+    updateBanditIndices(banditNum);
+    if (gameState.retained) {
+      const rIdx = gameState.retained.indexOf(banditNum);
+      if (rIdx >= 0) gameState.retained.splice(rIdx, 1);
+    }
+  }
+
+  // Dépenser 1 Épée et créditer les ressources choisies
   gameState.resources['Epée'] = Math.max(0, gameState.resources['Epée'] - 1);
   choices.forEach(r => { gameState.resources[r] = (gameState.resources[r] || 0) + 1; });
 
-  // Retirer le bandit de play[] et de bandits[]
-  const banditCard = gameState.play[banditPlayIndex];
-  _playRemove(banditPlayIndex);
+  // Placer le bandit dans les cartes détruites/sacrifiées
   if (!gameState.destroyed) gameState.destroyed = [];
-  gameState.destroyed.push(banditCard); // vaincu et détruit
+  gameState.destroyed.push(banditCard);
 
   const resParts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
   addLog(`⚔️ <span class="log-card">Bandit</span> vaincu ! -1⚔️ +${resParts}`, true);

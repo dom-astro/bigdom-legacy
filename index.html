@@ -679,7 +679,8 @@
 <script src="game-state.js"></script>    <!-- Variables globales en premier -->
 <script src="game-bandit.js"></script>    <!-- Variables globales en premier -->
 <script src="game-actions.js"></script>  <!-- Dépend de game-state -->
-<script src="game-round.js"></script>    <!-- Dépend de game-actions -->
+<script src="game-heritage.js"></script> <!-- Héritage, Armée, Rétention — dépend de game-actions -->
+<script src="game-round.js"></script>    <!-- Dépend de game-actions + game-heritage -->
 <script src="game-ui.js"></script>       <!-- Dépend de tout -->
 <script src="game-save.js"></script>     <!-- Dépend de game-state + game-ui -->
 <script src="game-init.js"></script>

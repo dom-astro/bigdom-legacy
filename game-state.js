@@ -56,18 +56,18 @@ function formatCostHint(cout) {
 }
 function getCardEmoji(type, nom) {
   return ({
-    'Herbes Sauvages':'🌾','Plaines':'🌿','Terres cultivées':'🚜','Grange':'🏚️',
-    'Montagnes Lointaines':'⛰️','Zone Rocheuse':'🪨','Carrière':'⛏️','Mine Peu Profonde':'🪝',
+    'Herbes Sauvages':'🌾','Plaines':'🌄','Terres cultivées':'🚜','Grange':'🏚️',
+    'Montagnes Lointaines':'⛰️','Zone Rocheuse':'🪨','Carrière':'⛏️','Mine Peu Profonde':'⛏️',
     'Forêt':'🌲','Coupe Rase':'🪓','Cabane de Bûcheron':'🏡','Puit Sacré':'⛲',
     'Quartier Général':'⚑','Hôtel de Ville':'🏛️','Donjon':'🏰','Château':'🏯',
     'Commerçante':'👩‍💼','Bazar':'🏪','Marché':'🛍️','Festival':'🎪',
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
     'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
     'Autel':'⛩️',
-    'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👷',
+    'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👨‍🔧',
     'Colline':'🌄','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯',
-    'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍎',
+    'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍍',
     'Lac':'🏞️','Bateau de Pêche':'⛵','Phare':'🗼',
   }[nom]) || TYPE_ICONS[type] || '📄';
 }
