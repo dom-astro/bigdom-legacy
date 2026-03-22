@@ -1286,7 +1286,10 @@ function closeConversionReveal() {
 function showConversionModal(missionairePlayIndex, act, bandits) {
   window._pendingConversion = { missionairePlayIndex, act };
 
-  let html = `<p style="margin-bottom:12px;">
+  // Titre spécifique au Missionnaire
+  $('#sacrificeChoiceTitle').html(`✝️ Missionnaire — Choisir un Bandit à convertir`);
+
+  let html = `<p style="margin-bottom:12px;font-family:'Crimson Text',serif;font-size:0.9rem;color:#f5e6c8;">
     Choisissez un <strong>Bandit</strong> à convertir :<br>
     <small style="color:#aaa;">Il sera promu en face 2, puis défaussé avec le Missionnaire.</small>
   </p><div style="display:flex;flex-direction:column;gap:8px;">`;
@@ -1305,9 +1308,25 @@ function showConversionModal(missionairePlayIndex, act, bandits) {
     </button>`;
   });
 
-  html += `</div>`;
+  html += `</div>
+  <button onclick="cancelConversionModal()" class="btn btn-sm"
+    style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
+    border:1px solid #7a5a20;color:#c8a050;font-family:'Cinzel',serif;font-size:0.75rem;
+    letter-spacing:1px;padding:6px;">
+    ✕ Annuler
+  </button>`;
+
   $('#sacrificeChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function cancelConversionModal() {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+  const { missionairePlayIndex } = window._pendingConversion || {};
+  window._pendingConversion = null;
+  // Remettre le Missionnaire en jeu si l'annulation est possible
+  // (la carte a été temporairement retirée de play[] par stageActivateEffect)
+  _restoreRetainedIfNeeded(missionairePlayIndex);
 }
 
 function confirmConversion(banditPlayIndex) {
