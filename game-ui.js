@@ -79,6 +79,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
+        ${(typeof getStickerBonusForCard === 'function' && getStickerBonusForCard(cardInstance.cardDef.numero)) ? `<div class="card-resources">${getStickerBonusForCard(cardInstance.cardDef.numero)}</div>` : ''}
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:var(--gold);border-radius:0 0 0 8px;"></div></div>
@@ -166,7 +167,8 @@ function buildPermanentCardHTML(cardInstance) {
       const projected = getProjectedResources();
       const epees     = projected['Epée'] || 0;
       const nextCase  = cases[marked];
-      const canMark   = nextCase && epees >= nextCase.cout_epee;
+      const dejaCoche = !!gameState.armeeCaseCeTour;
+      const canMark   = !dejaCoche && nextCase && epees >= (nextCase.cout_epee || 0);
       const allDone   = marked >= total;
 
       return `
@@ -183,16 +185,131 @@ function buildPermanentCardHTML(cardInstance) {
             ${gloire > 0 ? `<div style="font-size:0.48rem;color:#f0c040;text-align:center;">★ ${gloire}</div>` : ''}
             ${allDone
               ? '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
-              : canMark
-                ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_epee}⚔️ dispo</div>`
-                : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_epee || '?'}⚔️ requis</div>`
+              : dejaCoche
+                ? '<div style="font-size:0.35rem;color:#cc8844;text-align:center;margin-top:1px;">⏳ Déjà coché ce tour</div>'
+                : canMark
+                  ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_epee}⚔️ dispo</div>`
+                  : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_epee || '?'}⚔️ requis</div>`
             }
             <div style="text-align:center;font-size:0.35rem;color:#cc4444;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>
           </div>
         </div>`;
     }
 
-    // Rendu générique Héritage
+    // Rendu spécial carte 26 — Trésor
+    if (rawCard.numero === 26) {
+      const prog      = _getTresorProgress();
+      const faceData  = _getTresorData(prog.face);
+      const cases     = faceData?.cases || [];
+      const total     = cases.length;
+      const marked    = prog.casesMarquees;
+      const bonus     = faceData?.gloire_bonus || 0;
+      const lastCase  = marked > 0 ? cases[marked - 1] : null;
+      const gloire    = bonus + (lastCase && !lastCase.promotion ? lastCase.gloire : 0);
+      const pct       = total > 0 ? Math.round((marked / total) * 100) : 0;
+      const nomAffiche = prog.face === 2 ? 'Trésor Étendu' : 'Trésor';
+      const projected  = getProjectedResources();
+      const or         = projected['Or'] || 0;
+      const nextCase   = cases[marked];
+      const dejaCoche  = !!gameState.tresorCaseCeTour;
+      const canMark    = !dejaCoche && nextCase && or >= (nextCase.cout_or || 0);
+      const allDone    = marked >= total;
+
+      return `
+        <div class="card-wrapper" style="cursor:pointer;" onclick="openTresorModal()" title="Cliquer pour investir de l'Or">
+          <div class="card-front card-permanent" style="border-color:#c8960c;background:linear-gradient(160deg,#1a1408,#0e0a04);">
+            <div class="card-serial" style="font-size:0.45rem;color:#c8960c;">#26</div>
+            <div class="card-name" style="font-size:0.5rem;color:#f0c040;">${nomAffiche}</div>
+            <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Progression</span>
+            <div style="font-size:1.4rem;margin:4px 0;">🪙</div>
+            <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#c8960c,#f0c040);border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:0.38rem;color:#c8960c;text-align:center;margin:1px 0;">${marked}/${total} cases</div>
+            ${gloire > 0 ? `<div style="font-size:0.48rem;color:#f0c040;text-align:center;">★ ${gloire}</div>` : ''}
+            ${allDone
+              ? '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
+              : dejaCoche
+                ? '<div style="font-size:0.35rem;color:#cc8844;text-align:center;margin-top:1px;">⏳ Déjà coché ce tour</div>'
+                : canMark
+                  ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_or}🪙 dispo</div>`
+                  : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_or || '?'}🪙 requis</div>`
+            }
+            <div style="text-align:center;font-size:0.35rem;color:#c8960c;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>
+          </div>
+        </div>`;
+    }
+
+    // Rendu spécial carte 27 — Export / Mass Export
+    if (rawCard.numero === 27) {
+      const prog       = _getExportProgress();
+      const allSeuils  = _getAllExportSeuils();
+      const maxTotal   = allSeuils[allSeuils.length - 1]?.cout_total || 300;
+      const total      = prog.totalDepense;
+      const pct        = Math.min(100, Math.round((total / maxTotal) * 100));
+      const isMass     = prog.face === 2;
+      const nomAffiche = isMass ? 'Mass Export' : 'Export';
+      const projected  = getProjectedResources();
+      const marc       = projected['Troc'] || 0;
+      const disponibles = _getExportSeuilsDisponibles();
+      const nextSeuil  = allSeuils.find(s => total < s.cout_total && !prog.seuilsUtilises.includes(s.index));
+
+      return `
+        <div class="card-wrapper" style="cursor:pointer;" onclick="openExportModal()" title="Cliquer pour investir des Marchandises">
+          <div class="card-front card-permanent" style="border-color:#8844cc;background:linear-gradient(160deg,#120a1a,#0a0610);">
+            <div class="card-serial" style="font-size:0.45rem;color:#aa66ff;">#27</div>
+            <div class="card-name" style="font-size:0.5rem;color:#cc88ff;">${nomAffiche}</div>
+            <span class="card-type-badge" style="font-size:0.38rem;background:#5a2a8a;">Progression</span>
+            <div style="font-size:1.4rem;margin:4px 0;">🛒</div>
+            <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:0.38rem;color:#aa66ff;text-align:center;margin:1px 0;">${total}/${maxTotal} 🏺</div>
+            ${disponibles.length > 0
+              ? `<div style="font-size:0.35rem;color:#aaffaa;text-align:center;margin-top:1px;">🎉 ${disponibles.length} effet${disponibles.length > 1 ? 's' : ''} dispo</div>`
+              : marc > 0
+                ? `<div style="font-size:0.35rem;color:#cc88ff;text-align:center;margin-top:1px;">▶ ${marc} 🏺 à investir</div>`
+                : nextSeuil
+                  ? `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 Seuil : ${nextSeuil.cout_total} 🏺</div>`
+                  : '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
+            }
+            <div style="text-align:center;font-size:0.35rem;color:#8844cc;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>
+          </div>
+        </div>`;
+    }
+
+
+    // Rendu spécial carte 24 — Terre fertile (Parchemin, effets permanents sticker)
+    if (rawCard.numero === 24) {
+      const carte24Used = gameState.carte24EffetsUtilises || [];
+      const effets      = rawCard.effet || [];
+      const totalEffets = effets.length;
+      const utilises    = carte24Used.length;
+      const color24     = '#c8960c';
+      const effetLines  = effets.map((e, i) => {
+        const done = carte24Used.includes(i);
+        return `<div style="font-size:0.34rem;color:${done ? '#8acc44' : '#f0c040'};text-align:center;margin-top:1px;${done ? 'text-decoration:line-through;opacity:0.7;' : ''}">
+          ${done ? '\u2713' : '\u25b6'} ${e.cible || e.type}
+        </div>`;
+      }).join('');
+
+      return `
+        <div class="card-wrapper" style="cursor:pointer;" onclick="ouvrirCarte24Modal()" title="Cliquer pour appliquer les effets permanents">
+          <div class="card-front card-permanent" style="border-color:${color24};background:linear-gradient(160deg,#1a1408,#0e0a04);">
+            <div class="card-serial" style="font-size:0.45rem;color:${color24};">#24</div>
+            <div class="card-name" style="font-size:0.5rem;color:#f0c040;">Terre fertile</div>
+            <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Parchemin</span>
+            <div style="font-size:1.4rem;margin:4px 0;">\uD83C\uDF3E</div>
+            <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+              <div style="height:100%;width:${Math.round((utilises/Math.max(totalEffets,1))*100)}%;background:linear-gradient(90deg,#c8960c,#f0c040);border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:0.38rem;color:${color24};text-align:center;margin:1px 0;">${utilises}/${totalEffets} appliqu\xe9s</div>
+            ${effetLines}
+            <div style="text-align:center;font-size:0.35rem;color:${color24};font-family:'Cinzel',serif;margin-top:2px;">\u26dc H\xc9RITAGE</div>
+          </div>
+        </div>`;
+    }
+
     const typeIcons = { Parchemin:'📜', Progression:'📈', Règle:'⚖️' };
     const typeColors = { Parchemin:'#7a5a0a', Progression:'#3a5a8a', Règle:'#5a3a7a' };
     const emoji = typeIcons[rawCard.type] || '📜';

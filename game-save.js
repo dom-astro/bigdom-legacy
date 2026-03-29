@@ -52,6 +52,14 @@ function _buildSaveObject() {
       _heritageTriggered: gameState._heritageTriggered || false,
       armeeProgress: gameState.armeeProgress || { face:1, casesMarquees:0 },
       armeeGloirePrev: gameState.armeeGloirePrev || 0,
+      armeeCaseCeTour: gameState.armeeCaseCeTour || false,
+      tresorProgress: gameState.tresorProgress || { face:1, casesMarquees:0 },
+      tresorGloirePrev: gameState.tresorGloirePrev || 0,
+      tresorCaseCeTour: gameState.tresorCaseCeTour || false,
+      exportProgress: gameState.exportProgress || { face:1, totalDepense:0, seuilsUtilises:[] },
+      stickerApplications:    gameState.stickerApplications    || [],
+      carte24EffetsUtilises:  gameState.carte24EffetsUtilises  || [],
+      stickerStayInPlay:      gameState.stickerStayInPlay      || [],
       retained: gameState.retained || [],
       retainedCards: (gameState.retainedCards || []).map(ci => ({ n: ci.cardDef.numero, f: ci.currentFace || 1 })),
       nextDiscoverIndex: gameState.nextDiscoverIndex,
@@ -111,6 +119,7 @@ function doRestartGame() {
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false, kingdomName: '',
+    exportProgress: { face:1, totalDepense:0, seuilsUtilises:[] },
   };
   $('#gameLog').empty();
   updateUI();
@@ -182,6 +191,22 @@ function _applyImport(raw) {
   const resolve = (list) => (list || []).map(_resolveCard).filter(Boolean);
   const play = resolve(save.play);
 
+  // Les cartes héritage (24-27) ont un cardDef synthétique (_level1) absent de ALL_CARDS.
+  // On les reconstruit via _buildLevel1CardInstance au lieu de _resolveCard.
+  const HERITAGE_NUMS = new Set([24, 25, 26, 27]);
+  const _resolvePermanent = (ref) => {
+    if (HERITAGE_NUMS.has(ref.n)) {
+      const cardData = (typeof LEGACY_CARDS !== 'undefined')
+        ? LEGACY_CARDS.find(c => c.numero === ref.n)
+        : null;
+      if (cardData) return _buildLevel1CardInstance(cardData);
+      console.warn(`Carte héritage #${ref.n} introuvable dans LEGACY_CARDS`);
+      return null;
+    }
+    return _resolveCard(ref);
+  };
+  const permanent = (save.permanent || []).map(_resolvePermanent).filter(Boolean);
+
   const staging = (save.staging || []).map(e => {
     const ci = _resolveCard({ n: e.n, f: e.f });
     if (!ci) return null;
@@ -199,7 +224,7 @@ function _applyImport(raw) {
   gameState = {
     stayInPlay: resolve(save.stayInPlay || []),
     deck: resolve(save.deck), play, staging,
-    discard: resolve(save.discard), permanent: resolve(save.permanent),
+    discard: resolve(save.discard), permanent,
     destroyed: resolve(save.destroyed || []),
     box: _restoreBox(save),
     nextDiscoverIndex: save.nextDiscoverIndex || 0,
@@ -212,6 +237,14 @@ function _applyImport(raw) {
     _heritageTriggered: save._heritageTriggered || false,
     armeeProgress:   save.armeeProgress   || { face:1, casesMarquees:0 },
     armeeGloirePrev: save.armeeGloirePrev || 0,
+    armeeCaseCeTour:  save.armeeCaseCeTour  || false,
+    tresorProgress:   save.tresorProgress   || { face:1, casesMarquees:0 },
+    tresorGloirePrev: save.tresorGloirePrev || 0,
+    tresorCaseCeTour: save.tresorCaseCeTour || false,
+    exportProgress:   save.exportProgress   || { face:1, totalDepense:0, seuilsUtilises:[] },
+    stickerApplications:   save.stickerApplications   || [],
+    carte24EffetsUtilises: save.carte24EffetsUtilises  || [],
+    stickerStayInPlay:     save.stickerStayInPlay      || [],
     retained:        save.retained        || [],
     retainedCards:   (save.retainedCards  || []).map(s => _resolveCard(s)).filter(Boolean),
     kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',

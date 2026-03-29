@@ -351,6 +351,212 @@
   </div>
 </div>
 
+<!-- TRÉSOR MODAL (carte 26 — investissement d'Or) -->
+<div class="modal fade" id="tresorModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#1a1408,#0e0a04);
+      border:3px solid #c8960c;
+      box-shadow:0 0 30px rgba(200,150,12,0.25);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:20px 24px 8px;
+        border-bottom:1px solid rgba(200,150,12,0.2);">
+        <div style="font-size:2.4rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(200,150,12,0.5));">🪙</div>
+        <h5 id="tresorModalTitle" style="
+          font-family:'Cinzel',serif;color:#f0c040;
+          font-size:1rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Trésor
+        </h5>
+      </div>
+      <div class="modal-body" id="tresorModalBody" style="padding:16px 22px 10px;color:#f5e6c8;max-height:70vh;overflow-y:auto;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:8px 22px 18px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('tresorModal')).hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #444;color:#888;
+          padding:8px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL (carte 27 — investissement de Marchandises) -->
+<div class="modal fade" id="exportModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#120a1a,#0a0610);
+      border:3px solid #8844cc;
+      box-shadow:0 0 30px rgba(136,68,204,0.3);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:20px 24px 8px;
+        border-bottom:1px solid rgba(136,68,204,0.25);">
+        <div style="font-size:2.4rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(136,68,204,0.6));">🛒</div>
+        <h5 id="exportModalTitle" style="
+          font-family:'Cinzel',serif;color:#cc88ff;
+          font-size:1rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Export
+        </h5>
+      </div>
+      <div class="modal-body" id="exportModalBody" style="padding:16px 22px 10px;color:#f5e6c8;max-height:70vh;overflow-y:auto;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:8px 22px 18px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #555;color:#888;
+          padding:8px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STICKER MODAL (pose d'autocollant sur une carte du royaume) -->
+<div class="modal fade" id="stickerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#0a1020,#060c18);
+      border:3px solid #4a7aaa;
+      box-shadow:0 0 30px rgba(74,122,170,0.35);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:18px 24px 8px;
+        border-bottom:1px solid rgba(74,122,170,0.25);">
+        <div style="font-size:2rem;margin-bottom:4px;filter:drop-shadow(0 0 8px rgba(74,122,170,0.6));">🏷</div>
+        <h5 style="font-family:'Cinzel',serif;color:#88bbff;font-size:0.95rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Autocollant Héritage
+        </h5>
+        <p style="font-family:'Crimson Text',serif;font-size:0.78rem;color:#6688aa;margin:4px 0 0;font-style:italic;">
+          Sélectionnez la carte cible dans votre royaume
+        </p>
+      </div>
+      <div class="modal-body" id="stickerModalBody" style="padding:14px 20px 10px;color:#f5e6c8;max-height:72vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CARTE 24 MODAL (Terre fertile — effets permanents) -->
+<div class="modal fade" id="carte24Modal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#1a1208,#0e0a04);
+      border:3px solid #c8960c;
+      box-shadow:0 0 30px rgba(200,150,12,0.25);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:18px 24px 8px;
+        border-bottom:1px solid rgba(200,150,12,0.2);">
+        <div style="font-size:2rem;margin-bottom:4px;filter:drop-shadow(0 0 8px rgba(200,150,12,0.5));">🌾</div>
+        <h5 style="font-family:'Cinzel',serif;color:#f0c040;font-size:0.95rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Terre Fertile
+        </h5>
+        <p style="font-family:'Crimson Text',serif;font-size:0.78rem;color:#9a8050;margin:4px 0 0;font-style:italic;">
+          Carte #24 — Effets Héritage permanents
+        </p>
+      </div>
+      <div class="modal-body" id="carte24ModalBody" style="padding:14px 20px 10px;color:#f5e6c8;max-height:72vh;overflow-y:auto;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:8px 22px 16px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('carte24Modal'))?.hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #555;color:#888;
+          padding:8px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HERITAGE DETAIL MODAL (détail des cartes 24, 26, 27) -->
+<div class="modal fade" id="heritageDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#1a1208,#100e06);
+      border:3px solid var(--border-ornate);
+      border-radius:14px;
+      box-shadow:0 0 40px rgba(200,150,12,0.2),0 20px 60px rgba(0,0,0,0.8);
+      overflow:hidden;
+      transition:border-color 0.3s;">
+
+      <!-- Bandeau décoratif haut -->
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
+
+      <!-- En-tête -->
+      <div style="
+        padding:16px 20px 10px;
+        border-bottom:1px solid rgba(200,150,12,0.2);
+        background:linear-gradient(180deg,rgba(200,150,12,0.08),transparent);
+        display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div id="heritageDetailIcon" style="
+            font-size:2.6rem;line-height:1;
+            filter:drop-shadow(0 0 12px rgba(200,150,12,0.5));">📜</div>
+          <div>
+            <div id="heritageDetailSubtitle" style="
+              font-family:'Cinzel',serif;font-size:0.55rem;
+              color:var(--stone);letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">
+              — HÉRITAGE
+            </div>
+            <h5 id="heritageDetailTitle" style="
+              font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;
+              color:var(--gold-light);letter-spacing:1px;margin:0;line-height:1.2;">
+              —
+            </h5>
+            <div style="
+              display:inline-block;margin-top:5px;
+              background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.35);
+              border-radius:10px;padding:2px 10px;
+              font-family:'Cinzel',serif;font-size:0.52rem;color:var(--gold);letter-spacing:1px;">
+              ⚜ Permanente — reste en jeu indéfiniment
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+          style="opacity:0.5;flex-shrink:0;margin-top:2px;"></button>
+      </div>
+
+      <!-- Corps scrollable -->
+      <div class="modal-body" id="heritageDetailBody" style="
+        padding:16px 20px;
+        max-height:60vh;
+        overflow-y:auto;
+        font-family:'Crimson Text',serif;
+        color:var(--parchment);
+        font-size:0.95rem;
+        line-height:1.6;"></div>
+
+      <!-- Pied de page -->
+      <div style="
+        padding:12px 20px 16px;
+        border-top:1px solid rgba(200,150,12,0.15);
+        display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+        background:rgba(0,0,0,0.2);">
+        <button type="button" data-bs-dismiss="modal" style="
+          font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:1px;
+          background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);
+          color:var(--stone-light);padding:8px 16px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+        <button type="button" id="heritageDetailBtnAction" style="
+          display:none;
+          font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;letter-spacing:1px;
+          background:linear-gradient(135deg,#7a4a08,#c8960c,#7a4a08);
+          border:2px solid #f0c040;color:#1a0e04;
+          padding:8px 22px;border-radius:6px;cursor:pointer;
+          box-shadow:0 4px 14px rgba(200,150,12,0.35);
+          transition:all 0.2s;">
+          —
+        </button>
+      </div>
+
+      <!-- Bandeau décoratif bas -->
+      <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
+    </div>
+  </div>
+</div>
+
 <!-- RESTART CONFIRM MODAL -->
 <div class="modal fade" id="restartModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-sm modal-dialog-centered">

@@ -101,6 +101,8 @@ function endTurn() {
   gameState.play = [];
 
   gameState.bandits = [];
+  gameState.armeeCaseCeTour  = false;
+  gameState.tresorCaseCeTour = false;
   clearResources();
   gameState.turnStarted = false;
   gameState.turn++;
@@ -126,6 +128,8 @@ function newRound() {
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
   gameState.staging = [];
   gameState.bandits = [];
+  gameState.armeeCaseCeTour  = false;
+  gameState.tresorCaseCeTour = false;
 
   // ── Rétention (cartes 82/83) ─────────────────────────────────────────────
   const retainedCards = gameState.retainedCards || [];
