@@ -17,12 +17,12 @@ const STICKERS = [
     {
         "id": 4,
         "ressource": "Métal",
-        "quantite": 15
+        "quantite": 5
     },
     {
         "id": 5,
         "ressource": "Epée",
-        "quantite": 15
+        "quantite": 5
     },
     {
         "id": 6,

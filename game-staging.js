@@ -51,6 +51,14 @@ function stageProduceCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
+  // Bonus des autocollants Héritage (carte #24 / Export)
+  if (typeof getStickerResourceBonusForCard === 'function') {
+    const stickerBonus = getStickerResourceBonusForCard(cardInstance.cardDef.numero);
+    Object.entries(stickerBonus).forEach(([k, v]) => {
+      if (gameState.resources[k] !== undefined)
+        resourcesGained[k] = (resourcesGained[k]||0) + v;
+    });
+  }
 
   _playRemove(playIndex);
   gameState.staging.push({ cardInstance, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null });
@@ -224,6 +232,13 @@ function stageProduceStayCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
+  if (typeof getStickerResourceBonusForCard === 'function') {
+    const stickerBonus = getStickerResourceBonusForCard(ci.cardDef.numero);
+    Object.entries(stickerBonus).forEach(([k, v]) => {
+      if (gameState.resources[k] !== undefined)
+        resourcesGained[k] = (resourcesGained[k]||0) + v;
+    });
+  }
 
   // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
   gameState.stayInPlay = gameState.stayInPlay.filter(c => c.cardDef.numero !== cardNum);
@@ -317,6 +332,13 @@ function stageProduceRetainedCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
+  if (typeof getStickerResourceBonusForCard === 'function') {
+    const stickerBonus = getStickerResourceBonusForCard(ci.cardDef.numero);
+    Object.entries(stickerBonus).forEach(([k, v]) => {
+      if (gameState.resources[k] !== undefined)
+        resourcesGained[k] = (resourcesGained[k]||0) + v;
+    });
+  }
 
   gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
   gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromRetainedCards: true });
