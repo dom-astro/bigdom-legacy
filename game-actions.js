@@ -774,10 +774,25 @@ function showTerrainChoiceModal(playIndex, act, terrains) {
     </button>`;
   });
 
+  html += `<button onclick="cancelTerrainChoiceModal()" class="btn btn-sm"
+    style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
+    border:1px solid #7a5a20;color:#c8a050;font-family:'Cinzel',serif;font-size:0.75rem;
+    letter-spacing:1px;padding:6px;">
+    ✕ Fermer
+  </button>`;
+
   window._pendingTerrainPlayIndex = playIndex;
   window._pendingTerrainAct = act;
   $('#terrainChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('terrainChoiceModal')).show();
+}
+
+function cancelTerrainChoiceModal() {
+  bootstrap.Modal.getInstance(document.getElementById('terrainChoiceModal'))?.hide();
+  const playIndex = window._pendingTerrainPlayIndex;
+  window._pendingTerrainPlayIndex = null;
+  window._pendingTerrainAct = null;
+  _restoreRetainedIfNeeded(playIndex);
 }
 
 function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
