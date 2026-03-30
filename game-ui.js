@@ -10,13 +10,15 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const totalFaces = cardInstance.cardDef.faces.length;
   const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
 
-  const resHTML = hasResources ? face.ressources.map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => {
-      const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
-      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
-    }).join('');
-  }).join('') : '';
+  const resHTML = (typeof buildResourcePipsHTML === 'function')
+    ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, blocked)
+    : (hasResources ? face.ressources.map(r => {
+        const types = Array.isArray(r.type) ? r.type : [r.type];
+        return types.map(t => {
+          const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
+          return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+        }).join('');
+      }).join('') : '');
 
   const effectIcon = face.effet
     ? (Array.isArray(face.effet) ? '⚡'
@@ -79,7 +81,6 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
-        ${(typeof getStickerBonusForCard === 'function' && getStickerBonusForCard(cardInstance.cardDef.numero)) ? `<div class="card-resources">${getStickerBonusForCard(cardInstance.cardDef.numero)}</div>` : ''}
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:var(--gold);border-radius:0 0 0 8px;"></div></div>
@@ -383,10 +384,12 @@ function buildHeldCardHTML(cardInstance, source) {
   const badgeLabel     = isRetained ? '🕊️ RETENUE' : '🏚️ RESTE EN JEU';
   const badgeColor     = isRetained ? '#e8b840' : '#d0a030';
 
-  const resHTML = (face.ressources||[]).map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
-  }).join('');
+  const resHTML = (typeof buildResourcePipsHTML === 'function')
+    ? buildResourcePipsHTML(cardNum, face, false, '0.48rem')
+    : (face.ressources||[]).map(r => {
+        const types = Array.isArray(r.type) ? r.type : [r.type];
+        return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+      }).join('');
 
   const projected = getProjectedResources();
   const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
@@ -679,10 +682,27 @@ function openCardModal(indexOrNum, zone) {
 
   // — Production
   if (face.ressources && face.ressources.length) {
+    const stickerBonus = (typeof getStickerResourceBonusForCard === 'function')
+      ? getStickerResourceBonusForCard(cardInstance.cardDef.numero)
+      : {};
+    const HERITAGE_BLUE_MODAL = { bg:'rgba(42,90,154,0.35)', border:'#4a8abf', text:'#aaddff' };
+
     const resPips = face.ressources.map(r => {
       const types = Array.isArray(r.type) ? r.type : [r.type];
       return types.map(t => {
-        const icon = RESOURCE_ICONS[normalizeRes(t)] || t;
+        const icon   = RESOURCE_ICONS[normalizeRes(t)] || t;
+        const resKey = normalizeRes(t);
+        const bonus  = stickerBonus[resKey] || 0;
+        const total  = r.quantite + bonus;
+        if (bonus > 0) {
+          return `<span style="display:inline-flex;align-items:center;gap:4px;
+            background:${HERITAGE_BLUE_MODAL.bg};border:1px solid ${HERITAGE_BLUE_MODAL.border};
+            border-radius:12px;padding:3px 10px;font-size:0.88rem;"
+            title="🏷 Autocollant Héritage (+${bonus})">
+            ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;color:${HERITAGE_BLUE_MODAL.text};">×${total}</strong>
+            <span style="font-size:0.65rem;opacity:0.7;color:${HERITAGE_BLUE_MODAL.text};">${t}</span>
+          </span>`;
+        }
         return `<span style="display:inline-flex;align-items:center;gap:4px;
           background:rgba(200,150,12,0.12);border:1px solid rgba(200,150,12,0.3);
           border-radius:12px;padding:3px 10px;font-size:0.88rem;">
