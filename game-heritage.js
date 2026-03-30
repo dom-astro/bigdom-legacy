@@ -985,18 +985,10 @@ function _getStickerById(id) {
   return STICKERS.find(s => s.id === id) || null;
 }
 
-// Renvoie le stock restant d'un sticker (quantite initiale - usages déjà faits)
-function _getStickerStock(stickerId) {
-  const s = _getStickerById(stickerId);
-  if (!s) return 0;
-  const stockInitial = s.quantite || 0;
-  const stockUtilise = (gameState.stickerApplications || []).filter(a => a.stickerId === stickerId).length;
-  return Math.max(0, stockInitial - stockUtilise);
-}
-
 function _stickerLabel(s) {
   if (!s) return '?';
-  // quantite = stock de stickers disponibles, la valeur produite est toujours +1
+  // s.quantite = stock d'autocollants disponibles (≠ bonus accordé)
+  // Chaque application d'un autocollant de ressource apporte toujours +1 de cette ressource
   if (s.ressource) return `${RESOURCE_ICONS[normalizeRes(s.ressource)] || s.ressource} +1 ${s.ressource}`;
   if (s.effe === 'Reste en jeu') return '\u267e\ufe0f Reste en jeu';
   if (s.type === 'Gloire') return `\u2b50 +${s.victoire} Gloire`;
@@ -1004,33 +996,82 @@ function _stickerLabel(s) {
 }
 
 // Renvoie le HTML des stickers apposés sur une carte (pour buildCardFrontHTML)
+// NOTE : Cette fonction retourne désormais une chaîne vide — les stickers sont
+// fusionnés visuellement dans les chips de ressource via buildResourcePipsHTML().
 function getStickerBonusForCard(cardNum) {
-  const apps = _getStickerApplications().filter(a => a.cardNum === cardNum);
-  if (!apps.length) return '';
-  return apps.map(a => {
-    const s = _getStickerById(a.stickerId);
-    if (!s) return '';
-    // quantite dans STICKERS = stock, chaque autocollant posé vaut +1
-    if (s.ressource) return `<span class="resource-pip sticker-pip" title="Autocollant Heritage">&#x1F3F7; ${RESOURCE_ICONS[normalizeRes(s.ressource)] || s.ressource} \xd71</span>`;
-    if (s.effe === 'Reste en jeu') return `<span class="resource-pip sticker-pip" title="Autocollant Heritage \u2014 Reste en jeu">&#x1F3F7; \u267e\ufe0f</span>`;
-    if (s.type === 'Gloire') return `<span class="resource-pip sticker-pip" title="Autocollant Heritage \u2014 Gloire">&#x1F3F7; \u2b50+${s.victoire}</span>`;
-    return '';
-  }).filter(Boolean).join('');
+  return '';
 }
 
 // Renvoie les bonus de ressources dus aux stickers sur une carte (pour getProjectedResources)
+// Seuls les stickers posés sur la face actuellement active sont pris en compte.
 function getStickerResourceBonusForCard(cardNum) {
-  const apps = _getStickerApplications().filter(a => a.cardNum === cardNum);
+  // Déterminer la face active de la carte
+  const allCards = [
+    ...gameState.deck, ...gameState.play, ...gameState.discard,
+    ...(gameState.stayInPlay || []), ...(gameState.retainedCards || []),
+    ...gameState.permanent,
+  ];
+  const ci = allCards.find(c => c.cardDef.numero === cardNum);
+  const currentFace = ci ? ci.currentFace : (cardStateMap[cardNum] || 1);
+
+  const apps = _getStickerApplications().filter(a =>
+    a.cardNum === cardNum &&
+    // Compatibilité : si face non stockée (ancien save), on considère face 1
+    (a.face === undefined ? true : a.face === currentFace)
+  );
   const bonus = {};
   apps.forEach(a => {
     const s = _getStickerById(a.stickerId);
-    // quantite dans STICKERS = stock disponible, la valeur produite par chaque autocollant posé est +1
     if (s && s.ressource) {
       const key = normalizeRes(s.ressource);
       bonus[key] = (bonus[key] || 0) + 1;
     }
   });
   return bonus;
+}
+
+// ============================================================
+//  RESOURCE PIPS — rendu unifié chips de ressource + stickers
+// ============================================================
+
+/**
+ * Construit le HTML des chips de ressource pour une carte,
+ * en fusionnant les bonus sticker directement dans le chip concerné.
+ * Les chips modifiés par un sticker prennent la couleur bleu héritage.
+ *
+ * @param {number}  cardNum  - numéro de la carte
+ * @param {object}  face     - données de face (getFaceData)
+ * @param {boolean} blocked  - la carte est-elle bloquée par un bandit ?
+ * @param {string}  fontSize - taille de police optionnelle (ex: '0.48rem')
+ */
+function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
+  const ressources = face.ressources || [];
+  if (!ressources.length) return '';
+
+  const stickerBonus = getStickerResourceBonusForCard(cardNum);
+  const fStyle = fontSize ? `font-size:${fontSize};` : '';
+
+  // Couleur bleu héritage unique pour tout chip modifié par un sticker
+  const HERITAGE_BLUE = { bg: 'rgba(42,90,154,0.45)', border: '#4a8abf', text: '#aaddff' };
+
+  return ressources.map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => {
+      const resKey = normalizeRes(t);
+      const isGoldBlocked = blocked && resKey === 'Or';
+      const bonus = stickerBonus[resKey] || 0;
+      const totalQte = r.quantite + bonus;
+
+      if (bonus > 0) {
+        return `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
+          ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
+          `${RESOURCE_ICONS[resKey]||t} ×${totalQte}` +
+          `</span>`;
+      }
+
+      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}" style="${fStyle}">${RESOURCE_ICONS[resKey]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+    }).join('');
+  }).join('');
 }
 
 // --- modal generique de pose d'autocollant -------------------
@@ -1041,13 +1082,10 @@ function ouvrirModalSticker(options) {
   window._stickerChoisi         = null;
 
   const { stickers } = options;
-  // Filtrer les stickers épuisés (stock = 0)
-  const stickerDefs = (stickers || [])
-    .map(id => _getStickerById(id))
-    .filter(s => s && _getStickerStock(s.id) > 0);
+  const stickerDefs = (stickers || []).map(id => _getStickerById(id)).filter(Boolean);
 
   if (stickerDefs.length === 0) {
-    addLog('\u274c Aucun autocollant disponible pour cet effet (stock épuisé).');
+    addLog('\u274c Aucun autocollant disponible pour cet effet.');
     _finaliserSticker([], options, options);
     return;
   }
@@ -1092,25 +1130,19 @@ function _renderModalStickerContenu() {
   // --- choix du sticker ---
   let stickerChoixHTML = '';
   if (stickerDefs.length === 1) {
-    const stock = _getStickerStock(stickerDefs[0].id);
     stickerChoixHTML = `
       <div style="display:inline-flex;align-items:center;gap:8px;
         background:rgba(74,122,170,0.2);border:2px solid #4a7aaa;border-radius:8px;
         padding:6px 14px;margin-bottom:14px;">
         <span style="font-size:1.2rem;">&#x1F3F7;</span>
         <span style="font-family:'Cinzel',serif;font-size:0.78rem;color:#88bbff;">${_stickerLabel(stickerDefs[0])}</span>
-        <span style="font-family:'Cinzel',serif;font-size:0.6rem;color:#6688aa;border-left:1px solid #4a7aaa44;padding-left:8px;">
-          Stock : ${stock} restant${stock > 1 ? 's' : ''}
-        </span>
       </div>`;
   } else {
     stickerChoixHTML = `
       <div style="margin-bottom:14px;">
         <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;color:#88bbff;margin-bottom:8px;">CHOISIR L'AUTOCOLLANT</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
-          ${stickerDefs.map(s => {
-            const stock = _getStickerStock(s.id);
-            return `
+          ${stickerDefs.map(s => `
             <button id="stkBtn_${s.id}" onclick="_choisirSticker(${s.id})" style="
               font-family:'Cinzel',serif;font-size:0.65rem;font-weight:700;
               background:${window._stickerChoisi === s.id ? 'rgba(74,122,170,0.5)' : 'rgba(0,0,0,0.4)'};
@@ -1118,9 +1150,7 @@ function _renderModalStickerContenu() {
               color:${window._stickerChoisi === s.id ? '#ddeeff' : '#88bbff'};
               border-radius:6px;padding:5px 12px;cursor:pointer;transition:all 0.15s;">
               &#x1F3F7; ${_stickerLabel(s)}
-              <span style="font-size:0.52rem;opacity:0.65;margin-left:4px;">(×${stock})</span>
-            </button>`;
-          }).join('')}
+            </button>`).join('')}
         </div>
       </div>`;
   }
@@ -1264,10 +1294,13 @@ function _confirmerPoseSticker() {
                     ...gameState.permanent];
 
   sel.forEach(({ cardNum, stickerId }) => {
-    apps.push({ cardNum, stickerId, quantite: 1 });
+    // Mémoriser la face active au moment de la pose — le bonus ne s'applique qu'à cette face
+    //const ci = allCards.find(c => c.cardDef.numero === cardNum);
     const s   = _getStickerById(stickerId);
     const ci  = allCards.find(c => c.cardDef.numero === cardNum);
     const nom = ci ? getFaceData(ci).nom : '#' + cardNum;
+    const faceAtPose = ci ? ci.currentFace : 1;
+    apps.push({ cardNum, stickerId, quantite: 1, face: faceAtPose });
     addLog(`&#x1F3F7; Autocollant <strong>${_stickerLabel(s)}</strong> appos\xe9 sur <span class="log-card">${nom}</span>.`, true);
 
     if (s && s.effe === 'Reste en jeu') {
@@ -1297,18 +1330,6 @@ function _finaliserSticker(sel, opts, originalOpts) {
 }
 
 // --- Carte 24 — Terre fertile --------------------------------
-
-// Ferme proprement le modal carte24 puis ouvre le modal sticker
-// (évite le bug aria-hidden causé par un setTimeout trop court)
-function _ouvrirStickerDepuisCarte24(effetIndex) {
-  const modalEl = document.getElementById('carte24Modal');
-  const handler = function() {
-    modalEl.removeEventListener('hidden.bs.modal', handler);
-    applyStickerFromCarte24(effetIndex);
-  };
-  modalEl.addEventListener('hidden.bs.modal', handler);
-  bootstrap.Modal.getInstance(modalEl)?.hide();
-}
 
 function applyStickerFromCarte24(effetIndex) {
   const carte24 = LEGACY_CARDS.find(c => c.numero === 24);
@@ -1355,7 +1376,7 @@ function ouvrirCarte24Modal() {
         ${done
           ? `<div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#8acc44;">\u2713 Appliqu\xe9</div>`
           : e.type_effet === 'sticker'
-            ? `<button onclick="_ouvrirStickerDepuisCarte24(${i})" style="
+            ? `<button onclick="bootstrap.Modal.getInstance(document.getElementById('carte24Modal'))?.hide();setTimeout(()=>applyStickerFromCarte24(${i}),200);" style="
                 font-family:'Cinzel',serif;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;
                 background:linear-gradient(135deg,#1a3a6a,#2a5a9a);border:2px solid #4a7aaa;
                 color:#aaddff;padding:6px 14px;border-radius:6px;cursor:pointer;">
