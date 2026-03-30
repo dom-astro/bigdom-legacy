@@ -296,6 +296,7 @@ function openArmeeModal() {
   const nomCarte    = prog.face === 1 ? '⚔️ Armée' : '⚔️ Grande Armée';
   const glBonus     = faceData.gloire_bonus || 0;
   const glorieActuelle = glBonus + (nextIndex > 0 ? cases[nextIndex - 1].gloire : 0);
+  const dejaCoche   = !!gameState.armeeCaseCeTour;
 
   // Construction HTML des cases
   let casesHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:16px 0;">';
@@ -333,7 +334,7 @@ function openArmeeModal() {
   } else {
     actionHTML = `
       <div style="
-        background:rgba(0,0,0,0.3);border:1px solid ${canMark ? '#f0c040' : '#444'};
+        background:rgba(0,0,0,0.3);border:1px solid ${(canMark && !dejaCoche) ? '#f0c040' : '#444'};
         border-radius:10px;padding:14px;text-align:center;margin-top:8px;">
         <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Prochaine case</div>
         <div style="font-size:1.1rem;color:#fff;margin-bottom:4px;">
@@ -342,18 +343,18 @@ function openArmeeModal() {
         <div style="font-size:0.9rem;color:#f0c040;">
           ${nextCase.promotion ? '🔱 Promotion → Grande Armée + découverte #135' : `Gain : ★ ${nextCase.gloire} gloire`}
         </div>
-        <div style="font-size:0.75rem;color:${canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
-          ${canMark ? `✅ Vous avez ${epeesDispo}⚔️ — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_epee}⚔️ (vous avez ${epeesDispo})`}
+        <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
+          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${epeesDispo}⚔️ — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_epee}⚔️ (vous avez ${epeesDispo})`}
         </div>
       </div>
       <div style="text-align:center;margin-top:14px;">
-        <button onclick="confirmArmeeCase()" ${canMark ? '' : 'disabled'} style="
+        <button onclick="confirmArmeeCase()" ${(canMark && !dejaCoche) ? '' : 'disabled'} style="
           font-family:'Cinzel',serif;font-weight:700;font-size:0.8rem;
           letter-spacing:1px;text-transform:uppercase;
-          background:${canMark ? 'linear-gradient(135deg,#5a3a08,#c8960c,#5a3a08)' : 'rgba(0,0,0,0.4)'};
-          border:2px solid ${canMark ? '#f0c040' : '#444'};
-          color:${canMark ? '#1a0e04' : '#666'};
-          padding:10px 28px;border-radius:6px;cursor:${canMark ? 'pointer' : 'not-allowed'};
+          background:${(canMark && !dejaCoche) ? 'linear-gradient(135deg,#5a3a08,#c8960c,#5a3a08)' : 'rgba(0,0,0,0.4)'};
+          border:2px solid ${(canMark && !dejaCoche) ? '#f0c040' : '#444'};
+          color:${(canMark && !dejaCoche) ? '#1a0e04' : '#666'};
+          padding:10px 28px;border-radius:6px;cursor:${(canMark && !dejaCoche) ? 'pointer' : 'not-allowed'};
           transition:all 0.2s;">
           ⚔️ Marquer la case ${nextCase.index}
         </button>
@@ -392,6 +393,7 @@ function confirmArmeeCase() {
   gameState.resources['Epée'] = Math.max(0, (gameState.resources['Epée'] || 0) - nextCase.cout_epee);
 
   prog.casesMarquees++;
+  gameState.armeeCaseCeTour = true;
 
   if (nextCase.promotion) {
     // Dernière case face 1 → promotion vers Grande Armée
@@ -479,6 +481,7 @@ function openTresorModal() {
   const nomCarte       = prog.face === 1 ? '🪙 Trésor' : '🪙 Trésor Étendu';
   const glBonus        = faceData.gloire_bonus || 0;
   const glorieActuelle = glBonus + (nextIndex > 0 ? cases[nextIndex - 1].gloire : 0);
+  const dejaCoche      = !!gameState.tresorCaseCeTour;
 
   // ── Grille des cases de la face active ────────────────────
   let casesHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:16px 0;">';
@@ -547,27 +550,29 @@ function openTresorModal() {
       : `Gain : ★ ${nextCase.gloire} gloire`;
     actionHTML = `
       <div style="
-        background:rgba(0,0,0,0.3);border:1px solid ${canMark ? '#f0c040' : '#444'};
+        background:rgba(0,0,0,0.3);border:1px solid ${(canMark && !dejaCoche) ? '#f0c040' : '#444'};
         border-radius:10px;padding:14px;text-align:center;margin-top:8px;">
         <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Prochaine case</div>
         <div style="font-size:1.1rem;color:#fff;margin-bottom:4px;">
           Coût : <strong style="color:#f5c842;">${coutOr} 🪙</strong>
         </div>
         <div style="font-size:0.9rem;color:#f0c040;">${gainLabel}</div>
-        <div style="font-size:0.75rem;color:${canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
-          ${canMark
-            ? `✅ Vous avez ${orDispo}🪙 — vous pouvez marquer`
-            : `❌ Il vous faut ${coutOr}🪙 (vous avez ${orDispo})`}
+        <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
+          ${dejaCoche
+            ? '⏳ Une case a déjà été marquée ce tour'
+            : canMark
+              ? `✅ Vous avez ${orDispo}🪙 — vous pouvez marquer`
+              : `❌ Il vous faut ${coutOr}🪙 (vous avez ${orDispo})`}
         </div>
       </div>
       <div style="text-align:center;margin-top:14px;">
-        <button onclick="confirmTresorCase()" ${canMark ? '' : 'disabled'} style="
+        <button onclick="confirmTresorCase()" ${(canMark && !dejaCoche) ? '' : 'disabled'} style="
           font-family:'Cinzel',serif;font-weight:700;font-size:0.8rem;
           letter-spacing:1px;text-transform:uppercase;
-          background:${canMark ? 'linear-gradient(135deg,#5a4a08,#c8960c,#5a4a08)' : 'rgba(0,0,0,0.4)'};
-          border:2px solid ${canMark ? '#f0c040' : '#444'};
-          color:${canMark ? '#1a0e04' : '#666'};
-          padding:10px 28px;border-radius:6px;cursor:${canMark ? 'pointer' : 'not-allowed'};
+          background:${(canMark && !dejaCoche) ? 'linear-gradient(135deg,#5a4a08,#c8960c,#5a4a08)' : 'rgba(0,0,0,0.4)'};
+          border:2px solid ${(canMark && !dejaCoche) ? '#f0c040' : '#444'};
+          color:${(canMark && !dejaCoche) ? '#1a0e04' : '#666'};
+          padding:10px 28px;border-radius:6px;cursor:${(canMark && !dejaCoche) ? 'pointer' : 'not-allowed'};
           transition:all 0.2s;">
           🪙 Marquer la case ${nextCase.index}
         </button>
@@ -611,6 +616,7 @@ function confirmTresorCase() {
   gameState.resources['Or'] = Math.max(0, (gameState.resources['Or'] || 0) - nextCase.cout_or);
 
   prog.casesMarquees++;
+  gameState.tresorCaseCeTour = true;
 
   if (nextCase.promotion) {
     // Case 12 (dernière de face 1) → promotion vers Trésor Étendu
@@ -792,7 +798,8 @@ function openExportModal() {
     </div>`;
 
   // ── Panneau investissement ─────────────────────────────────
-  const canInvest = marcDispo >= 1;
+  const dejaCocheExport = !!gameState.exportCaseCeTour;
+  const canInvest = marcDispo >= 1 && !dejaCocheExport;
   let investHTML = `
     <div style="
       background:rgba(0,0,0,0.3);border:1px solid ${canInvest ? '#8844cc' : '#333'};
@@ -803,8 +810,12 @@ function openExportModal() {
       <div style="font-size:0.9rem;color:#e8d5a3;margin-bottom:4px;">
         Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} 🏺</strong>
       </div>
-      <div style="font-size:0.78rem;color:${canInvest ? '#aaffaa' : '#ff8888'};margin-bottom:8px;">
-        ${canInvest ? `Vous avez ${marcDispo} 🏺 disponible${marcDispo > 1 ? 's' : ''}` : 'Aucune Marchandise disponible'}
+      <div style="font-size:0.78rem;color:${dejaCocheExport ? '#cc8844' : canInvest ? '#aaffaa' : '#ff8888'};margin-bottom:8px;">
+        ${dejaCocheExport
+          ? '⏳ Un investissement a déjà été effectué ce tour'
+          : canInvest
+            ? `Vous avez ${marcDispo} 🏺 disponible${marcDispo > 1 ? 's' : ''}`
+            : 'Aucune Marchandise disponible'}
       </div>`;
 
   if (canInvest) {
@@ -863,6 +874,11 @@ function openExportModal() {
 
 // Investit N Marchandises dans l'Export (sans fermer le modal)
 function investirExport(n) {
+  if (gameState.exportCaseCeTour) {
+    addLog(`❌ Export — un investissement a déjà été effectué ce tour.`);
+    return;
+  }
+
   const projected = getProjectedResources();
   const marcDispo = projected['Troc'] || 0;
   const aDepenser = Math.min(n, marcDispo);
@@ -877,6 +893,7 @@ function investirExport(n) {
   // Dépenser immédiatement (pas de staging — l'investissement est instantané)
   gameState.resources['Troc'] = Math.max(0, (gameState.resources['Troc'] || 0) - aDepenser);
   prog.totalDepense += aDepenser;
+  gameState.exportCaseCeTour = true;
 
   addLog(`🛒 <span class="log-card">Export</span> — ${aDepenser} 🏺 investie${aDepenser > 1 ? 's' : ''} (total : ${prog.totalDepense} 🏺).`);
 
