@@ -510,6 +510,27 @@ body.light-mode .round-badge { color: #8a6200; }
 .card-wrapper-bandit .card-front { box-shadow: 0 0 15px rgba(200,30,30,0.6), inset 0 0 10px rgba(100,0,0,0.4) !important; animation: banditPulse 1.5s ease-in-out infinite; }
 @keyframes banditPulse { 0%,100% { box-shadow:0 0 15px rgba(200,30,30,0.6),inset 0 0 10px rgba(100,0,0,0.4); } 50% { box-shadow:0 0 25px rgba(255,50,50,0.9),inset 0 0 15px rgba(150,0,0,0.5); } }
 
+.card-wrapper-actionable .card-front {
+  box-shadow: 0 0 0 2px #44cc44, 0 0 14px rgba(68,204,68,0.55) !important;
+  animation: actionablePulse 2s ease-in-out infinite;
+}
+@keyframes actionablePulse {
+  0%, 100% { box-shadow: 0 0 0 2px #44cc44, 0 0 10px rgba(68,204,68,0.45); }
+  50%       { box-shadow: 0 0 0 2px #88ff88, 0 0 22px rgba(68,204,68,0.8); }
+}
+/* En mode clair, la surbrillance reste lisible */
+body.light-mode .card-wrapper-actionable .card-front {
+  box-shadow: 0 0 0 2px #228822, 0 0 12px rgba(34,136,34,0.45) !important;
+  animation: actionablePulseLight 2s ease-in-out infinite;
+}
+@keyframes actionablePulseLight {
+  0%, 100% { box-shadow: 0 0 0 2px #228822, 0 0 8px rgba(34,136,34,0.3); }
+  50%       { box-shadow: 0 0 0 2px #44aa44, 0 0 16px rgba(34,136,34,0.55); }
+}
+/* Pas de double animation bandit + actionable : le bandit a priorité */
+.card-wrapper-bandit.card-wrapper-actionable .card-front {
+  animation: banditPulse 1.5s ease-in-out infinite;
+}
 .btn-defeat-bandit { background: rgba(150,20,20,0.85) !important; border-color: #ff4444 !important; color: #ffcccc !important; font-weight: 700; }
 .btn-defeat-bandit:not([disabled]):hover { background: rgba(200,30,30,0.95) !important; box-shadow: 0 0 8px rgba(255,60,60,0.6); }
 

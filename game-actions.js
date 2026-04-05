@@ -429,8 +429,8 @@ function canActivateEffect(cardInstance) {
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
   const act = effets.find(e => e.type === 'Activable');
   if (!act) return false;
-  const projected = getProjectedResources();
-  const costOk = (act.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+  const confirmed = getConfirmedResources();
+  const costOk = (act.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite);
   if (!costOk) return false;
   // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
   if (act.defausse) {
@@ -472,9 +472,9 @@ function stageActivateEffect(cardNum) {
   const act = effets.find(e => e.type === 'Activable');
   if (!act) return;
 
-  const projected = getProjectedResources();
+  const confirmed = getConfirmedResources();
   for (const c of (act.cout || [])) {
-    if ((projected[normalizeRes(c.type)] || 0) < c.quantite) {
+    if ((confirmed[normalizeRes(c.type)] || 0) < c.quantite) {
       addLog(`💰 Ressources insuffisantes pour activer <span class="log-card">${fd.nom}</span>. Coût: ${formatCost(act.cout)}`);
       return;
     }

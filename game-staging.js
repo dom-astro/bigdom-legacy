@@ -26,6 +26,30 @@ function getProjectedResources() {
   return proj;
 }
 
+// Ressources réellement disponibles (hors staging) — utilisées pour vérifier
+// si une promotion ou un effet activable est payable avec des ressources acquises.
+// Les productions en attente dans la staging zone ne sont PAS incluses.
+function getConfirmedResources() {
+  const confirmed = { ...gameState.resources };
+  // Déduire uniquement les coûts déjà engagés (upgrades et activations en staging)
+  gameState.staging.forEach(entry => {
+    if (entry.action === 'activate') {
+      (entry.cout || []).forEach(c => {
+        const key = normalizeRes(c.type);
+        confirmed[key] = (confirmed[key] || 0) - c.quantite;
+      });
+    } else if (entry.action === 'upgrade' && entry.cout) {
+      entry.cout.forEach(c => {
+        const key = normalizeRes(c.type);
+        confirmed[key] = (confirmed[key] || 0) - c.quantite;
+      });
+    }
+    // Les productions (action='produce') ne sont PAS ajoutées : elles ne sont
+    // pas encore confirmées et ne peuvent pas financer une promo ou un effet.
+  });
+  return confirmed;
+}
+
 // Met une carte en staging pour production (sans défausser ni donner les ressources)
 function stageProduceCard(cardNum) {
   const playIndex = _playIdxByNum(cardNum);
@@ -51,14 +75,6 @@ function stageProduceCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
-  // Bonus des autocollants Héritage (carte #24 / Export)
-  if (typeof getStickerResourceBonusForCard === 'function') {
-    const stickerBonus = getStickerResourceBonusForCard(cardInstance.cardDef.numero);
-    Object.entries(stickerBonus).forEach(([k, v]) => {
-      if (gameState.resources[k] !== undefined)
-        resourcesGained[k] = (resourcesGained[k]||0) + v;
-    });
-  }
 
   _playRemove(playIndex);
   gameState.staging.push({ cardInstance, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null });
@@ -90,10 +106,11 @@ function stageUpgradeCard(cardNum) {
     return;
   }
 
-  // Filtrer les promos dont on peut payer le coût
-  const projected = getProjectedResources();
+  // Filtrer les promos dont on peut payer le coût avec les ressources confirmées
+  // (les productions en staging zone ne comptent pas)
+  const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
+    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {
@@ -232,13 +249,6 @@ function stageProduceStayCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
-  if (typeof getStickerResourceBonusForCard === 'function') {
-    const stickerBonus = getStickerResourceBonusForCard(ci.cardDef.numero);
-    Object.entries(stickerBonus).forEach(([k, v]) => {
-      if (gameState.resources[k] !== undefined)
-        resourcesGained[k] = (resourcesGained[k]||0) + v;
-    });
-  }
 
   // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
   gameState.stayInPlay = gameState.stayInPlay.filter(c => c.cardDef.numero !== cardNum);
@@ -265,9 +275,9 @@ function stageUpgradeStayCard(cardNum) {
     return;
   }
 
-  const projected = getProjectedResources();
+  const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
+    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {
@@ -332,13 +342,6 @@ function stageProduceRetainedCard(cardNum) {
     if (key && gameState.resources[key] !== undefined)
       resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
   });
-  if (typeof getStickerResourceBonusForCard === 'function') {
-    const stickerBonus = getStickerResourceBonusForCard(ci.cardDef.numero);
-    Object.entries(stickerBonus).forEach(([k, v]) => {
-      if (gameState.resources[k] !== undefined)
-        resourcesGained[k] = (resourcesGained[k]||0) + v;
-    });
-  }
 
   gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
   gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromRetainedCards: true });
@@ -363,9 +366,9 @@ function stageUpgradeRetainedCard(cardNum) {
     return;
   }
 
-  const projected = getProjectedResources();
+  const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite)
+    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {

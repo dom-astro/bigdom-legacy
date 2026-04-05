@@ -10,15 +10,13 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const totalFaces = cardInstance.cardDef.faces.length;
   const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
 
-  const resHTML = (typeof buildResourcePipsHTML === 'function')
-    ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, blocked)
-    : (hasResources ? face.ressources.map(r => {
-        const types = Array.isArray(r.type) ? r.type : [r.type];
-        return types.map(t => {
-          const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
-          return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
-        }).join('');
-      }).join('') : '');
+  const resHTML = hasResources ? face.ressources.map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => {
+      const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
+      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+    }).join('');
+  }).join('') : '';
 
   const effectIcon = face.effet
     ? (Array.isArray(face.effet) ? '⚡'
@@ -26,11 +24,18 @@ function buildCardFrontHTML(cardInstance, playIndex) {
       : face.effet.type==='Passif' ? '🔵'
       : face.effet.type==='Destruction' ? '🔴' : '⚡') : '';
 
+  // Ressources projetées (pour l'affichage des hints)
   const projected = getProjectedResources();
+  // Ressources confirmées (pour déterminer les actions réellement disponibles)
+  const confirmed = getConfirmedResources();
+
   const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
   const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  // Hint visuel (hint gris/vert sur la carte) : utilise les ressources projetées
   const canUpgrade = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
-  const canDefeat = banditCard && (projected['Epée'] || 0) >= 1;
+  // Disponibilité réelle (bouton actif, surbrillance) : ressources confirmées uniquement
+  const canUpgradeConfirmed = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
+  const canDefeat = banditCard && (confirmed['Epée'] || 0) >= 1;
 
   let cardBg, cardBorder, nameColor, extraOverlay = '';
   if (banditCard) {
@@ -49,10 +54,18 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   }
 
   const hasActivable = hasActivableEffect(cardInstance);
-  const canActivate = hasActivable && canActivateEffect(cardInstance);
+  const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
   const hasDestruction = hasDestructionEffect(cardInstance);
   const hasRetention = _hasRetentionEffect(cardInstance);
   const isAlreadyRetained = (gameState.retainedCards || []).some(c => c.cardDef.numero === cardInstance.cardDef.numero);
+
+  // Une carte est "actionable" si une action non-production est faisable avec les ressources confirmées
+  // (upgrade possible, activation possible, destruction disponible, rétention disponible, bandit à vaincre)
+  const isActionable = !blocked && (
+    (banditCard && canDefeat) ||
+    (!banditCard && (canUpgradeConfirmed || canActivate || hasDestruction || hasRetention))
+  );
+
   const actionBtns = [];
   if (banditCard) {
     if (canDefeat) {
@@ -65,13 +78,13 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${cardInstance.cardDef.numero})" title="Effet activable">🟢 Activer</button>`);
     if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${cardInstance.cardDef.numero})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
     if (hasRetention) actionBtns.push(`<button class="card-action-btn btn-retention-action${isAlreadyRetained?' btn-retention-active':''}" onclick="event.stopPropagation();triggerRetentionEffect(${cardInstance.cardDef.numero})" title="Défausser pour retenir des cartes au prochain tour">🕊️ ${isAlreadyRetained?'Annuler':'Retenir'}</button>`);
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   } else {
-    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
+    if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   }
 
   return `
-    <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}" data-card-num="${cardInstance.cardDef.numero}">
+    <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}${isActionable ? ' card-wrapper-actionable' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="openCardModal(${cardInstance.cardDef.numero},'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
@@ -81,6 +94,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
+        ${(typeof getStickerBonusForCard === 'function' && getStickerBonusForCard(cardInstance.cardDef.numero)) ? `<div class="card-resources">${getStickerBonusForCard(cardInstance.cardDef.numero)}</div>` : ''}
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:var(--gold);border-radius:0 0 0 8px;"></div></div>
@@ -384,42 +398,55 @@ function buildHeldCardHTML(cardInstance, source) {
   const badgeLabel     = isRetained ? '🕊️ RETENUE' : '🏚️ RESTE EN JEU';
   const badgeColor     = isRetained ? '#e8b840' : '#d0a030';
 
-  const resHTML = (typeof buildResourcePipsHTML === 'function')
-    ? buildResourcePipsHTML(cardNum, face, false, '0.48rem')
-    : (face.ressources||[]).map(r => {
-        const types = Array.isArray(r.type) ? r.type : [r.type];
-        return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
-      }).join('');
+  const resHTML = (face.ressources||[]).map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+  }).join('');
 
+  // Ressources projetées (pour hint visuel) et confirmées (pour disponibilité réelle)
   const projected = getProjectedResources();
+  const confirmed = getConfirmedResources();
+
   const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
   const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  // Hint visuel (gris/vert sur la carte) : ressources projetées
   const canUpgrade = allPromos.length > 0 && !upgradeAlreadyStaged &&
     allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
+  // Disponibilité réelle (bouton actif, surbrillance) : ressources confirmées uniquement
+  const canUpgradeConfirmed = allPromos.length > 0 && !upgradeAlreadyStaged &&
+    allPromos.some(p => (p.cout||[]).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
   const hasResources = face.ressources && face.ressources.length > 0;
   const hasActivable = !isBandit(cardInstance) && hasActivableEffect(cardInstance);
-  const canActivate  = hasActivable && canActivateEffect(cardInstance);
+  const canActivate  = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
   const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
+
+  // Surbrillance : action non-production faisable avec ressources confirmées
+  const isBanditCard2 = isBandit(cardInstance);
+  const canDefeatHeld = isBanditCard2 && (confirmed['Epée'] || 0) >= 1;
+  const isActionable = !alreadyStaged && (
+    canDefeatHeld ||
+    (!isBanditCard2 && (canUpgradeConfirmed || canActivate))
+  );
 
   const actionBtns = [];
   if (!alreadyStaged) {
     const isBanditCard = isBandit(cardInstance);
     if (isBanditCard) {
       // Bandit dans la zone de retenue : seul le bouton Vaincre est disponible
-      const canDefeat = (projected['Epée'] || 0) >= 1;
+      const canDefeat = canDefeatHeld;
       actionBtns.push(`<button class="card-action-btn btn-defeat-bandit${canDefeat ? '' : ' btn-upgrade-disabled'}" onclick="event.stopPropagation();defeatBandit(${cardNum})" ${canDefeat ? '' : 'disabled'}>⚔️ Vaincre (1⚔️)</button>`);
     } else if (isRetained) {
       if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})">⚒ Prod.</button>`);
       if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})">🟢 Activer</button>`);
-      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})">▲ Prom.</button>`);
+      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})">▲ Prom.</button>`);
     } else {
       if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceStayCard(${cardNum})">⚒ Prod.</button>`);
-      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgrade?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeStayCard(${cardNum})">▲ Prom.</button>`);
+      if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeStayCard(${cardNum})">▲ Prom.</button>`);
     }
   }
 
   return `
-    <div class="card-wrapper" data-held-num="${cardNum}" data-held-source="${source}">
+    <div class="card-wrapper${isActionable ? ' card-wrapper-actionable' : ''}" data-held-num="${cardNum}" data-held-source="${source}">
       <div class="card card-front" onclick="openCardModal(${cardNum},'${source}')"
            style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
@@ -682,27 +709,10 @@ function openCardModal(indexOrNum, zone) {
 
   // — Production
   if (face.ressources && face.ressources.length) {
-    const stickerBonus = (typeof getStickerResourceBonusForCard === 'function')
-      ? getStickerResourceBonusForCard(cardInstance.cardDef.numero)
-      : {};
-    const HERITAGE_BLUE_MODAL = { bg:'rgba(42,90,154,0.35)', border:'#4a8abf', text:'#aaddff' };
-
     const resPips = face.ressources.map(r => {
       const types = Array.isArray(r.type) ? r.type : [r.type];
       return types.map(t => {
-        const icon   = RESOURCE_ICONS[normalizeRes(t)] || t;
-        const resKey = normalizeRes(t);
-        const bonus  = stickerBonus[resKey] || 0;
-        const total  = r.quantite + bonus;
-        if (bonus > 0) {
-          return `<span style="display:inline-flex;align-items:center;gap:4px;
-            background:${HERITAGE_BLUE_MODAL.bg};border:1px solid ${HERITAGE_BLUE_MODAL.border};
-            border-radius:12px;padding:3px 10px;font-size:0.88rem;"
-            title="🏷 Autocollant Héritage (+${bonus})">
-            ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;color:${HERITAGE_BLUE_MODAL.text};">×${total}</strong>
-            <span style="font-size:0.65rem;opacity:0.7;color:${HERITAGE_BLUE_MODAL.text};">${t}</span>
-          </span>`;
-        }
+        const icon = RESOURCE_ICONS[normalizeRes(t)] || t;
         return `<span style="display:inline-flex;align-items:center;gap:4px;
           background:rgba(200,150,12,0.12);border:1px solid rgba(200,150,12,0.3);
           border-radius:12px;padding:3px 10px;font-size:0.88rem;">
