@@ -137,5 +137,49 @@
           ]
         }
       ]
-    }
+    },
+  { "numero": 28,
+    "faces": [
+      { "face": 1,
+        "nom": "Erruption volcanique",
+        "type": "Evènement",
+        "description": "Un volcan proche de votre royaume entre en éruption, recouvrant les terres environnantes de cendres et de lave. Les ressources deviennent plus rares, mais les terres sont plus fertiles.",
+        "Effet ": {
+          "type": "Force",
+          "description": "Tant que cette carte est en jeu, détruisez le prochain terrain que vous jouez puis retourner cette carte",
+          "face": 3
+        }
+      },
+      { "face": 3,
+        "nom": "Cendres volcaniques",
+        "type": "Terrain",
+        "description": "Les cendres volcaniques enrichissent le sol, rendant les récoltes plus abondantes.",
+        "victoire": -2,
+        "promotion": {
+          "face": 4,
+          "cout": {
+            "type": "Or",
+            "quantite": 2
+          }
+        },
+      },
+      { "face": 4,
+        "nom": "Jeune forêt",
+        "type": "Terrain",
+        "description": "La nature reprend ses droits sur les cendres, transformant le paysage en une jeune forêt.",
+        "victoire": 1,
+        "effet": {
+          "type": "Marqueur",
+          "description": "Vous pouvez utiliser le sablier pour cocher la prochaine case vide, de haut en bas. Lorsque vous cochez une case d'un astérisque, ajoutez le sticker Bois comme production sur cette carte. Au final, cela peut produire 3 unités de bois.",
+          "cases": [
+            { "index": 1, "ressource": "Bois", "quantite": 1  },
+            { "index": 2  },
+            { "index": 3,  "ressource": "Bois", "quantite": 1  },
+            { "index": 4 },
+            { "index": 5,  "ressource": "Bois", "quantite": 1  },
+          ]
+        }
+      }
+    ]
+  }
   ];

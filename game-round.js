@@ -101,6 +101,12 @@ function endTurn() {
   gameState.play = [];
 
   gameState.bandits = [];
+  // Vérifier si la carte 28 quitte le jeu (pas de staging) → désactiver l'éruption
+  if (gameState.eruptionActive) {
+    const still28InPlay = gameState.play.some(ci => ci.cardDef.numero === 28 && ci.currentFace === 1)
+      || gameState.staging.some(e => e.cardInstance.cardDef.numero === 28 && e.cardInstance.currentFace === 1);
+    if (!still28InPlay) gameState.eruptionActive = false;
+  }
   gameState.armeeCaseCeTour  = false;
   gameState.tresorCaseCeTour = false;
   gameState.exportCaseCeTour = false;

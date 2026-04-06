@@ -73,6 +73,7 @@ function drawCards(n) {
   // Règle : les cartes normales sont placées EN PREMIER, les bandits EN DERNIER.
   // Si une carte or fait partie du même tirage que le bandit, elle est bloquée
   // automatiquement et prioritairement — sans modal de choix.
+  const _eruptionWasActiveBeforeDraw = gameState.eruptionActive;
   const _banditQueue = [];
   const _banditsToPlace = [];
   const newCardNums = new Set(); // numéros des cartes tirées dans CE tirage
@@ -122,6 +123,22 @@ function drawCards(n) {
   });
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);
+  
+  // ── Éruption Volcanique (carte 28) ───────────────────────────
+  // Si l'éruption était active AVANT ce tirage (pas tirée dans ce lot),
+  // chercher un terrain parmi les nouvelles cartes
+  if (_eruptionWasActiveBeforeDraw) {
+    setTimeout(() => _resolveEruption(newCardNums, true), 50);
+  }
+  // Si la carte 28 vient d'être tirée dans ce lot, activer pour le prochain tirage
+  if (newCardNums.has(28)) {
+    const ci28 = gameState.play.find(c => c.cardDef.numero === 28);
+    if (ci28 && getFaceData(ci28).face === 1 || (ci28 && ci28.currentFace === 1)) {
+      gameState.eruptionActive = true;
+      addLog(`🌋 <span class="log-card">Éruption Volcanique</span> entre en jeu — le prochain terrain tiré sera détruit !`, true);
+    }
+  }
+
   processPendingFaceChoices();
   updateUI();
   window._dealExistingNums = null;
@@ -1378,4 +1395,137 @@ function confirmConversion(banditPlayIndex) {
 
   updateUI();
   _showConversionReveal(banditCard, face2, act, missionaireName);
+}
+
+// ============================================================
+//  ÉRUPTION VOLCANIQUE (carte 28) — Effet Force
+// ============================================================
+
+// Appelé après chaque tirage de cartes pour vérifier si l'effet d'éruption
+// doit se déclencher sur les nouveaux terrains (tirés hors du tirage initial).
+// - newCardNums : Set des numéros de cartes tirées dans CE tirage
+// - eruptionCardNum : numéro de la carte 28 dans ce même tirage (ou null)
+function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
+  if (!eruptionWasAlreadyActive) return; // L'éruption n'était pas active avant ce tirage
+
+  // Chercher les terrains tirés dans CE lot (candidats à destruction)
+  const newTerrains = gameState.play.filter(ci => {
+    if (!newCardNums.has(ci.cardDef.numero)) return false;
+    const fd = getFaceData(ci);
+    return fd.type === 'Terrain' || fd.type === 'Bâtiment' || fd.type === 'Batiment'
+      ? fd.type === 'Terrain' // uniquement les vrais Terrains (bannière verte)
+      : false;
+  }).filter(ci => {
+    // Exclure la carte 28 elle-même si elle vient d'être tirée dans CE lot
+    return ci.cardDef.numero !== 28;
+  });
+
+  // Filtrer : uniquement les Terrains (type === 'Terrain')
+  const terrainCandidates = gameState.play.filter(ci => {
+    if (!newCardNums.has(ci.cardDef.numero)) return false;
+    const fd = getFaceData(ci);
+    return fd.type === 'Terrain';
+  });
+
+  if (terrainCandidates.length === 0) return; // Pas de terrain → pas d'effet
+
+  if (terrainCandidates.length === 1) {
+    // Auto-destruction
+    _applyEruptionDestruction(terrainCandidates[0]);
+  } else {
+    // Plusieurs terrains → choix du joueur
+    _showEruptionChoiceModal(terrainCandidates);
+  }
+}
+
+// Applique la destruction d'un terrain par l'éruption
+function _applyEruptionDestruction(terrainCI) {
+  const fd = getFaceData(terrainCI);
+  const terrainName = fd.nom;
+
+  // Trouver la carte 28 en jeu
+  const eruption28 = gameState.play.find(ci => ci.cardDef.numero === 28);
+
+  // Retirer le terrain de play[]
+  const tIdx = _playIdxByNum(terrainCI.cardDef.numero);
+  if (tIdx >= 0) _playRemove(tIdx);
+
+  // Détruire le terrain (envoi dans destroyed)
+  if (!gameState.destroyed) gameState.destroyed = [];
+  gameState.destroyed.push(terrainCI);
+
+  addLog(`🌋 <span class="log-card">Éruption Volcanique</span> détruit <span class="log-card">${terrainName}</span> — les cendres enrichissent la terre…`, true);
+
+  // Retourner la carte 28 en face 3 ("Cendres volcaniques")
+  if (eruption28) {
+    eruption28.currentFace = 3;
+    cardStateMap[28] = 3;
+    const newFd = getFaceData(eruption28);
+    addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
+    gameState.eruptionActive = false;
+  }
+
+  updateUI();
+}
+
+// Modal de choix quand plusieurs terrains sont tirés simultanément
+function _showEruptionChoiceModal(candidates) {
+  let html = `
+    <div style="
+      background:rgba(200,60,0,0.12);border:1px solid rgba(200,80,0,0.4);
+      border-radius:8px;padding:10px 14px;margin-bottom:16px;
+      font-family:'Crimson Text',serif;font-size:0.92rem;color:#ffcc88;line-height:1.5;">
+      <strong style="font-family:'Cinzel',serif;font-size:0.7rem;color:#ff8844;letter-spacing:1px;">
+        ⚠ CAS PARTICULIER
+      </strong><br>
+      Plusieurs terrains ont été tirés simultanément. Puisque les cartes sont jouées en même temps,
+      vous choisissez lequel est détruit par l'éruption.
+    </div>
+    <p style="margin-bottom:14px;font-family:'Crimson Text',serif;font-size:0.9rem;color:#f5e6c8;">
+      Choisissez le <strong>Terrain</strong> à détruire :
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;">`;
+
+  candidates.forEach((ci, i) => {
+    const f = getFaceData(ci);
+    const resStr = (f.ressources || []).map(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return `${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+    }).join(' ');
+    const typeColors = { Terrain:'#2d5a27' };
+    const bg = typeColors[f.type] || '#2d5a27';
+
+    html += `
+      <button onclick="_confirmEruptionChoice(${i})" style="
+        width:100%;text-align:left;
+        background:linear-gradient(135deg,#1a1008,#0e0e06);
+        border:2px solid ${bg};border-radius:10px;padding:10px 14px;
+        cursor:pointer;display:flex;align-items:center;gap:12px;
+        transition:all 0.2s;">
+        <div style="font-size:1.8rem;">${getCardEmoji(f.type, f.nom)}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;color:#f5e6c8;font-size:0.82rem;">${f.nom}</div>
+          <div style="font-size:0.6rem;color:#888;">#${ci.cardDef.numero} · ${f.type}</div>
+          ${resStr ? `<div style="font-size:0.65rem;color:#c8960c;margin-top:2px;">${resStr}</div>` : ''}
+        </div>
+        <div style="font-size:1.2rem;">🌋</div>
+      </button>`;
+  });
+
+  html += `</div>`;
+
+  window._eruptionChoiceCandidates = candidates;
+
+  // Réutiliser le modal sacrificeChoiceModal
+  $('#sacrificeChoiceTitle').html(`🌋 Éruption Volcanique — Choisir un Terrain à détruire`);
+  $('#sacrificeChoiceBody').html(html);
+  new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+function _confirmEruptionChoice(idx) {
+  bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
+  const candidates = window._eruptionChoiceCandidates || [];
+  window._eruptionChoiceCandidates = null;
+  if (!candidates[idx]) return;
+  _applyEruptionDestruction(candidates[idx]);
 }

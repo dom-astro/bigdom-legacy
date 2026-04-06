@@ -82,6 +82,7 @@ function _buildSaveObject() {
         fromRetained: e.fromRetained || false,
       })),
       bandits: (gameState.bandits || []).map(b => ({ bN: b.banditNum, blN: b.blockedNum ?? null })),
+      eruptionActive: gameState.eruptionActive || false,
     },
   };
 }
@@ -121,6 +122,7 @@ function doRestartGame() {
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false, kingdomName: '',
     exportProgress: { face:1, totalDepense:0, seuilsUtilises:[] },
+    eruptionActive: false,
   };
   $('#gameLog').empty();
   updateUI();
@@ -251,6 +253,7 @@ function _applyImport(raw) {
     retainedCards:   (save.retainedCards  || []).map(s => _resolveCard(s)).filter(Boolean),
     kingdomName: (isV2 ? info.nom : save.kingdomName) || 'Valdermoor',
     bandits,
+    eruptionActive: save.eruptionActive || false,
   };
 
   $('#gameLog').empty();
