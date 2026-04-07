@@ -3,9 +3,11 @@
 //  Doit être chargé EN PREMIER avant tous les autres modules.
 // ============================================================
 
+// ALL_CARDS contient uniquement les cartes "actives" du royaume à un instant T.
+// Les cartes de CARDS_TO_DISCOVER n'y sont JAMAIS ajoutées au démarrage :
+// elles rejoignent ALL_CARDS uniquement quand elles sont découvertes par une action de jeu.
 let ALL_CARDS = [
   ...BEGIN_CARDS,
-  ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []),
 ];
 
 const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', Troc:'🏺' };

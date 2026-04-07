@@ -171,22 +171,32 @@ function newRound() {
   if (gameState.round === 7 && !gameState._heritageTriggered) {
     gameState._heritageTriggered = true;
 
-    const alreadyInBox = new Set(gameState.box.map(c => c.cardDef ? c.cardDef.numero : c.numero));
-    const phase2 = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : [])
-      .filter(c => !alreadyInBox.has(c.numero))
-      .sort((a, b) => a.numero - b.numero)
-      .map(card => createCardInstance(card));
-    if (phase2.length > 0) {
-      gameState.box = [...gameState.box, ...phase2];
-      addLog(`📦 Nouvelles terres à explorer — ${phase2.length} cartes d'aventure débloquées.`, true);
-    }
+    // Les CARDS_TO_DISCOVER ne rejoignent PAS la box automatiquement.
+    // Elles ne sont accessibles que via des actions de jeu (effet Destruction, etc.).
+    // La box reste donc inchangée après la manche 7.
 
     addLog(`📜 La manche 7 s'achève. La voie de l'Héritage s'ouvre...`, true);
     _showHeritageRuleModal(allCards); // défini dans game-heritage.js
     return;
   }
 
+  // ── Découverte de 2 cartes héritage par manche (à partir de la manche 8) ──
   const discovered = discoverNextCards(2);
+
+  // Fin de partie : toutes les cartes héritage (28+) ont été révélées
+  if (discovered.length === 0 && gameState._heritageTriggered) {
+    const heritageCardNums = _getHeritageCardNums();
+    const allRevealed = _allHeritageCardsRevealed(heritageCardNums);
+    if (allRevealed) {
+      addLog(`🏆 Toutes les cartes Héritage ont été révélées — Dernière Manche !`, true);
+      gameState.gameOver = true;
+    } else {
+      addLog(`📦 Toutes les cartes ont été découvertes.`);
+    }
+    _finalizeNewRound(allCards, []);
+    drawCards(4);
+    return;
+  }
 
   if (discovered.length === 0) {
     addLog(`📦 Toutes les cartes ont été découvertes.`);
@@ -303,7 +313,19 @@ function _finalizeNewRound(allCards, discovered) {
   discovered.forEach(card => {
     allCards.push(card);
     addLog(`🔍 Découverte : <span class="log-card">${getFaceData(card).nom}</span> (#${card.cardDef.numero})`, true);
-    if (card.cardDef.numero === 70) { gameState.gameOver = true; addLog(`🏆 Carte #70 ! Dernière Manche !`, true); }
+
+    // Fin de partie : dernière carte héritage dévoilée
+    if (gameState._heritageTriggered) {
+      const heritageNums = _getHeritageCardNums();
+      if (heritageNums.has(card.cardDef.numero)) {
+        const kingdomNums = new Set(allCards.map(c => c.cardDef.numero));
+        const allCovered = [...heritageNums].every(n => kingdomNums.has(n));
+        if (allCovered) {
+          gameState.gameOver = true;
+          addLog(`🏆 Dernière carte Héritage révélée (#${card.cardDef.numero}) — Dernière Manche !`, true);
+        }
+      }
+    }
   });
   if (!discovered.length) addLog(`📦 Toutes les cartes ont été découvertes.`);
 
@@ -324,4 +346,87 @@ function discoverNextCards(n) {
     out.push(item && item.cardDef ? item : createCardInstance(item));
   }
   return out;
+}
+
+// ============================================================
+//  HELPERS FIN DE PARTIE HÉRITAGE
+// ============================================================
+
+// Retourne l'ensemble des numéros de cartes qui constituent la voie héritage.
+// = toutes les cartes de LEGACY_CARDS ayant des faces (cartes jouables : 24-27, 28, 29…)
+// La carte 23 est une règle sans faces jouables — elle n'est pas comptée.
+function _getHeritageCardNums() {
+  const nums = new Set();
+  if (typeof LEGACY_CARDS === 'undefined') return nums;
+  LEGACY_CARDS.forEach(c => {
+    if (c.faces && c.faces.length > 0) nums.add(c.numero);
+  });
+  return nums;
+}
+
+// Vérifie si toutes les cartes héritage jouables sont présentes dans le royaume
+// (deck + play + discard + permanent + stayInPlay + retainedCards + staging + destroyed)
+function _allHeritageCardsRevealed(heritageNums) {
+  const everywhere = new Set([
+    ...gameState.deck,
+    ...gameState.play,
+    ...gameState.discard,
+    ...gameState.permanent,
+    ...(gameState.stayInPlay || []),
+    ...(gameState.retainedCards || []),
+    ...(gameState.staging || []).map(e => e.cardInstance),
+    ...(gameState.destroyed || []),
+  ].map(ci => ci.cardDef.numero));
+  return [...heritageNums].every(n => everywhere.has(n));
+}
+
+// ============================================================
+//  INJECTION CARTES HÉRITAGE DANS LA PIOCHE (appelé depuis game-heritage.js)
+// ============================================================
+
+// Injecte les cartes héritage jouables (28, 29, …) dans la pioche existante
+// après les avoir mélangées avec les cartes déjà présentes.
+// Appelé par _continueNewRoundAfterHeritage() dans game-heritage.js.
+function _injectHeritageCardsIntoDeck(allCards) {
+  // Cartes héritage jouables = celles qui ont des faces dans LEGACY_CARDS
+  // (hors cartes déjà dans le royaume)
+  const alreadyKnown = new Set([
+    ...gameState.deck, ...gameState.play, ...gameState.discard,
+    ...(gameState.stayInPlay || []), ...(gameState.retainedCards || []),
+    ...gameState.permanent, ...(gameState.destroyed || []),
+  ].map(ci => ci.cardDef.numero));
+
+  const toInject = [];
+  if (typeof LEGACY_CARDS !== 'undefined') {
+    LEGACY_CARDS.forEach(cardData => {
+      if (!cardData.faces || cardData.faces.length === 0) return; // carte règle sans faces
+      if (alreadyKnown.has(cardData.numero)) return;             // déjà dans le royaume
+
+      // S'assurer que la carte est dans ALL_CARDS pour les résolutions ultérieures
+      if (!ALL_CARDS.find(c => c.numero === cardData.numero)) {
+        // Construire un cardDef minimal compatible avec getFaceData
+        const cardDef = {
+          numero: cardData.numero,
+          nom: cardData.nom || `Carte #${cardData.numero}`,
+          type: cardData.type || 'Evènement',
+          faces: cardData.faces,
+        };
+        ALL_CARDS.push(cardDef);
+        cardStateMap[cardData.numero] = 1;
+        toInject.push(createCardInstance(cardDef));
+      } else {
+        const existing = ALL_CARDS.find(c => c.numero === cardData.numero);
+        toInject.push(createCardInstance(existing));
+      }
+    });
+  }
+
+  if (toInject.length === 0) return;
+
+  // Mélanger les cartes à injecter avec le deck existant (allCards = futur deck)
+  toInject.forEach(ci => {
+    allCards.push(ci);
+    addLog(`📜 <span class="log-card">${getFaceData(ci).nom}</span> (#${ci.cardDef.numero}) — rejoint la pioche (Héritage) !`, true);
+  });
+  addLog(`📜 ${toInject.length} carte${toInject.length > 1 ? 's' : ''} Héritage mélangée${toInject.length > 1 ? 's' : ''} dans la pioche.`, true);
 }

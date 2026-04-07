@@ -114,7 +114,7 @@ function doRestartGame() {
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
   cardStateMap = {};
   choiceNeeded = new Set();
-  ALL_CARDS = [ ...BEGIN_CARDS, ...(typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []) ];
+  ALL_CARDS = [ ...BEGIN_CARDS ];
   gameState = {
     deck: [], play: [], staging: [], discard: [], permanent: [], destroyed: [],
     retained: [], retainedCards: [], stayInPlay: [], box: [], nextDiscoverIndex: 0,
@@ -158,27 +158,55 @@ function importGame() {
 }
 
 function _resolveCard(ref) {
-  const cardDef = ALL_CARDS.find(c => c.numero === ref.n);
+  // Chercher d'abord dans ALL_CARDS (cartes actives du royaume)
+  let cardDef = ALL_CARDS.find(c => c.numero === ref.n);
+
+  // Si introuvable, chercher dans LEGACY_CARDS (cartes héritage jouables)
+  if (!cardDef && typeof LEGACY_CARDS !== 'undefined') {
+    const legacyData = LEGACY_CARDS.find(c => c.numero === ref.n && c.faces && c.faces.length > 0);
+    if (legacyData) {
+      cardDef = {
+        numero: legacyData.numero,
+        nom: legacyData.nom || `Carte #${legacyData.numero}`,
+        type: legacyData.type || 'Evènement',
+        faces: legacyData.faces,
+      };
+      ALL_CARDS.push(cardDef); // enregistrer pour les futures résolutions
+      cardStateMap[cardDef.numero] = ref.f || 1;
+    }
+  }
+
+  // Chercher dans CARDS_TO_DISCOVER (cartes découvertes par effet)
+  if (!cardDef && typeof CARDS_TO_DISCOVER !== 'undefined') {
+    const discoverData = CARDS_TO_DISCOVER.find(c => c.numero === ref.n);
+    if (discoverData) {
+      cardDef = discoverData;
+      if (!ALL_CARDS.find(c => c.numero === cardDef.numero)) {
+        ALL_CARDS.push(cardDef);
+      }
+    }
+  }
+
   if (!cardDef) { console.warn(`Carte #${ref.n} introuvable`); return null; }
   return { cardDef, currentFace: ref.f || 1 };
 }
 
 function _restoreBox(save) {
+  // La box contient uniquement les cartes tuto (11-22) non encore découvertes.
+  // Les CARDS_TO_DISCOVER ne sont jamais dans la box : elles arrivent par effets de jeu.
   const resolved = (save.box || []).map(_resolveCard).filter(Boolean);
   if (resolved.length > 0) return resolved;
+
+  // Fallback : reconstruire la box phase 1 (cartes 11-22 non encore dans le royaume)
   const knownNums = new Set([
     ...(save.deck||[]).map(c=>c.n), ...(save.play||[]).map(c=>c.n),
     ...(save.discard||[]).map(c=>c.n), ...(save.permanent||[]).map(c=>c.n),
     ...(save.destroyed||[]).map(c=>c.n),
   ]);
-  const phase1 = ALL_CARDS.filter(c=>c.numero>=11&&c.numero<=22&&!knownNums.has(c.numero))
-    .sort((a,b)=>a.numero-b.numero).map(c=>createCardInstance(c));
-  if (!save._heritageTriggered) return phase1;
-  const phase1Nums = new Set(phase1.map(ci=>ci.cardDef.numero));
-  const phase2 = (typeof CARDS_TO_DISCOVER!=='undefined'?CARDS_TO_DISCOVER:[])
-    .filter(c=>!knownNums.has(c.numero)&&!phase1Nums.has(c.numero))
-    .sort((a,b)=>a.numero-b.numero).map(c=>createCardInstance(c));
-  return [...phase1,...phase2];
+  return BEGIN_CARDS
+    .filter(c => c.numero >= 11 && c.numero <= 22 && !knownNums.has(c.numero))
+    .sort((a, b) => a.numero - b.numero)
+    .map(c => createCardInstance(c));
 }
 
 function _applyImport(raw) {

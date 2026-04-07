@@ -138,48 +138,97 @@
         }
       ]
     },
-  { "numero": 28,
-    "faces": [
-      { "face": 1,
-        "nom": "Erruption volcanique",
-        "type": "Evènement",
-        "description": "Un volcan proche de votre royaume entre en éruption, recouvrant les terres environnantes de cendres et de lave. Les ressources deviennent plus rares, mais les terres sont plus fertiles.",
-        "Effet ": {
-          "type": "Force",
-          "description": "Tant que cette carte est en jeu, détruisez le prochain terrain que vous jouez puis retourner cette carte",
-          "face": 3
-        }
-      },
-      { "face": 3,
-        "nom": "Cendres volcaniques",
-        "type": "Terrain",
-        "description": "Les cendres volcaniques enrichissent le sol, rendant les récoltes plus abondantes.",
-        "victoire": -2,
-        "promotion": {
-          "face": 4,
-          "cout": {
-            "type": "Or",
-            "quantite": 2
+    { "numero": 28,
+      "faces": [
+        { "face": 1,
+          "nom": "Erruption volcanique",
+          "type": "Evènement",
+          "description": "Un volcan proche de votre royaume entre en éruption, recouvrant les terres environnantes de cendres et de lave. Les ressources deviennent plus rares, mais les terres sont plus fertiles.",
+          "Effet ": {
+            "type": "Force",
+            "description": "Tant que cette carte est en jeu, détruisez le prochain terrain que vous jouez puis retourner cette carte",
+            "face": 3
           }
         },
-      },
-      { "face": 4,
-        "nom": "Jeune forêt",
-        "type": "Terrain",
-        "description": "La nature reprend ses droits sur les cendres, transformant le paysage en une jeune forêt.",
-        "victoire": 1,
-        "effet": {
-          "type": "Marqueur",
-          "description": "Vous pouvez utiliser le sablier pour cocher la prochaine case vide, de haut en bas. Lorsque vous cochez une case d'un astérisque, ajoutez le sticker Bois comme production sur cette carte. Au final, cela peut produire 3 unités de bois.",
-          "cases": [
-            { "index": 1, "ressource": "Bois", "quantite": 1  },
-            { "index": 2  },
-            { "index": 3,  "ressource": "Bois", "quantite": 1  },
-            { "index": 4 },
-            { "index": 5,  "ressource": "Bois", "quantite": 1  },
-          ]
+        { "face": 3,
+          "nom": "Cendres volcaniques",
+          "type": "Terrain",
+          "description": "Les cendres volcaniques enrichissent le sol, rendant les récoltes plus abondantes.",
+          "victoire": -2,
+          "promotion": {
+            "face": 4,
+            "cout": {
+              "type": "Or",
+              "quantite": 2
+            }
+          },
+        },
+        { "face": 4,
+          "nom": "Jeune forêt",
+          "type": "Terrain",
+          "description": "La nature reprend ses droits sur les cendres, transformant le paysage en une jeune forêt.",
+          "victoire": 1,
+          "effet": {
+            "type": "Marqueur",
+            "description": "Vous pouvez utiliser le sablier pour cocher la prochaine case vide, de haut en bas. Lorsque vous cochez une case d'un astérisque, ajoutez le sticker Bois comme production sur cette carte. Au final, cela peut produire 3 unités de bois.",
+            "cases": [
+              { "index": 1, "ressource": "Bois", "quantite": 1  },
+              { "index": 2  },
+              { "index": 3,  "ressource": "Bois", "quantite": 1  },
+              { "index": 4 },
+              { "index": 5,  "ressource": "Bois", "quantite": 1  },
+            ]
+          }
         }
-      }
-    ]
-  }
+      ]
+    },
+    { "numero": 29,
+      "faces": [
+        { "face": 1,
+          "nom": "L'opportuniste",
+          "type": "Personne",
+          "description": "L'Opportuniste peut toujours s'adapter à vos besoins",
+          "ressources": { 
+            "type": "Or",
+            "quantite": 1
+          }, 
+          "promotions": [
+            { "face": 2 } , { face: 4 }
+          ]
+        },
+        { "face": 2,
+          "nom": "Le recruteur",
+          "type": "Personne",
+          "description": "Le recruteur est un maître de la persuasion, capable de rallier les talents à votre cause.",
+          "ressources": { 
+            "type": "Epée",
+            "quantite": 1
+          }, 
+          "promotions": [
+            { "face": 1 } , { face: 3 }
+          ]
+        },
+        { "face": 3,
+          "nom": "Le faux noble",
+          "type": "Personne",
+          "description": "Le faux noble est un intrigant habile, capable de manipuler les situations à son avantage.",
+          "victoire": 4, 
+          "promotions": [
+            { "face": 2 } , { face: 4 }
+          ]
+        },
+        { "face": 4,
+          "nom": "Le travailleur",
+          "type": "Personne",
+          "description": "Le travailleur est un individu dur et dévoué, capable de réaliser le travail nécessaire pour faire prospérer votre royaume.",
+          "ressources": { 
+            "type": "Pierre",
+            "quantite": 1
+          }, 
+          "promotions": [
+            { "face": 1 } , { face: 3 }
+          ]
+        },
+      ]
+    }
   ];

@@ -249,6 +249,9 @@ function confirmHeritageInspect() {
 
 // Reprend le fil de newRound() après le déclenchement de l'Héritage
 function _continueNewRoundAfterHeritage(allCards) {
+  // Injecter les cartes héritage jouables (28, 29, …) dans la pioche dès la première manche héritage
+  _injectHeritageCardsIntoDeck(allCards); // défini dans game-round.js
+
   const discovered = discoverNextCards(2);
   if (discovered.length === 0) {
     addLog(`📦 Toutes les cartes ont été découvertes.`);
