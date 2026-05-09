@@ -446,6 +446,16 @@ function canActivateEffect(cardInstance) {
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
   const act = effets.find(e => e.type === 'Activable');
   if (!act) return false;
+
+  // Vérifier si l'effet à usage unique a déjà été utilisé
+  if (act.usage_unique) {
+    if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
+    const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
+    if (gameState.usedOneTimeEffects.includes(effectId)) {
+      return false;
+    }
+  }
+
   const confirmed = getConfirmedResources();
   const costOk = (act.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite);
   if (!costOk) return false;
@@ -639,6 +649,17 @@ function confirmCardGrant() {
   if (!cardInstance) return;
 
   const fd = getFaceData(cardInstance);
+
+  // Si l'effet est à usage unique, le marquer comme utilisé
+  const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
+  const act = effets.find(e => e.type === 'Activable');
+  if (act && act.usage_unique) {
+    if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
+    const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
+    if (!gameState.usedOneTimeEffects.includes(effectId)) {
+      gameState.usedOneTimeEffects.push(effectId);
+    }
+  }
 
   // Retirer la carte source du jeu et la mettre en défausse
   _playRemove(_playIdxByNum(cardInstance.cardDef.numero));
@@ -1412,7 +1433,8 @@ function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
   const newTerrains = gameState.play.filter(ci => {
     if (!newCardNums.has(ci.cardDef.numero)) return false;
     const fd = getFaceData(ci);
-    return fd.type === 'Terrain' || fd.type === 'Bâtiment' || fd.type === 'Batiment'
+    const isPermanent = gameState.permanent.some(p => p.cardDef.numero === ci.cardDef.numero);
+    return !isPermanent && (fd.type === 'Terrain' || fd.type === 'Bâtiment' || fd.type === 'Batiment')
       ? fd.type === 'Terrain' // uniquement les vrais Terrains (bannière verte)
       : false;
   }).filter(ci => {
@@ -1420,21 +1442,14 @@ function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
     return ci.cardDef.numero !== 28;
   });
 
-  // Filtrer : uniquement les Terrains (type === 'Terrain')
-  const terrainCandidates = gameState.play.filter(ci => {
-    if (!newCardNums.has(ci.cardDef.numero)) return false;
-    const fd = getFaceData(ci);
-    return fd.type === 'Terrain';
-  });
+  if (newTerrains.length === 0) return; // Pas de terrain → pas d'effet
 
-  if (terrainCandidates.length === 0) return; // Pas de terrain → pas d'effet
-
-  if (terrainCandidates.length === 1) {
+  if (newTerrains.length === 1) {
     // Auto-destruction
-    _applyEruptionDestruction(terrainCandidates[0]);
+    _applyEruptionDestruction(newTerrains[0]);
   } else {
     // Plusieurs terrains → choix du joueur
-    _showEruptionChoiceModal(terrainCandidates);
+    _showEruptionChoiceModal(newTerrains);
   }
 }
 

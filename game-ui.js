@@ -1,4 +1,60 @@
 // ============================================================
+//  GESTIONNAIRE DE CLICS (simple/double)
+// ============================================================
+const cardClickHandler = {
+  timer: null,
+  lastCardNum: null,
+  clickTimeout: 250, // ms
+
+  handle: function(event, cardNum, zone) {
+    event.stopPropagation();
+
+    // Si on clique sur une autre carte, on annule le timer précédent
+    if (this.lastCardNum !== cardNum && this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.lastCardNum = cardNum;
+
+    if (this.timer) {
+      // Double-clic détecté
+      clearTimeout(this.timer);
+      this.timer = null;
+      _handleCardDoubleClick(cardNum, zone);
+    } else {
+      // Premier clic, on lance un timer
+      this.timer = setTimeout(() => {
+        _handleCardSingleClick(cardNum, zone);
+        this.timer = null;
+        this.lastCardNum = null;
+      }, this.clickTimeout);
+    }
+  }
+};
+
+function _handleCardSingleClick(cardNum, zone) {
+  openCardModal(cardNum, zone);
+}
+
+function _handleCardDoubleClick(cardNum, zone) {
+  let cardInstance;
+  if (zone === 'play') { cardInstance = gameState.play.find(c => c.cardDef.numero === cardNum); }
+  else if (zone === 'retained') { cardInstance = (gameState.retainedCards || []).find(c => c.cardDef.numero === cardNum); }
+  else if (zone === 'stayInPlay') { cardInstance = (gameState.stayInPlay || []).find(c => c.cardDef.numero === cardNum); }
+
+  if (!cardInstance) return;
+
+  const face = getFaceData(cardInstance);
+  const hasResources = face.ressources && face.ressources.length > 0;
+
+  if (hasResources) {
+    if (zone === 'play') { stageProduceCard(cardNum); }
+    else if (zone === 'retained') { stageProduceRetainedCard(cardNum); }
+    else if (zone === 'stayInPlay') { stageProduceStayCard(cardNum); }
+  }
+}
+
+// ============================================================
 //  RENDER — cartes en jeu
 // ============================================================
 function buildCardFrontHTML(cardInstance, playIndex) {
@@ -85,7 +141,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
 
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}${isActionable ? ' card-wrapper-actionable' : ''}" data-card-num="${cardInstance.cardDef.numero}">
-      <div class="card card-front" onclick="openCardModal(${cardInstance.cardDef.numero},'play')"
+      <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardInstance.cardDef.numero}, 'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
@@ -447,7 +503,7 @@ function buildHeldCardHTML(cardInstance, source) {
 
   return `
     <div class="card-wrapper${isActionable ? ' card-wrapper-actionable' : ''}" data-held-num="${cardNum}" data-held-source="${source}">
-      <div class="card card-front" onclick="openCardModal(${cardNum},'${source}')"
+      <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardNum}, '${source}')"
            style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
         <div class="card-serial" style="color:${serialColor};">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
@@ -499,6 +555,7 @@ function updateUI() {
     $('#deckVisual').hide();
   } else {
     $('#deckVisual').show();
+    $('#topDeckCard').css('cursor', 'pointer').attr('onclick', 'showDeckPile()');
     const topCard = gameState.deck[0];
     const topFace = getFaceData(topCard);
     const topResHTML = (topFace.ressources && topFace.ressources.length)
@@ -753,6 +810,16 @@ function openCardModal(indexOrNum, zone) {
 
     efs.forEach(e => {
       const cfg = _typeCfg[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.12)', icon:'⚡' };
+
+      let usedTag = '';
+      if (e.usage_unique) {
+        if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
+        const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
+        if (gameState.usedOneTimeEffects.includes(effectId)) {
+          usedTag = `<span style="background:#424242;color:#9E9E9E;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">✔️ UTILISÉ</span>`;
+        }
+      }
+
       const defTag = e.defausse === true
         ? `<span style="background:#b71c1c;color:#fff;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">⚠️ Se défausse</span>`
         : e.defausse === false
@@ -763,7 +830,7 @@ function openCardModal(indexOrNum, zone) {
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
           <span style="background:${cfg.border};color:#fff;font-size:0.65rem;font-weight:700;
             padding:2px 8px;border-radius:8px;font-family:'Cinzel',serif;letter-spacing:0.5px;">
-            ${cfg.icon} ${e.type}</span>${defTag}
+            ${cfg.icon} ${e.type}</span>${defTag}${usedTag}
         </div>`;
       if (e.description) {
         body += `<p style="margin:0 0 6px;font-family:'Crimson Text',serif;font-size:0.95rem;
@@ -1091,12 +1158,34 @@ function openCardModal(indexOrNum, zone) {
   new bootstrap.Modal(document.getElementById('cardModal')).show();
 }
 
+function showDeckPile() {
+  const $g = $('#deckPileGrid'); $g.empty();
+  // On affiche les cartes dans l'ordre de la pioche (haut vers bas)
+  gameState.deck.forEach(ci => {
+    const f = getFaceData(ci);
+    $g.append(`<div style="text-align:center;"><div 
+      onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
+      onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
+      style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} F${ci.currentFace}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
+      <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
+      <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>
+      ${f.victoire?`<div style="font-size:0.5rem;color:var(--gold);">★${f.victoire}</div>`:''}
+    </div></div>`);
+  });
+  new bootstrap.Modal(document.getElementById('deckModal')).show();
+}
+
 
 function showDiscardPile() {
   const $g = $('#discardPileGrid'); $g.empty();
   [...gameState.discard].reverse().forEach(ci => {
     const f = getFaceData(ci);
-    $g.append(`<div style="text-align:center;"><div style="width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
+    $g.append(`<div style="text-align:center;"><div 
+      onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
+      onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
+      style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
       <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} F${ci.currentFace}</div>
       <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
       <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>

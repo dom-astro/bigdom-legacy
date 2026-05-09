@@ -111,7 +111,7 @@
         <div class="deck-stack" id="deckVisual">
           <div class="deck-shadow"></div>
           <div class="deck-shadow"></div>
-          <div class="card-front" id="topDeckCard" style="cursor:pointer;" onclick="drawCards(window.gameState && window.gameState.turnStarted ? 2 : 4)" title="Nouvelle manche : 4 cartes | En cours : 2 cartes"></div>
+          <div class="card-front" id="topDeckCard"></div>
         </div>
         <div class="deck-info" id="deckCount">10 cartes</div>
       </div>
@@ -1139,6 +1139,22 @@
         <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:1px;background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);color:var(--stone-light);padding:7px 16px;border-radius:6px;">✕ Fermer</button>
       </div>
       <div style="height:4px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold-light),var(--gold),transparent);"></div>
+    </div>
+  </div>
+</div>
+<!-- Deck Pile Modal -->
+<div class="modal fade" id="deckModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:#1a1208;border:2px solid var(--border-ornate);">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-family:'Cinzel',serif;color:var(--gold-light);">📚 Pioche</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="deckPileGrid" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+          <!-- Les cartes de la pioche seront injectées ici par JavaScript -->
+        </div>
+      </div>
     </div>
   </div>
 </div>

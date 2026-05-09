@@ -1653,7 +1653,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Défaussez cette carte pour découvrir la carte #103.",
+         "description": "Défaussez cette carte pour découvrir la carte #103. Cet effet ne peut être utilisé qu'une seule fois.",
           "cout": [
             {
               "type": "Or",

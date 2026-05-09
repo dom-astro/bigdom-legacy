@@ -115,6 +115,7 @@ function _startGameWithName(name) {
     resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false,
+    usedOneTimeEffects: [],
     kingdomName: name,
   };
 
