@@ -1066,32 +1066,48 @@ function getStickerResourceBonusForCard(cardNum) {
  */
 function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
   const ressources = face.ressources || [];
-  if (!ressources.length) return '';
-
   const stickerBonus = getStickerResourceBonusForCard(cardNum);
   const fStyle = fontSize ? `font-size:${fontSize};` : '';
-
   // Couleur bleu héritage unique pour tout chip modifié par un sticker
   const HERITAGE_BLUE = { bg: 'rgba(42,90,154,0.45)', border: '#4a8abf', text: '#aaddff' };
 
-  return ressources.map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => {
-      const resKey = normalizeRes(t);
-      const isGoldBlocked = blocked && resKey === 'Or';
-      const bonus = stickerBonus[resKey] || 0;
-      const totalQte = r.quantite + bonus;
+  let html = '';
+  const processedStickers = { ...stickerBonus };
 
-      if (bonus > 0) {
-        return `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
-          ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
-          `${RESOURCE_ICONS[resKey]||t} ×${totalQte}` +
-          `</span>`;
-      }
+  if (ressources.length > 0) {
+    html += ressources.map(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      return types.map(t => {
+        const resKey = normalizeRes(t);
+        const isGoldBlocked = blocked && resKey === 'Or';
+        const bonus = processedStickers[resKey] || 0;
+        const totalQte = r.quantite + bonus;
+        
+        delete processedStickers[resKey];
 
-      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}" style="${fStyle}">${RESOURCE_ICONS[resKey]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+        if (bonus > 0) {
+          return `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
+            ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
+            `${RESOURCE_ICONS[resKey]||t} ×${totalQte}${isGoldBlocked ? ' 🚫' : ''}` +
+            `</span>`;
+        }
+
+        return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}" style="${fStyle}">${RESOURCE_ICONS[resKey]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+      }).join('');
     }).join('');
-  }).join('');
+  }
+
+  Object.entries(processedStickers).forEach(([resKey, bonus]) => {
+    if (bonus > 0) {
+      const isGoldBlocked = blocked && resKey === 'Or';
+      html += `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
+        ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
+        `${RESOURCE_ICONS[resKey]||resKey} ×${bonus}${isGoldBlocked ? ' 🚫' : ''}` +
+        `</span>`;
+    }
+  });
+
+  return html;
 }
 
 // --- modal generique de pose d'autocollant -------------------

@@ -56,25 +56,38 @@ function stageProduceCard(cardNum) {
   if (playIndex < 0) return;
   const cardInstance = gameState.play[playIndex];
   const faceData = getFaceData(cardInstance);
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
 
-  if (!faceData.ressources || faceData.ressources.length === 0) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }
 
   // Vérifier si cette carte est bloquée par un bandit pour la production d'Or
   if (isBlockedByBandit(playIndex)) {
-    addLog(`🗡️ <span class="log-card">${faceData.nom}</span> est bloquée par un Bandit — impossible de produire de l'Or !`);
+    addLog(`🗡️ <span class="log-card">${faceData.nom}</span> est bloquée par un Bandit — impossible de produire !`);
     return;
   }
 
   const resourcesGained = {};
-  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
-  faceData.ressources.forEach(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
+  
+  if (faceData.ressources) {
+    faceData.ressources.forEach(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      types.forEach(t => {
+        const key = normalizeRes(t);
+        if (key && gameState.resources[key] !== undefined) {
+          resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+        }
+      });
+    });
+  }
+
+  Object.entries(stickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   _playRemove(playIndex);
@@ -237,19 +250,31 @@ function stageProduceStayCard(cardNum) {
   const ci = gameState.stayInPlay.find(c => c.cardDef.numero === cardNum);
   if (!ci) return;
   const faceData = getFaceData(ci);
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
 
-  if (!faceData.ressources || faceData.ressources.length === 0) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }
 
   const resourcesGained = {};
-  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
-  faceData.ressources.forEach(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
+  if (faceData.ressources) {
+    faceData.ressources.forEach(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      types.forEach(t => {
+        const key = normalizeRes(t);
+        if (key && gameState.resources[key] !== undefined) {
+          resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+        }
+      });
+    });
+  }
+
+  Object.entries(stickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
@@ -331,19 +356,31 @@ function stageProduceRetainedCard(cardNum) {
   const ci = gameState.retainedCards.find(c => c.cardDef.numero === cardNum);
   if (!ci) return;
   const faceData = getFaceData(ci);
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
 
-  if (!faceData.ressources || faceData.ressources.length === 0) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }
 
   const resourcesGained = {};
-  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
-  faceData.ressources.forEach(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
+  if (faceData.ressources) {
+    faceData.ressources.forEach(r => {
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      types.forEach(t => {
+        const key = normalizeRes(t);
+        if (key && gameState.resources[key] !== undefined) {
+          resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+        }
+      });
+    });
+  }
+
+  Object.entries(stickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);

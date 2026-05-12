@@ -45,7 +45,9 @@ function _handleCardDoubleClick(cardNum, zone) {
   if (!cardInstance) return;
 
   const face = getFaceData(cardInstance);
-  const hasResources = face.ressources && face.ressources.length > 0;
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
 
   if (hasResources) {
     if (zone === 'play') { stageProduceCard(cardNum); }
@@ -60,7 +62,9 @@ function _handleCardDoubleClick(cardNum, zone) {
 function buildCardFrontHTML(cardInstance, playIndex) {
   const face = getFaceData(cardInstance);
   const hasUpgrade = !!(face.promotion || (face.promotions && face.promotions.length > 0));
-  const hasResources = face.ressources && face.ressources.length > 0;
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
   const banditCard = isBandit(cardInstance);
   const blocked = isBlockedByBandit(playIndex);
   const totalFaces = cardInstance.cardDef.faces.length;
@@ -467,6 +471,9 @@ function buildHeldCardHTML(cardInstance, source) {
 
   const isRetained   = source === 'retained';
   const isStayInPlay = source === 'stayInPlay';
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
 
   // Palette : dorée chaude pour les deux, badge texte différencié
   const borderColor    = '#c8960c';
@@ -495,7 +502,6 @@ function buildHeldCardHTML(cardInstance, source) {
   // Disponibilité réelle (bouton actif, surbrillance) : ressources confirmées uniquement
   const canUpgradeConfirmed = allPromos.length > 0 && !upgradeAlreadyStaged &&
     allPromos.some(p => (p.cout||[]).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
-  const hasResources = face.ressources && face.ressources.length > 0;
   const hasActivable = !isBandit(cardInstance) && hasActivableEffect(cardInstance);
   const canActivate  = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
   const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
@@ -812,27 +818,44 @@ function openCardModal(indexOrNum, zone) {
   }
 
   // — Production
-  if (face.ressources && face.ressources.length) {
-    const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
-    const resPips = face.ressources.map(r => {
-      const types = Array.isArray(r.type) ? r.type : [r.type];
-      return types.map(t => {
-        const resKey = normalizeRes(t);
-        const bonus = stickerBonus[resKey] || 0;
-        const totalQte = r.quantite + bonus;
-        const icon = RESOURCE_ICONS[resKey] || t;
-        const isBonus = bonus > 0;
-        const bg = isBonus ? 'rgba(42,90,154,0.18)' : 'rgba(200,150,12,0.12)';
-        const border = isBonus ? 'rgba(74,138,191,0.5)' : 'rgba(200,150,12,0.3)';
-        const colorTag = isBonus ? 'color:#aaddff;' : '';
-        return `<span style="display:inline-flex;align-items:center;gap:4px;
-          background:${bg};border:1px solid ${border};
-          border-radius:12px;padding:3px 10px;font-size:0.88rem;${colorTag}">
-          ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;">×${totalQte}</strong>
-          <span style="font-size:0.65rem;opacity:0.7;">${t}</span>
-        </span>`;
-      }).join('');
-    }).join('');
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
+  const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
+
+  if (hasResources) {
+    const baseRes = {};
+    if (face.ressources) {
+      face.ressources.forEach(r => {
+        const types = Array.isArray(r.type) ? r.type : [r.type];
+        types.forEach(t => {
+          const resKey = normalizeRes(t);
+          baseRes[resKey] = (baseRes[resKey] || 0) + r.quantite;
+        });
+      });
+    }
+
+    const allKeys = new Set([...Object.keys(baseRes), ...Object.keys(stickerBonus)]);
+    let resPips = '';
+
+    allKeys.forEach(resKey => {
+      const baseQte = baseRes[resKey] || 0;
+      const bonus = stickerBonus[resKey] || 0;
+      const totalQte = baseQte + bonus;
+
+      const isBonus = bonus > 0;
+      const icon = RESOURCE_ICONS[resKey] || resKey;
+      const bg = isBonus ? 'rgba(42,90,154,0.18)' : 'rgba(200,150,12,0.12)';
+      const border = isBonus ? 'rgba(74,138,191,0.5)' : 'rgba(200,150,12,0.3)';
+      const colorTag = isBonus ? 'color:#aaddff;' : '';
+      
+      resPips += `<span style="display:inline-flex;align-items:center;gap:4px;
+        background:${bg};border:1px solid ${border};
+        border-radius:12px;padding:3px 10px;font-size:0.88rem;${colorTag}">
+        ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;">×${totalQte}</strong>
+        <span style="font-size:0.65rem;opacity:0.7;">${resKey}</span>
+      </span>`;
+    });
+
     body += `<div style="margin-bottom:14px;">
       <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚒ Production</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;">${resPips}</div>
@@ -1203,7 +1226,7 @@ function openCardModal(indexOrNum, zone) {
   const canModalActivate = hasModalActivable && canActivateEffect(cardInstance);
 
   $('#modalProduceBtn')
-    .toggle(inPlay && !!(face.ressources && face.ressources.length))
+    .toggle(inPlay && hasResources)
     .off('click').on('click', () => {
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
       if (isRetained) stageProduceRetainedCard(modalCardIndex);

@@ -141,7 +141,7 @@
     { "numero": 28,
       "faces": [
         { "face": 1,
-          "nom": "Erruption volcanique",
+          "nom": "Eruption volcanique",
           "type": "Evènement",
           "description": "Un volcan proche de votre royaume entre en éruption, recouvrant les terres environnantes de cendres et de lave. Les ressources deviennent plus rares, mais les terres sont plus fertiles.",
           "Effet ": {

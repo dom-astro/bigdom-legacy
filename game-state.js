@@ -74,6 +74,7 @@ function getCardEmoji(type, nom) {
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯',
     'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍍',
     'Lac':'🏞️','Bateau de Pêche':'⛵','Chalet du Pêcheur':'🏡','Phare':'🗼',
+    'Eruption volcanique':'🌋',
   }[nom]) || TYPE_ICONS[type] || '📄';
 }
 
