@@ -121,6 +121,18 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     (banditCard && canDefeat) ||
     (!banditCard && (canUpgradeConfirmed || canActivate || hasDestruction || hasRetention))
   );
+  
+  let activateBtnTitle = 'Activer l\'effet';
+  if (!canActivate) {
+    const failureReason = getActivationFailureReason(cardInstance);
+    if (failureReason === 'used_one_time') {
+      activateBtnTitle = 'Déjà utilisé';
+    } else if (failureReason === 'all_targets_discovered') {
+      activateBtnTitle = 'Cartes cibles déjà découvertes';
+    } else {
+      activateBtnTitle = 'Ressources insuffisantes ou conditions non remplies';
+    }
+  }
 
   const actionBtns = [];
   if (banditCard) {
@@ -131,7 +143,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     }
   } else if (!blocked) {
     if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceCard(${cardInstance.cardDef.numero})">⚒ Prod.</button>`);
-    if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${cardInstance.cardDef.numero})" title="Effet activable">🟢 Activer</button>`);
+    if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateEffect(${cardInstance.cardDef.numero})" title="${activateBtnTitle}">🟢 Activer</button>`);
     if (hasDestruction) actionBtns.push(`<button class="card-action-btn btn-destroy-action" onclick="event.stopPropagation();triggerDestructionEffect(${cardInstance.cardDef.numero})" title="Sacrifier cette carte pour découvrir une autre">💥 Sacrifier</button>`);
     if (hasRetention) actionBtns.push(`<button class="card-action-btn btn-retention-action${isAlreadyRetained?' btn-retention-active':''}" onclick="event.stopPropagation();triggerRetentionEffect(${cardInstance.cardDef.numero})" title="Défausser pour retenir des cartes au prochain tour">🕊️ ${isAlreadyRetained?'Annuler':'Retenir'}</button>`);
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
@@ -475,6 +487,18 @@ function buildHeldCardHTML(cardInstance, source) {
   const hasActivable = !isBandit(cardInstance) && hasActivableEffect(cardInstance);
   const canActivate  = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
   const alreadyStaged = gameState.staging.some(e => e.cardInstance.cardDef.numero === cardNum);
+  
+  let activateBtnTitle = 'Effet activable';
+  if (!canActivate) {
+    const failureReason = getActivationFailureReason(cardInstance);
+    if (failureReason === 'used_one_time') {
+      activateBtnTitle = 'Déjà utilisé';
+    } else if (failureReason === 'all_targets_discovered') {
+      activateBtnTitle = 'Cartes cibles déjà découvertes';
+    } else {
+      activateBtnTitle = 'Ressources insuffisantes ou conditions non remplies';
+    }
+  }
 
   // Surbrillance : action non-production faisable avec ressources confirmées
   const isBanditCard2 = isBandit(cardInstance);
@@ -493,7 +517,7 @@ function buildHeldCardHTML(cardInstance, source) {
       actionBtns.push(`<button class="card-action-btn btn-defeat-bandit${canDefeat ? '' : ' btn-upgrade-disabled'}" onclick="event.stopPropagation();defeatBandit(${cardNum})" ${canDefeat ? '' : 'disabled'}>⚔️ Vaincre (1⚔️)</button>`);
     } else if (isRetained) {
       if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceRetainedCard(${cardNum})">⚒ Prod.</button>`);
-      if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})">🟢 Activer</button>`);
+      if (hasActivable) actionBtns.push(`<button class="card-action-btn btn-activate-action${canActivate?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageActivateRetainedEffect(${cardNum})" title="${activateBtnTitle}">🟢 Activer</button>`);
       if (allPromos.length > 0) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeRetainedCard(${cardNum})">▲ Prom.</button>`);
     } else {
       if (hasResources) actionBtns.push(`<button class="card-action-btn btn-discard-action" onclick="event.stopPropagation();stageProduceStayCard(${cardNum})">⚒ Prod.</button>`);

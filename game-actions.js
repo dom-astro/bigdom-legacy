@@ -431,6 +431,67 @@ function confirmFaceChoice() {
 // ============================================================
 //  EFFETS ACTIVABLES
 // ============================================================
+// Retourne la raison pour laquelle un effet activable ne peut pas être utilisé,
+// ou null si l'effet est activable.
+function getActivationFailureReason(cardInstance) {
+  const fd = getFaceData(cardInstance);
+  if (!fd.effet) return null; // Pas d'effet
+  const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
+  const act = effets.find(e => e.type === 'Activable');
+  if (!act) return null; // Pas d'effet activable
+
+  // Vérifier si l'effet à usage unique a déjà été utilisé
+  if (act.usage_unique) {
+    if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
+    const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
+    if (gameState.usedOneTimeEffects.includes(effectId)) {
+      return 'used_one_time';
+    }
+  }
+
+  const confirmed = getConfirmedResources();
+  const costOk = (act.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite);
+  if (!costOk) return 'insufficient_resources';
+
+  // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
+  if (act.defausse) {
+    const playIdx = gameState.play.indexOf(cardInstance);
+    const allies = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type !== 'Ennemi');
+    if (allies.length === 0) return 'no_sacrifice_target';
+  }
+  // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
+  const hasTerrainRes = (act.ressources || []).some(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.some(t => t === 'Terrain');
+  });
+  if (hasTerrainRes) {
+    const playIdx = gameState.play.indexOf(cardInstance);
+    const terrains = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type === 'Terrain');
+    if (terrains.length === 0) return 'no_terrain_target';
+  }
+  // Si l'effet est une conversion, vérifier qu'un Bandit est en jeu
+  if (act.conversion) {
+    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
+    if (bandits.length === 0) return 'no_bandit_target';
+  }
+  // Si l'effet recrute un Terrain depuis la défausse, vérifier qu'il y en a un
+  if (act.recruteTerrain) {
+    const terrainsDefausse = gameState.discard.filter(ci => getFaceData(ci).type === 'Terrain');
+    if (terrainsDefausse.length === 0) return 'no_discard_terrain';
+  }
+  // Si l'effet découvre des cartes, vérifier si toutes les cibles sont déjà dans le royaume.
+  if (act.cartes && act.cartes.length > 0) {
+    const alreadyInKingdom = new Set([
+      ...gameState.deck, ...gameState.play, ...gameState.discard,
+      ...gameState.permanent, ...(gameState.retainedCards || []),
+      ...(gameState.stayInPlay || []), ...(gameState.destroyed || []),
+      ...gameState.box
+    ].map(ci => ci.cardDef.numero));
+    const allTargetsOwned = act.cartes.every(num => alreadyInKingdom.has(num));
+    if (allTargetsOwned) return 'all_targets_discovered';
+  }
+  return null; // Peut être activé
+}
 
 // Vérifie si une carte a un effet Activable et si son coût est payable
 function hasActivableEffect(cardInstance) {
@@ -441,51 +502,7 @@ function hasActivableEffect(cardInstance) {
 }
 
 function canActivateEffect(cardInstance) {
-  const fd = getFaceData(cardInstance);
-  if (!fd.effet) return false;
-  const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
-  const act = effets.find(e => e.type === 'Activable');
-  if (!act) return false;
-
-  // Vérifier si l'effet à usage unique a déjà été utilisé
-  if (act.usage_unique) {
-    if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
-    const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
-    if (gameState.usedOneTimeEffects.includes(effectId)) {
-      return false;
-    }
-  }
-
-  const confirmed = getConfirmedResources();
-  const costOk = (act.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite);
-  if (!costOk) return false;
-  // Si l'effet nécessite un sacrifice, vérifier qu'une autre carte est disponible en jeu
-  if (act.defausse) {
-    const playIdx = gameState.play.indexOf(cardInstance);
-    const allies = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type !== 'Ennemi');
-    if (allies.length === 0) return false;
-  }
-  // Si l'effet nécessite un Terrain, vérifier qu'il y en a au moins un en jeu
-  const hasTerrainRes = (act.ressources || []).some(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.some(t => t === 'Terrain');
-  });
-  if (hasTerrainRes) {
-    const playIdx = gameState.play.indexOf(cardInstance);
-    const terrains = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type === 'Terrain');
-    if (terrains.length === 0) return false;
-  }
-  // Si l'effet est une conversion, vérifier qu'un Bandit est en jeu
-  if (act.conversion) {
-    const bandits = gameState.play.filter(ci => getFaceData(ci).type === 'Ennemi' && getFaceData(ci).nom === 'Bandit');
-    if (bandits.length === 0) return false;
-  }
-  // Si l'effet recrute un Terrain depuis la défausse, vérifier qu'il y en a un
-  if (act.recruteTerrain) {
-    const terrainsDefausse = gameState.discard.filter(ci => getFaceData(ci).type === 'Terrain');
-    if (terrainsDefausse.length === 0) return false;
-  }
-  return true;
+  return getActivationFailureReason(cardInstance) === null;
 }
 
 // Active l'effet activable : met en staging une action 'activate'
@@ -515,7 +532,7 @@ function stageActivateEffect(cardNum) {
       return;
     }
     showRecruteTerrainModal(playIndex, act, terrainsDefausse);
-    return;
+    return true;
   }
 
   // Effet de conversion (Missionnaire) : choisir un Bandit en jeu
@@ -526,7 +543,7 @@ function stageActivateEffect(cardNum) {
       return;
     }
     showConversionModal(playIndex, act, bandits);
-    return;
+    return true;
   }
 
   // Effet avec défausse alliée : ouvre un modal pour choisir la carte à défausser
@@ -537,7 +554,7 @@ function stageActivateEffect(cardNum) {
       return;
     }
     showSacrificeModal(playIndex, act, candidates);
-    return;
+    return true;
   }
 
   // Effet Exploitant : ressources de type "Terrain" → choisir un Terrain en jeu
@@ -552,7 +569,7 @@ function stageActivateEffect(cardNum) {
       return;
     }
     showTerrainChoiceModal(playIndex, act, terrains);
-    return;
+    return true;
   }
 
   // Effet Domestique : ressources au choix parmi plusieurs types (ex: [Or, Bois, Pierre])
@@ -562,16 +579,18 @@ function stageActivateEffect(cardNum) {
   });
   if (hasMultiTypeResource) {
     showResourceChoiceModal(playIndex, act);
-    return;
+    return true;
   }
 
-  // Effet avec cartes : afficher la carte obtenue puis défausser la source et l'ajouter en défausse
+  // Effet avec cartes : afficher la carte obtenue puis défausser la source et l'ajouter en défausse (ex: Chapelle)
   if (act.cartes && act.cartes.length > 0) {
     _doActivateWithCards(playIndex, act);
-    return;
+    return true;
   }
 
   _doStageActivate(playIndex, act);
+
+  return false;
 }
 
 // Activation d'un effet qui ajoute une carte (ex: Chapelle → Cathédrale #103)
@@ -678,6 +697,11 @@ function confirmCardGrant() {
   window._pendingCardGrant = null;
   if (!cardInstance) return;
 
+  // Clean up the pending retained flag, since the action is now confirmed.
+  if (window._pendingRetainedActivateNum) {
+    window._pendingRetainedActivateNum = null;
+  }
+
   const fd = getFaceData(cardInstance);
 
   // Si l'effet est à usage unique, le marquer comme utilisé
@@ -772,6 +796,12 @@ function cancelSacrificeModal() {
   const playIndex = window._pendingSacrificePlayIndex;
   window._pendingSacrificePlayIndex = null;
   window._pendingSacrificeAct = null;
+
+  const fromRetained = !!window._pendingRetainedActivateNum;
+  if (fromRetained) {
+    window._pendingRetainedActivateNum = null;
+  }
+
   _restoreRetainedIfNeeded(playIndex);
 }
 
@@ -781,6 +811,11 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
   const act = window._pendingSacrificeAct;
   window._pendingSacrificePlayIndex = null;
   window._pendingSacrificeAct = null;
+
+  const fromRetained = !!window._pendingRetainedActivateNum;
+  if (fromRetained) {
+    window._pendingRetainedActivateNum = null;
+  }
 
   const plainesCard  = gameState.play[plainesPlayIndex];
   const sacrificeCard = gameState.play[sacrificePlayIndex];
@@ -809,7 +844,8 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
     fameGained: 0,
     newFace: null,
     cout: act.cout || [],
-    sacrificeCardInstance: sacrificeCard   // stocké ici, défaussé à la confirmation
+    sacrificeCardInstance: sacrificeCard,   // stocké ici, défaussé à la confirmation
+    fromRetainedCards: fromRetained
   });
 
   addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> — en attente de confirmation (${resStr}).`);
@@ -868,6 +904,11 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
   window._pendingTerrainPlayIndex = null;
   window._pendingTerrainAct = null;
 
+  const fromRetained = !!window._pendingRetainedActivateNum;
+  if (fromRetained) {
+    window._pendingRetainedActivateNum = null;
+  }
+
   const exploitantCard = gameState.play[exploitantPlayIndex];
   const terrainCard    = gameState.play[terrainPlayIndex];
   const terrainFace    = getFaceData(terrainCard);
@@ -893,7 +934,8 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
     fameGained: 0,
     newFace: null,
     cout: [],
-    terrainName: terrainFace.nom
+    terrainName: terrainFace.nom,
+    fromRetainedCards: fromRetained
   });
 
   addLog(`🟢 <span class="log-card">${exploitantName}</span> exploite <span class="log-card">${terrainFace.nom}</span> — ${resStr} en attente.`);
@@ -957,6 +999,11 @@ function confirmRecruteTerrain(hotelPlayIndex, discardIdx) {
   bootstrap.Modal.getInstance(document.getElementById('recruteTerrainModal'))?.hide();
   window._pendingRecrutePlayIndex = null;
 
+  // Clean up the pending retained flag, since the action is now confirmed.
+  if (window._pendingRetainedActivateNum) {
+    window._pendingRetainedActivateNum = null;
+  }
+
   const hotelCard   = gameState.play[hotelPlayIndex];
   const terrainCard = gameState.discard[discardIdx];
   if (!hotelCard || !terrainCard) return;
@@ -975,8 +1022,6 @@ function confirmRecruteTerrain(hotelPlayIndex, discardIdx) {
   addLog(`🏛 <span class="log-card">${hotelName}</span> — défaussée pour recruter <span class="log-card">${terrainName}</span> depuis la défausse.`, true);
   updateUI();
 }
-
-
 
 // ── DOMESTIQUE : choisir 1 ressource parmi plusieurs types ──
 function showResourceChoiceModal(playIndex, act) {
@@ -1017,6 +1062,11 @@ function confirmResourceChoice(playIndex, choiceIdx) {
   window._pendingResourcePlayIndex = null;
   window._pendingResourceAct       = null;
 
+  const fromRetained = !!window._pendingRetainedActivateNum;
+  if (fromRetained) {
+    window._pendingRetainedActivateNum = null;
+  }
+
   const chosen = choices[choiceIdx];
   if (!chosen) return;
 
@@ -1034,7 +1084,8 @@ function confirmResourceChoice(playIndex, choiceIdx) {
     resourcesGained,
     fameGained: 0,
     newFace: null,
-    cout: act.cout || []
+    cout: act.cout || [],
+    fromRetainedCards: fromRetained
   });
 
   addLog(`🟢 <span class="log-card">${fd.nom}</span> — ${resStr} en attente de confirmation.`);
@@ -1367,9 +1418,7 @@ function closeConversionReveal() {
 // ============================================================
 
 function showConversionModal(missionairePlayIndex, act, bandits) {
-  window._pendingConversion = { missionairePlayIndex, act };
-
-  // Titre spécifique au Missionnaire
+ // Titre spécifique au Missionnaire (réutilise la modale de sacrifice)
   $('#sacrificeChoiceTitle').html(`✝️ Missionnaire — Choisir un Bandit à convertir`);
 
   let html = `<p style="margin-bottom:12px;font-family:'Crimson Text',serif;font-size:0.9rem;color:#f5e6c8;">
@@ -1381,8 +1430,7 @@ function showConversionModal(missionairePlayIndex, act, bandits) {
     const f = getFaceData(ci);
     const face2 = ci.cardDef.faces.find(f2 => f2.face === 2);
     const face2Name = face2 ? face2.nom : '?';
-    const actualIdx = gameState.play.indexOf(ci);
-    html += `<button onclick="confirmConversion(${actualIdx})" class="sacrifice-choice-btn">
+    html += `<button onclick="selectConversionTarget(${ci.cardDef.numero})" class="sacrifice-choice-btn" id="convTargetBtn_${ci.cardDef.numero}">
       <span class="sacrifice-emoji">✝️</span>
       <span class="sacrifice-info">
         <strong>${f.nom}</strong> #${ci.cardDef.numero}
@@ -1391,16 +1439,63 @@ function showConversionModal(missionairePlayIndex, act, bandits) {
     </button>`;
   });
 
-  html += `</div>
-  <button onclick="cancelConversionModal()" class="btn btn-sm"
-    style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
-    border:1px solid #7a5a20;color:#c8a050;font-family:'Cinzel',serif;font-size:0.75rem;
-    letter-spacing:1px;padding:6px;">
-    ✕ Annuler
-  </button>`;
+  html += `</div>`;
 
+  // Boutons d'action
+  html += `<div style="text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;">
+    <button onclick="cancelConversionModal()" class="btn"
+      style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:1px;
+      background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);
+      color:var(--stone-light);padding:8px 18px;border-radius:6px;cursor:pointer;">
+      ✕ Annuler
+    </button>
+    <button id="btnConfirmConversion" onclick="confirmConversion()" disabled style="
+      font-family:'Cinzel',serif;font-weight:700;font-size:0.72rem;letter-spacing:1px;
+      background:rgba(0,0,0,0.4);border:2px solid #444;color:#666;
+      padding:8px 22px;border-radius:6px;cursor:not-allowed;transition:all 0.2s;">
+      ✝️ Convertir
+    </button>
+  </div>`;
+
+  window._pendingConversion = { missionairePlayIndex, act, bandits };
+  window._pendingConversion.selectedBanditNum = null; // Initialiser la sélection
   $('#sacrificeChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+}
+
+// Sélectionne un Bandit cible dans la modale de conversion
+function selectConversionTarget(banditNum) {
+  const { bandits } = window._pendingConversion;
+  window._pendingConversion.selectedBanditNum = banditNum;
+
+  // Mettre à jour le style des boutons
+  bandits.forEach(ci => {
+    const btn = document.getElementById(`convTargetBtn_${ci.cardDef.numero}`);
+    if (btn) {
+      const isSelected = ci.cardDef.numero === banditNum;
+      btn.style.borderColor = isSelected ? '#f0c040' : 'var(--border-ornate)';
+      btn.style.boxShadow   = isSelected ? '0 0 12px rgba(200,150,12,0.4)' : 'none';
+      btn.style.background  = isSelected ? 'linear-gradient(135deg,#1a1408,#0e0e06)' : 'rgba(0,0,0,0.2)';
+      // Ajouter une coche visuelle
+      let checkmark = btn.querySelector('.conversion-checkmark');
+      if (!checkmark) {
+        checkmark = document.createElement('div');
+        checkmark.className = 'conversion-checkmark';
+        btn.appendChild(checkmark);
+      }
+      checkmark.style.display = isSelected ? 'block' : 'none';
+    }
+  });
+
+  // Activer le bouton de confirmation
+  const confirmBtn = document.getElementById('btnConfirmConversion');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.style.cursor      = 'pointer';
+    confirmBtn.style.background  = 'linear-gradient(135deg,#5a3a08,#c8960c,#5a3a08)';
+    confirmBtn.style.borderColor = '#f0c040';
+    confirmBtn.style.color       = '#1a0e04';
+  }
 }
 
 function cancelConversionModal() {
@@ -1412,12 +1507,20 @@ function cancelConversionModal() {
   _restoreRetainedIfNeeded(missionairePlayIndex);
 }
 
-function confirmConversion(banditPlayIndex) {
+function confirmConversion() {
   bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide();
 
-  const { missionairePlayIndex, act } = window._pendingConversion || {};
+  const { missionairePlayIndex, act, selectedBanditNum } = window._pendingConversion || {};
   window._pendingConversion = null;
 
+  // Clean up the pending retained flag, since the action is now confirmed.
+  if (window._pendingRetainedActivateNum) {
+    window._pendingRetainedActivateNum = null;
+  }
+
+  if (selectedBanditNum === null) return; // Aucun bandit sélectionné
+
+  const banditPlayIndex = _playIdxByNum(selectedBanditNum);
   const missionaireCard = gameState.play[missionairePlayIndex];
   const banditCard      = gameState.play[banditPlayIndex];
   if (!missionaireCard || !banditCard) return;

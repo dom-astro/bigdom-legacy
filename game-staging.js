@@ -414,20 +414,28 @@ function stageActivateRetainedEffect(cardNum) {
 
   // Mémoriser le numéro pour marquer l'entrée de staging après coup
   window._pendingRetainedActivateNum = cardNum;
-  stageActivateEffect(cardNum);
+  const modalOpened = stageActivateEffect(cardNum);
 
-  // Si stageActivateEffect a bien mis la carte en staging, marquer fromRetainedCards
+  if (modalOpened) {
+    // A modal is handling the flow. Do nothing. The card stays in play.
+    // The modal's confirm/cancel handlers will clean up _pendingRetainedActivateNum.
+    return;
+  }
+
+  // No modal was opened. The action was either staged or failed silently.
+  window._pendingRetainedActivateNum = null; // We can clean this up now.
+
   const stagingEntry = gameState.staging.find(e => e.cardInstance.cardDef.numero === cardNum);
   if (stagingEntry) {
+    // Action was staged successfully. Mark it.
     stagingEntry.fromRetainedCards = true;
   } else {
-    // L'activation a échoué ou ouvert un modal — si la carte est revenue dans play[], la remettre en retainedCards
+    // Action failed silently. Move the card from play back to retained.
     const playIdx = gameState.play.findIndex(c => c.cardDef.numero === cardNum);
     if (playIdx >= 0) {
       gameState.play.splice(playIdx, 1);
       if (!gameState.retainedCards) gameState.retainedCards = [];
       gameState.retainedCards.push(ci);
     }
-    window._pendingRetainedActivateNum = null;
   }
 }
