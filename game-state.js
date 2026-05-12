@@ -62,7 +62,7 @@ function getCardEmoji(type, nom) {
     'Herbes Sauvages':'🌾','Plaines':'🌄','Terres cultivées':'🚜','Grange':'🏚️',
     'Montagnes Lointaines':'⛰️','Zone Rocheuse':'🪨','Carrière':'⛏️','Mine Peu Profonde':'⛏️',
     'Forêt':'🌲','Coupe Rase':'🪓','Cabane de Bûcheron':'🏡','Puit Sacré':'⛲',
-    'Quartier Général':'⚑','Hôtel de Ville':'🏛️','Donjon':'🏰','Château':'🏯',
+    'Quartier Général':'⚑','Hôtel de Ville':'🏛️','Donjon':'🏰','Château':'🏰',
     'Commerçante':'👩‍💼','Bazar':'🏪','Marché':'🛍️','Festival':'🎪',
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
     'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
@@ -71,7 +71,7 @@ function getCardEmoji(type, nom) {
     'Colline':'🌄','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
     'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯',
     'Marais':'🌊','Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍍',
-    'Lac':'🏞️','Bateau de Pêche':'⛵','Phare':'🗼',
+    'Lac':'🏞️','Bateau de Pêche':'⛵','Chalet du Pêcheur':'🏡','Phare':'🗼',
   }[nom]) || TYPE_ICONS[type] || '📄';
 }
 
