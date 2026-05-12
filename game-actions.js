@@ -579,12 +579,6 @@ function _doActivateWithCards(playIndex, act) {
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
 
-  // Débiter le coût immédiatement
-  for (const c of (act.cout || [])) {
-    const key = normalizeRes(c.type);
-    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
-  }
-
   // Trouver la/les cartes à obtenir dans ALL_CARDS ou CARDS_TO_DISCOVER
   const allPool = [
     ...ALL_CARDS,
@@ -592,7 +586,43 @@ function _doActivateWithCards(playIndex, act) {
   ];
   const targetCards = act.cartes.map(num => allPool.find(c => c.numero === num)).filter(Boolean);
 
-  // Afficher un modal de présentation puis défausser
+  // Vérifier si la carte cible est déjà dans le royaume
+  const alreadyInKingdom = new Set([
+    ...gameState.deck, ...gameState.play, ...gameState.discard,
+    ...gameState.permanent, ...(gameState.retainedCards || []),
+    ...(gameState.stayInPlay || []), ...(gameState.destroyed || []),
+    ...gameState.box
+  ].map(ci => ci.cardDef.numero));
+
+  const alreadyOwnedTarget = targetCards.find(c => alreadyInKingdom.has(c.numero));
+
+  if (alreadyOwnedTarget) {
+    const targetFace = getFaceData({ cardDef: alreadyOwnedTarget, currentFace: 1 });
+    addLog(`🔔 L'effet de <span class="log-card">${fd.nom}</span> ne peut être activé car la carte <span class="log-card">${targetFace.nom}</span> est déjà dans votre royaume.`, true);
+
+    $('#sacrificeChoiceTitle').html(`❌ Effet non disponible`);
+    let html = `<div style="text-align:center; padding: 10px;">
+                  <p style="font-family:'Crimson Text',serif;font-size:1rem;line-height:1.6;color:#f5e6c8;">
+                    L'effet de <span class="log-card">${fd.nom}</span> ne peut pas être utilisé.
+                  </p>
+                  <p style="font-family:'Crimson Text',serif;font-size:0.9rem;line-height:1.5;color:#c8b89a;">
+                    La carte <span class="log-card">${targetFace.nom}</span> que cet effet permet de découvrir est déjà dans votre royaume.
+                  </p>
+                  <button onclick="bootstrap.Modal.getInstance(document.getElementById('sacrificeChoiceModal'))?.hide()" class="btn" style="margin-top: 16px; background:rgba(80,50,10,0.4); border:1px solid #7a5a20; color:#c8a050; font-family:'Cinzel',serif; font-size:0.75rem; letter-spacing:1px; padding:8px 24px;">
+                    Fermer
+                  </button>
+                </div>`;
+    $('#sacrificeChoiceBody').html(html);
+    new bootstrap.Modal(document.getElementById('sacrificeChoiceModal')).show();
+    return;
+  }
+
+  // Débiter le coût immédiatement
+  for (const c of (act.cout || [])) {
+    const key = normalizeRes(c.type);
+    gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
+  }
+    // Afficher un modal de présentation puis défausser
   window._pendingCardGrant = { playIndex, cardInstance, targetCards };
   _showCardGrantModal(targetCards, fd.nom);
 }

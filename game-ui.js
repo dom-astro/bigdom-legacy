@@ -811,12 +811,28 @@ function openCardModal(indexOrNum, zone) {
     efs.forEach(e => {
       const cfg = _typeCfg[e.type] || { border:'#c8a00c', bg:'rgba(200,160,12,0.12)', icon:'⚡' };
 
+      let isUsed = false;
       let usedTag = '';
       if (e.usage_unique) {
         if (!gameState.usedOneTimeEffects) gameState.usedOneTimeEffects = [];
         const effectId = `${cardInstance.cardDef.numero}_${cardInstance.currentFace}`;
         if (gameState.usedOneTimeEffects.includes(effectId)) {
+          isUsed = true;
           usedTag = `<span style="background:#424242;color:#9E9E9E;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">✔️ UTILISÉ</span>`;
+        }
+      } else if (e.cartes && e.cartes.length > 0) {
+        // This is an effect that discovers cards. Check if all targets are already in the kingdom.
+        const alreadyInKingdom = new Set([
+          ...gameState.deck, ...gameState.play, ...gameState.discard,
+          ...gameState.permanent, ...(gameState.retainedCards || []),
+          ...(gameState.stayInPlay || []), ...(gameState.destroyed || []),
+          ...gameState.box
+        ].map(ci => ci.cardDef.numero));
+
+        const allTargetsOwned = e.cartes.every(num => alreadyInKingdom.has(num));
+        if (allTargetsOwned) {
+          isUsed = true;
+          usedTag = `<span style="background:#424242;color:#9E9E9E;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">✔️ DÉJÀ DÉCOUVERT</span>`;
         }
       }
 
@@ -825,8 +841,12 @@ function openCardModal(indexOrNum, zone) {
         : e.defausse === false
           ? `<span style="background:#1b5e20;color:#fff;font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:8px;">♾ Réutilisable</span>`
           : '';
-      body += `<div style="background:${cfg.bg};border:1px solid ${cfg.border}50;border-left:4px solid ${cfg.border};
-        border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px;">
+      body += `<div style="
+        background:${cfg.bg};
+        border:1px solid ${cfg.border}50;
+        border-left:4px solid ${cfg.border};
+        border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px;
+        ${isUsed ? 'opacity: 0.6;' : ''}">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
           <span style="background:${cfg.border};color:#fff;font-size:0.65rem;font-weight:700;
             padding:2px 8px;border-radius:8px;font-family:'Cinzel',serif;letter-spacing:0.5px;">
@@ -834,7 +854,7 @@ function openCardModal(indexOrNum, zone) {
         </div>`;
       if (e.description) {
         body += `<p style="margin:0 0 6px;font-family:'Crimson Text',serif;font-size:0.95rem;
-          color:#e8d5a3;line-height:1.55;">${e.description}</p>`;
+          color:${isUsed ? '#999' : '#e8d5a3'};line-height:1.55;${isUsed ? 'text-decoration:line-through;' : ''}">${e.description}</p>`;
       }
       if (e.ressources) {
         const gainStr = e.ressources.map(x => {
@@ -844,14 +864,14 @@ function openCardModal(indexOrNum, zone) {
           }
           return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
         }).join('  ');
-        body += `<div style="margin-top:4px;font-size:0.82rem;">
+        body += `<div style="margin-top:4px;font-size:0.82rem;${isUsed ? 'text-decoration:line-through;' : ''}">
           <span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span>
-          <span style="color:#e8d5a3;margin-left:6px;">${gainStr}</span></div>`;
+          <span style="color:${isUsed ? '#999' : '#e8d5a3'};margin-left:6px;">${gainStr}</span></div>`;
       }
       if (e.cout) {
-        body += `<div style="margin-top:4px;font-size:0.82rem;">
+        body += `<div style="margin-top:4px;font-size:0.82rem;${isUsed ? 'text-decoration:line-through;' : ''}">
           <span style="background:rgba(0,0,0,0.3);color:#ffcc80;font-weight:600;padding:1px 7px;border-radius:4px;">💰 Coût</span>
-          <span style="color:#e8d5a3;margin-left:6px;">${formatCost(e.cout)}</span></div>`;
+          <span style="color:${isUsed ? '#999' : '#e8d5a3'};margin-left:6px;">${formatCost(e.cout)}</span></div>`;
       }
 
       // — Mini-diagramme de promotion si l'effet entraîne un changement de face
