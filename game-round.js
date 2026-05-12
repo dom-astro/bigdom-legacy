@@ -45,10 +45,12 @@ function confirmTurn() {
       if (fameGained) { gameState.fame += fameGained; addLog(`⭐ Gloire +${fameGained} (Total: ${gameState.fame})`, true); }
       const newFaceData = getFaceData(cardInstance);
       applyDestructionEffect(cardInstance);
-      gameState.discard.push(cardInstance);
       if (isStayInPlay(newFaceData)) {
-        addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue et défaussée !`, true);
+        if (!gameState.stayInPlay) gameState.stayInPlay = [];
+        gameState.stayInPlay.push(cardInstance);
+        addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — rejoint la zone de retenue !`, true);
       } else {
+        gameState.discard.push(cardInstance);
         addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue !`, true);
       }
     }
@@ -87,18 +89,30 @@ function confirmNewRound() {
 }
 
 function endTurn() {
-  gameState.staging.forEach(entry => gameState.play.push(entry.cardInstance));
+  const cardsToAnimate = [];
+  // Collect DOM elements for cards that will be discarded
+  // We need to do this BEFORE gameState.play is modified and updateUI() is called
+  gameState.play.forEach(c => {
+    if (!isStayInPlay(getFaceData(c))) { // Only animate cards that are actually discarded
+      const cardEl = document.querySelector(`.card-wrapper[data-card-num="${c.cardDef.numero}"]`);
+      if (cardEl) {
+        cardsToAnimate.push(cardEl);
+      }
+    }
+  });
+
+  gameState.staging.forEach(entry => gameState.play.push(entry.cardInstance)); // Move staged cards back to play temporarily for animation capture
   gameState.staging = [];
 
   [...gameState.play].forEach(c => {
     if (isStayInPlay(getFaceData(c))) {
-      if (!gameState.permanent.find(p => p.cardDef.numero === c.cardDef.numero))
-        gameState.permanent.push(c);
+      if (!gameState.stayInPlay) gameState.stayInPlay = [];
+      if (!gameState.stayInPlay.find(p => p.cardDef.numero === c.cardDef.numero))
+        gameState.stayInPlay.push(c);
     } else {
       gameState.discard.push(c);
     }
   });
-  gameState.play = [];
 
   gameState.bandits = [];
   // Vérifier si la carte 28 quitte le jeu (pas de staging) → désactiver l'éruption
@@ -114,12 +128,18 @@ function endTurn() {
   gameState.turnStarted = false;
   gameState.turn++;
   addLog(`— Fin du Tour ${gameState.turn - 1} —`);
-  if (gameState.deck.length === 0) {
-    addLog(`🔚 Pioche vide. Fin de la Manche ${gameState.round}. Cliquez "Nouvelle Manche".`, true);
-  } else {
-    drawCards(4);
-  }
-  updateUI();
+
+  const discardRect = document.querySelector('#discardVisual .card-front')?.getBoundingClientRect();
+
+  const afterAnimation = () => {
+    gameState.play = []; // Clear play area after animation
+    updateUI(); // Update UI after animation
+    if (gameState.deck.length === 0) { addLog(`🔚 Pioche vide. Fin de la Manche ${gameState.turn - 1}. Cliquez "Nouvelle Manche".`, true); }
+    else { drawCards(4); }
+  };
+
+  if (cardsToAnimate.length > 0 && discardRect) { _animateCardsToDiscard(cardsToAnimate, discardRect, afterAnimation); }
+  else { afterAnimation(); } // No animation, just update UI and continue
 }
 
 // Données en attente pendant l'inspection des nouvelles cartes
@@ -132,7 +152,17 @@ let _pendingNewRound = null;
 // ──────────────────────────────────────────────────────────────────────────────
 
 function newRound() {
-  gameState.staging.forEach(e => gameState.play.push(e.cardInstance));
+  const cardsToAnimate = [];
+  // Collect DOM elements for cards that will be discarded
+  // We need to do this BEFORE gameState.play is modified and updateUI() is called
+  gameState.play.forEach(c => {
+    const cardEl = document.querySelector(`.card-wrapper[data-card-num="${c.cardDef.numero}"]`);
+    if (cardEl) {
+      cardsToAnimate.push(cardEl);
+    }
+  });
+
+  gameState.staging.forEach(e => gameState.play.push(e.cardInstance)); // Move staged cards back to play temporarily for animation capture
   gameState.staging = [];
   gameState.bandits = [];
   gameState.armeeCaseCeTour  = false;
@@ -148,7 +178,6 @@ function newRound() {
   gameState.retainedCards = [];
 
   gameState.play.forEach(c => gameState.discard.push(c));
-  gameState.play = [];
 
   // ── Cartes "Reste en jeu" (Muraille, etc.) ──────────────────────────────
   const sipCards = gameState.stayInPlay || [];
@@ -165,49 +194,58 @@ function newRound() {
   gameState.permanent = [...heritagePerms];
   gameState.discard = []; gameState.deck = [];
   clearResources();
-  updateUI();
 
-  // ── HÉRITAGE : se déclenche à la fin de la manche 7 ─────────────────────
-  if (gameState.round === 7 && !gameState._heritageTriggered) {
-    gameState._heritageTriggered = true;
+  const discardRect = document.querySelector('#discardVisual .card-front')?.getBoundingClientRect();
 
-    // Les CARDS_TO_DISCOVER ne rejoignent PAS la box automatiquement.
-    // Elles ne sont accessibles que via des actions de jeu (effet Destruction, etc.).
-    // La box reste donc inchangée après la manche 7.
+  const afterAnimation = () => {
+    gameState.play = []; // Clear play area after animation
+    updateUI(); // Update UI after animation
 
-    addLog(`📜 La manche 7 s'achève. La voie de l'Héritage s'ouvre...`, true);
-    _showHeritageRuleModal(allCards); // défini dans game-heritage.js
-    return;
-  }
+    // ── HÉRITAGE : se déclenche à la fin de la manche 7 ─────────────────────
+    if (gameState.round === 7 && !gameState._heritageTriggered) {
+      gameState._heritageTriggered = true;
 
-  // ── Découverte de 2 cartes héritage par manche (à partir de la manche 8) ──
-  const discovered = discoverNextCards(2);
+      // Les CARDS_TO_DISCOVER ne rejoignent PAS la box automatiquement.
+      // Elles ne sont accessibles que via des actions de jeu (effet Destruction, etc.).
+      // La box reste donc inchangée après la manche 7.
 
-  // Fin de partie : toutes les cartes héritage (28+) ont été révélées
-  if (discovered.length === 0 && gameState._heritageTriggered) {
-    const heritageCardNums = _getHeritageCardNums();
-    const allRevealed = _allHeritageCardsRevealed(heritageCardNums);
-    if (allRevealed) {
-      addLog(`🏆 Toutes les cartes Héritage ont été révélées — Dernière Manche !`, true);
-      gameState.gameOver = true;
-    } else {
-      addLog(`📦 Toutes les cartes ont été découvertes.`);
+      addLog(`📜 La manche 7 s'achève. La voie de l'Héritage s'ouvre...`, true);
+      _showHeritageRuleModal(allCards); // défini dans game-heritage.js
+      return;
     }
-    _finalizeNewRound(allCards, []);
-    drawCards(4);
-    return;
-  }
 
-  if (discovered.length === 0) {
-    addLog(`📦 Toutes les cartes ont été découvertes.`);
-    _finalizeNewRound(allCards, []);
-    drawCards(4);
-    return;
-  }
+    // ── Découverte de 2 cartes héritage par manche (à partir de la manche 8) ──
+    const discovered = discoverNextCards(2);
 
-  _pendingNewRound = { allCards, discovered };
-  _showNewCardsModal(discovered);
-  drawCards(4);
+    // Fin de partie : toutes les cartes héritage (28+) ont été révélées
+    if (discovered.length === 0 && gameState._heritageTriggered) {
+      const heritageCardNums = _getHeritageCardNums();
+      const allRevealed = _allHeritageCardsRevealed(heritageCardNums);
+      if (allRevealed) {
+        addLog(`🏆 Toutes les cartes Héritage ont été révélées — Dernière Manche !`, true);
+        gameState.gameOver = true;
+      } else {
+        addLog(`📦 Toutes les cartes ont été découvertes.`);
+      }
+      _finalizeNewRound(allCards, []);
+      drawCards(4);
+      return;
+    }
+
+    if (discovered.length === 0) {
+      addLog(`📦 Toutes les cartes ont été découvertes.`);
+      _finalizeNewRound(allCards, []);
+      drawCards(4);
+      return;
+    }
+
+    _pendingNewRound = { allCards, discovered };
+    _showNewCardsModal(discovered);
+    drawCards(4);
+  };
+
+  if (cardsToAnimate.length > 0 && discardRect) { _animateCardsToDiscard(cardsToAnimate, discardRect, afterAnimation); }
+  else { afterAnimation(); } // No animation, just update UI and continue
 }
 
 // ============================================================

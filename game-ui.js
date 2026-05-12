@@ -92,6 +92,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   // Disponibilité réelle (bouton actif, surbrillance) : ressources confirmées uniquement
   const canUpgradeConfirmed = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
   const canDefeat = banditCard && (confirmed['Epée'] || 0) >= 1;
+  const hasActivable = hasActivableEffect(cardInstance);
+  const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
 
   let cardBg, cardBorder, nameColor, extraOverlay = '';
   if (banditCard) {
@@ -107,16 +109,20 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     cardBg = 'linear-gradient(160deg,var(--parchment),var(--parchment-dark))';
     cardBorder = 'var(--border-ornate)';
     nameColor = 'var(--ink)';
+
+    if (canUpgradeConfirmed) {
+      cardBorder = '#44ccff'; // Bleu pour la promotion
+    } else if (canActivate) {
+      cardBorder = '#44dd44'; // Vert pour l'activation
+    }
   }
 
-  const hasActivable = hasActivableEffect(cardInstance);
-  const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
   const hasDestruction = hasDestructionEffect(cardInstance);
   const hasRetention = _hasRetentionEffect(cardInstance);
   const isAlreadyRetained = (gameState.retainedCards || []).some(c => c.cardDef.numero === cardInstance.cardDef.numero);
 
   // Une carte est "actionable" si une action non-production est faisable avec les ressources confirmées
-  // (upgrade possible, activation possible, destruction disponible, rétention disponible, bandit à vaincre)
+  // (upgrade possible, activation possible, destruction disponible, rétention disponible, bandit à vaincre, etc.)
   const isActionable = !blocked && (
     (banditCard && canDefeat) ||
     (!banditCard && (canUpgradeConfirmed || canActivate || hasDestruction || hasRetention))
@@ -197,8 +203,8 @@ function buildStagingCardHTML(entry, stagingIndex) {
     actionSummary = parts.length ? parts.join('  ') : '—';
   }
 
-  const accentColor = isUpgrade ? '#44dd44' : isActivate ? '#44ccff' : '#f0c040';
-  const bgTop = isUpgrade ? '#1a3a1a' : isActivate ? '#0a2a3a' : '#2a2608';
+  const accentColor = isUpgrade ? '#44ccff' : isActivate ? '#44dd44' : '#f0c040';
+  const bgTop = isUpgrade ? '#0a2a3a' : isActivate ? '#1a3a1a' : '#2a2608';
   const label = isUpgrade ? '▲ PROMOTION' : isActivate ? '🟢 ACTIVATION' : '⚒ PRODUCTION';
 
   let sacrificeHTML = '';
@@ -211,7 +217,6 @@ function buildStagingCardHTML(entry, stagingIndex) {
         <div class="staging-emoji">${getCardEmoji(sf.type, sf.nom)}</div>
         <div class="staging-name">${sf.nom}</div>
         <div class="staging-summary" style="color:#ff8888;font-size:0.48rem;">lié aux Plaines</div>
-      </div>
     </div>`;
   }
 
@@ -671,6 +676,15 @@ function updateUI() {
   else { $('#discardEmpty').hide(); $('#discardVisual').show(); $('#topDiscardCard').html(buildDiscardTopHTML(gameState.discard[dc-1])); }
 
   $('#statTurn').text(gameState.turn);
+
+  const destroyedCount = (gameState.destroyed || []).length;
+  $('#sacrificedCount').text(`${destroyedCount} carte${destroyedCount!==1?'s':''}`);
+  if (destroyedCount === 0) {
+    $('#sacrificedVisual').hide(); $('#sacrificedEmpty').show();
+  } else {
+    $('#sacrificedEmpty').hide(); $('#sacrificedVisual').show();
+    $('#topSacrificedCard').html(buildDiscardTopHTML(gameState.destroyed[destroyedCount-1]));
+  }
   $('#statRound').text(gameState.round);
   $('#fameScore').text(gameState.fame);
   const total = gameState.deck.length + gameState.play.length + gameState.discard.length + gameState.permanent.length + gameState.staging.length;
@@ -1239,6 +1253,125 @@ function showDiscardPile() {
   });
   new bootstrap.Modal(document.getElementById('discardModal')).show();
 }
+// ============================================================
+//  ANIMATION — Distribution des cartes (depuis la pioche)
+// ============================================================
+
+/**
+ * Applique l'animation de distribution pour les cartes allant vers la zone de jeu.
+ * @param {Set<number>} existingPlayNums - Numéros des cartes déjà en jeu avant le tirage.
+ * @param {DOMRect} deckRect - Rectangle de la pioche (position de départ).
+ */
+function applyDealAnimations(existingPlayNums, deckRect) {
+  const playArea = document.getElementById('playArea');
+  if (!playArea) return;
+
+  const newWrappers = Array.from(playArea.querySelectorAll('.card-wrapper[data-card-num]'))
+    .filter(w => !existingPlayNums.has(parseInt(w.dataset.cardNum)));
+
+  newWrappers.forEach((wrapper, i) => {
+    const cardEl = wrapper.querySelector('.card');
+    if (!cardEl) return;
+
+    // Appliquer l'animation à l'élément de carte
+    _applyCardDealAnimation(cardEl, deckRect, wrapper.getBoundingClientRect(), i);
+  });
+}
+
+/**
+ * Applique l'animation de distribution pour les cartes allant vers la zone de retenue.
+ * @param {HTMLElement[]} newHeldWrappers - Les wrappers DOM des nouvelles cartes dans la zone de retenue.
+ * @param {DOMRect} deckRect - Rectangle de la pioche (position de départ).
+ */
+function applyHeldDealAnimations(newHeldWrappers, deckRect) {
+  newHeldWrappers.forEach((wrapper, i) => {
+    const cardEl = wrapper.querySelector('.card');
+    if (!cardEl) return;
+
+    // Appliquer l'animation à l'élément de carte
+    _applyCardDealAnimation(cardEl, deckRect, wrapper.getBoundingClientRect(), i);
+  });
+}
+
+/**
+ * Fonction utilitaire pour appliquer l'animation de distribution à un élément de carte.
+ * @param {HTMLElement} cardEl - L'élément DOM de la carte à animer.
+ * @param {DOMRect} deckRect - Le rectangle de la pioche (position de départ).
+ * @param {DOMRect} targetRect - Le rectangle de la position finale de la carte.
+ * @param {number} index - L'index de la carte dans le lot tiré (pour le délai).
+ */
+function _applyCardDealAnimation(cardEl, deckRect, targetRect, index) {
+  let dx = -320, dy = -200, rot = -22;
+  if (deckRect && targetRect) {
+    const cardCx = targetRect.left + targetRect.width  / 2;
+    const cardCy = targetRect.top  + targetRect.height / 2;
+    const deckCx = deckRect.left + deckRect.width  / 2;
+    const deckCy = deckRect.top  + deckRect.height / 2;
+    dx = deckCx - cardCx;
+    dy = deckCy - cardCy;
+    rot = -20 - (index * 4); // Rotation légèrement différente pour chaque carte
+  }
+
+  cardEl.style.visibility = 'visible';
+  cardEl.style.setProperty('--deal-dx',  `${dx}px`);
+  cardEl.style.setProperty('--deal-dy',  `${dy}px`);
+  cardEl.style.setProperty('--deal-rot', `${rot}deg`);
+  cardEl.style.animationDelay    = `${index * 220}ms`;
+  cardEl.style.animationDuration = '1s';
+
+  cardEl.classList.remove('card-enter');
+  void cardEl.offsetWidth; // Force reflow pour redémarrer l'animation si elle était déjà appliquée
+  cardEl.classList.add('card-enter');
+
+  // Retirer card-enter après la fin de l'animation pour libérer le hover
+  const totalDuration = (index * 220 + 1000) + 50; // delay + duration + marge
+  setTimeout(() => {
+    cardEl.classList.remove('card-enter');
+    cardEl.style.animationDelay    = '';
+    cardEl.style.animationDuration = '';
+  }, totalDuration);
+}
+
+/**
+ * Animates a list of card elements to the discard pile.
+ * @param {HTMLElement[]} cardElements - Array of DOM elements for the cards to animate.
+ * @param {DOMRect} discardRect - The bounding rectangle of the discard pile (target position).
+ * @param {Function} callback - Function to call after all animations are complete.
+ */
+function _animateCardsToDiscard(cardElements, discardRect, callback) {
+  if (!cardElements || cardElements.length === 0 || !discardRect) {
+    callback();
+    return;
+  }
+
+  let animationsCompleted = 0;
+  const totalAnimations = cardElements.length;
+
+  cardElements.forEach((cardEl, index) => {
+    const startRect = cardEl.getBoundingClientRect();
+
+    // Calculate the translation needed to move the card from its current position
+    // to the center of the discard pile.
+    const dx = discardRect.left + discardRect.width / 2 - (startRect.left + startRect.width / 2);
+    const dy = discardRect.top + discardRect.height / 2 - (startRect.top + startRect.height / 2);
+
+    cardEl.style.transition = 'transform 0.5s ease-in, opacity 0.5s ease-in';
+    cardEl.style.zIndex = 1000; // Bring to front during animation
+
+    setTimeout(() => {
+      cardEl.style.transform = `translate(${dx}px, ${dy}px) scale(0.2) rotate(${Math.random() * 360}deg)`;
+      cardEl.style.opacity = '0';
+    }, index * 50); // Stagger animations slightly
+
+    cardEl.addEventListener('transitionend', function onTransitionEnd() {
+      cardEl.removeEventListener('transitionend', onTransitionEnd);
+      cardEl.remove(); // Remove the card element from DOM after animation
+      animationsCompleted++;
+      if (animationsCompleted === totalAnimations) { callback(); }
+    });
+  });
+}
+
 // ============================================================
 //  MODAL — détail d'une carte découverte (pas encore en jeu)
 // ============================================================

@@ -67,8 +67,10 @@ function drawCards(n) {
   const deckRect = deckEl ? deckEl.getBoundingClientRect() : null;
 
   // Mémoriser les numéros des cartes déjà en jeu (pour les animations)
-  const existingNums = new Set(gameState.play.map(ci => ci.cardDef.numero));
-  window._dealExistingNums = existingNums;
+  const existingPlayNums = new Set(gameState.play.map(ci => ci.cardDef.numero));
+  const existingStayInPlayNums = new Set((gameState.stayInPlay || []).map(ci => ci.cardDef.numero));
+  window._dealExistingPlayNums = existingPlayNums;
+  window._dealExistingStayInPlayNums = existingStayInPlayNums;
 
   // Règle : les cartes normales sont placées EN PREMIER, les bandits EN DERNIER.
   // Si une carte or fait partie du même tirage que le bandit, elle est bloquée
@@ -76,7 +78,11 @@ function drawCards(n) {
   const _eruptionWasActiveBeforeDraw = gameState.eruptionActive;
   const _banditQueue = [];
   const _banditsToPlace = [];
+  const _blockedInQueue = new Set();
   const newCardNums = new Set(); // numéros des cartes tirées dans CE tirage
+
+  const _cardsToPlayTemp = []; // Temporarily hold cards for play area
+  const _cardsToStayInPlayTemp = []; // Temporarily hold cards for stayInPlay area
 
   for (let i = 0; i < toDraw; i++) {
     const card = gameState.deck.shift();
@@ -84,25 +90,32 @@ function drawCards(n) {
       newCardNums.add(card.cardDef.numero);
       // ── Effet Passif "Reste en jeu" : la carte va directement dans stayInPlay ──
       if (isStayInPlay(getFaceData(card))) {
-        if (!gameState.stayInPlay) gameState.stayInPlay = [];
-        // Éviter les doublons (la carte peut déjà y être d'un tour précédent)
-        if (!gameState.stayInPlay.some(c => c.cardDef.numero === card.cardDef.numero)) {
-          gameState.stayInPlay.push(card);
-          addLog(`🏚️ <span class="log-card">${getFaceData(card).nom}</span> — entre en jeu et reste jusqu'à la fin de la manche.`, true);
-        }
+        _cardsToStayInPlayTemp.push(card);
       } else {
-        gameState.play.push(card);
+        _cardsToPlayTemp.push(card);
       }
     } else {
       _banditsToPlace.push(card);
     }
   }
 
+  // Add cards to their respective gameState arrays
+  _cardsToPlayTemp.forEach(card => gameState.play.push(card));
+  _cardsToStayInPlayTemp.forEach(card => {
+    if (!gameState.stayInPlay) gameState.stayInPlay = [];
+    // Éviter les doublons (la carte peut déjà y être d'un tour précédent)
+    if (!gameState.stayInPlay.some(c => c.cardDef.numero === card.cardDef.numero)) {
+      gameState.stayInPlay.push(card);
+      addLog(`🏚️ <span class="log-card">${getFaceData(card).nom}</span> — entre en jeu et reste jusqu'à la fin de la manche.`, true);
+    }
+  });
+
   _banditsToPlace.forEach(card => {
     const banditNum = card.cardDef.numero;
     const allGold = gameState.play
       .filter(c => !isBandit(c) && producesGold(c) &&
-                   !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero));
+                   !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero) &&
+                   !_blockedInQueue.has(c.cardDef.numero));
 
     // Cartes or tirées dans CE tirage → blocage automatique prioritaire
     const newGold = allGold.filter(c => newCardNums.has(c.cardDef.numero));
@@ -111,14 +124,14 @@ function drawCards(n) {
 
     gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: true });
 
-    /*if (newGold.length > 0) {
+    if (newGold.length > 0) {
       // Bloquer automatiquement la (première) carte or du même tirage
+      _blockedInQueue.add(newGold[0].cardDef.numero);
       _banditQueue.push({ banditNum, goldCards: newGold, autoBlock: newGold[0] });
     } else {
       // Pas de nouvelle carte or → comportement classique sur les anciennes
       _banditQueue.push({ banditNum, goldCards: oldGold });
-    }*/
-      _banditQueue.push({ banditNum, goldCards: newGold });
+    }
     gameState.play.push(card);
   });
 
@@ -141,68 +154,50 @@ function drawCards(n) {
 
   processPendingFaceChoices();
   updateUI();
-  window._dealExistingNums = null;
+  window._dealExistingPlayNums = null;
+  window._dealExistingStayInPlayNums = null;
 
   // Masquer les nouvelles cartes pour l'animation
   const playAreaHide = document.getElementById('playArea');
   if (playAreaHide) {
     Array.from(playAreaHide.querySelectorAll('.card-wrapper[data-card-num]'))
-      .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)))
+      .filter(w => !existingPlayNums.has(parseInt(w.dataset.cardNum)))
       .forEach(w => { const c = w.querySelector('.card'); if (c) c.style.visibility = 'hidden'; });
   }
 
+  // Masquer les nouvelles cartes "Reste en jeu" pour l'animation
+  const heldAreaEl = document.getElementById('heldArea');
+  if (heldAreaEl) {
+    _cardsToStayInPlayTemp.forEach(card => {
+      const wrapper = heldAreaEl.querySelector(`.card-wrapper[data-held-num="${card.cardDef.numero}"]`);
+      if (wrapper) {
+        const c = wrapper.querySelector('.card');
+        if (c) c.style.visibility = 'hidden';
+      }
+    });
+  }
+
   requestAnimationFrame(() => {
-    applyDealAnimations(existingNums, deckRect);
+    // Animer les cartes vers la zone de jeu
+    applyDealAnimations(existingPlayNums, deckRect);
+
+    // Animer les cartes "Reste en jeu" vers la zone de retenue
+    if (_cardsToStayInPlayTemp.length > 0 && deckRect) {
+      const newHeldWrappers = _cardsToStayInPlayTemp.map(card =>
+        heldAreaEl ? heldAreaEl.querySelector(`.card-wrapper[data-held-num="${card.cardDef.numero}"]`) : null
+      ).filter(Boolean);
+      applyHeldDealAnimations(newHeldWrappers, deckRect);
+    }
+
     // Résoudre les bandits après la fin des animations
     if (!pendingFaceChoice && _banditQueue.length > 0) {
-      const animDelay = (toDraw - 1) * 220 + 1100;
-      setTimeout(() => _resolveBanditQueue(_banditQueue), animDelay);
+      // Calculer le délai maximum pour toutes les animations de distribution
+      const maxPlayAnimDelay = (_cardsToPlayTemp.length > 0) ? (_cardsToPlayTemp.length - 1) * 220 + 1000 : 0;
+      const maxHeldAnimDelay = (_cardsToStayInPlayTemp.length > 0) ? (_cardsToStayInPlayTemp.length - 1) * 220 + 1000 : 0;
+      const totalAnimDelay = Math.max(maxPlayAnimDelay, maxHeldAnimDelay) + 100; // Ajouter une petite marge
+
+      setTimeout(() => _resolveBanditQueue(_banditQueue), totalAnimDelay);
     }
-  });
-}
-
-function applyDealAnimations(existingNums, deckRect) {
-  const playArea = document.getElementById('playArea');
-  if (!playArea) return;
-
-  const newWrappers = Array.from(playArea.querySelectorAll('.card-wrapper[data-card-num]'))
-    .filter(w => !existingNums.has(parseInt(w.dataset.cardNum)));
-
-  newWrappers.forEach((wrapper, i) => {
-    const cardEl = wrapper.querySelector('.card');
-    if (!cardEl) return;
-
-    let dx = -320, dy = -200, rot = -22;
-    if (deckRect) {
-      const cardRect = cardEl.getBoundingClientRect();
-      const cardCx = cardRect.left + cardRect.width  / 2;
-      const cardCy = cardRect.top  + cardRect.height / 2;
-      const deckCx = deckRect.left + deckRect.width  / 2;
-      const deckCy = deckRect.top  + deckRect.height / 2;
-      dx = deckCx - cardCx;
-      dy = deckCy - cardCy;
-      rot = -20 - (i * 4);
-    }
-
-    // Rendre visible et lancer l'animation
-    cardEl.style.visibility = 'visible';
-    cardEl.style.setProperty('--deal-dx',  `${dx}px`);
-    cardEl.style.setProperty('--deal-dy',  `${dy}px`);
-    cardEl.style.setProperty('--deal-rot', `${rot}deg`);
-    cardEl.style.animationDelay    = `${i * 220}ms`;
-    cardEl.style.animationDuration = '1s';
-
-    cardEl.classList.remove('card-enter');
-    void cardEl.offsetWidth;
-    cardEl.classList.add('card-enter');
-
-    // Retirer card-enter après la fin de l'animation pour libérer le hover
-    const totalDuration = (i * 220 + 1000) + 50; // delay + duration + marge
-    setTimeout(() => {
-      cardEl.classList.remove('card-enter');
-      cardEl.style.animationDelay    = '';
-      cardEl.style.animationDuration = '';
-    }, totalDuration);
   });
 }
 
@@ -228,7 +223,7 @@ function _restoreRetainedIfNeeded(playIndex) {
 function isStayInPlay(faceData) {
   if (!faceData.effet) return false;
   const effets = Array.isArray(faceData.effet) ? faceData.effet : [faceData.effet];
-  return effets.some(e => e.type === 'Passif' && e.description === 'Reste en jeu');
+  return effets.some(e => e.type === 'Reste en jeu');
 }
 
 // Une carte nécessite un choix de face si :
@@ -1017,7 +1012,12 @@ function confirmRecruteTerrain(hotelPlayIndex, discardIdx) {
 
   // Retirer le Terrain de la défausse et le placer en jeu
   gameState.discard.splice(discardIdx, 1);
-  gameState.play.push(terrainCard);
+  if (isStayInPlay(getFaceData(terrainCard))) {
+    if (!gameState.stayInPlay) gameState.stayInPlay = [];
+    gameState.stayInPlay.push(terrainCard);
+  } else {
+    gameState.play.push(terrainCard);
+  }
 
   addLog(`🏛 <span class="log-card">${hotelName}</span> — défaussée pour recruter <span class="log-card">${terrainName}</span> depuis la défausse.`, true);
   updateUI();
@@ -1145,14 +1145,35 @@ function triggerDestructionEffect(cardNum) {
   const destr = effets.find(e => e.type === 'Destruction');
   if (!destr) return;
 
-  const targetNums = destr.cartes;
+  const targetNums = destr.cartes || [];
 
-  // Retirer la carte du jeu (sacrifiée → détruite)
+  const cardEl = document.querySelector(`.card-wrapper[data-card-num="${cardInstance.cardDef.numero}"]`);
+  const sacrificedRect = document.querySelector('#sacrificedVisual .card-front')?.getBoundingClientRect();
+
+  const afterSacrificeAnimation = () => {
+    // L'animation est terminée, la carte peut être ajoutée à gameState.destroyed
+    if (!gameState.destroyed) gameState.destroyed = [];
+    gameState.destroyed.push(cardInstance);
+    addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
+    updateUI(); // Met à jour l'affichage (compteurs, carte du dessus de la pile)
+
+    // Continuer avec la logique de découverte
+    _processDestructionDiscovery(cardInstance, fd, targetNums);
+  };
+
+  // Retirer la carte de gameState.play immédiatement pour empêcher un double-clic
   _playRemove(playIndex);
-  if (!gameState.destroyed) gameState.destroyed = [];
-  gameState.destroyed.push(cardInstance);
-  addLog(`💥 <span class="log-card">${fd.nom}</span> — sacrifiée !`, true);
+  // ATTENTION: Ne SURTOUT PAS appeler updateUI() ici, sinon cardEl est retiré du DOM
+  // et l'événement de fin d'animation (transitionend) ne se déclenchera jamais !
 
+  if (cardEl && sacrificedRect) {
+    _animateCardsToDiscard([cardEl], sacrificedRect, afterSacrificeAnimation);
+  } else {
+    afterSacrificeAnimation(); // Pas d'animation, procéder directement
+  }
+
+  // Logique de découverte (déplacée dans une fonction imbriquée pour la clarté)
+  function _processDestructionDiscovery(sacrificedCardInstance, sacrificedFaceData, targetNums) {
   // Chercher les candidats à découvrir :
   // 1. Dans gameState.box (cartes non encore découvertes de la manche courante)
   // 2. Dans CARDS_TO_DISCOVER (pool global, avant qu'elles soient ajoutées à la box)
@@ -1210,6 +1231,7 @@ function triggerDestructionEffect(cardNum) {
     }
   }
   updateUI();
+  }
 }
 
 // Appelé après une promotion si la nouvelle face a un effet Destruction automatique
@@ -1549,6 +1571,67 @@ function confirmConversion() {
 
   updateUI();
   _showConversionReveal(banditCard, face2, act, missionaireName);
+}
+
+/**
+ * Confirme les actions en attente dans la zone de staging.
+ * Applique les gains de ressources, les changements de gloire et les promotions.
+ * Si une promotion a été confirmée, le tour se termine.
+ */
+function confirmStagedActions() {
+  if (gameState.staging.length === 0) return;
+
+  const hadUpgrade = gameState.staging.some(e => e.action === 'upgrade');
+
+  // Appliquer les effets de staging
+  gameState.staging.forEach(entry => {
+    // Appliquer les gains de ressources
+    Object.entries(entry.resourcesGained).forEach(([key, v]) => {
+      gameState.resources[key] = (gameState.resources[key] || 0) + v;
+    });
+
+    // Appliquer les gains de gloire
+    if (entry.fameGained) {
+        gameState.fame = (gameState.fame || 0) + entry.fameGained;
+    }
+
+    // Gérer la promotion
+    if (entry.newFace) {
+      entry.cardInstance.currentFace = entry.newFace;
+      cardStateMap[entry.cardInstance.cardDef.numero] = entry.newFace;
+    }
+
+    // Placer la carte promue en zone de retenue si elle a l'effet "Reste en jeu"
+    const fd = getFaceData(entry.cardInstance);
+    if (entry.newFace && isStayInPlay(fd)) {
+      if (!gameState.stayInPlay) gameState.stayInPlay = [];
+      gameState.stayInPlay.push(entry.cardInstance);
+      addLog(`🏚️ <span class="log-card">${fd.nom}</span> rejoint la zone de retenue.`);
+    } else {
+      gameState.discard.push(entry.cardInstance);
+    }
+
+    if (entry.sacrificeCardInstance) {
+      gameState.discard.push(entry.sacrificeCardInstance);
+    }
+  });
+
+  const stagedCount = gameState.staging.length;
+  gameState.staging = [];
+
+  addLog(`✅ ${stagedCount} action${stagedCount > 1 ? 's' : ''} confirmée${stagedCount > 1 ? 's' : ''}.`);
+
+  if (hadUpgrade) {
+    addLog('🔼 Une promotion termine le tour.', true);
+    if (gameState.deck.length === 0) {
+      addLog('Pioche vide, une nouvelle manche commence automatiquement !', true);
+      newRound();
+    } else {
+      endTurn();
+    }
+  } else {
+    updateUI();
+  }
 }
 
 // ============================================================

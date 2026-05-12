@@ -78,6 +78,17 @@ function getCardEmoji(type, nom) {
 function createCardInstance(cardDef) {
   return { cardDef, currentFace: cardStateMap[cardDef.numero] || 1 };
 }
+
+// Une carte nécessite un choix de face si :
+// - elle a exactement 2 faces
+// - aucune face n'est un Bandit (type Ennemi, nom Bandit)
+// - la face 1 n'a PAS de promotion/promotions (sinon c'est un upgrade classique)
+function isChoiceCard(cardDef) {
+  if (cardDef.faces.length !== 2) return false;
+  if (cardDef.faces.some(f => f.type === 'Ennemi' && f.nom === 'Bandit')) return false;
+  const face1 = cardDef.faces[0];
+  return !face1.promotion && (!face1.promotions || face1.promotions.length === 0);
+}
 function shuffleDeck(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
