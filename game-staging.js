@@ -69,11 +69,12 @@ function stageProduceCard(cardNum) {
   }
 
   const resourcesGained = {};
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   faceData.ressources.forEach(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     const key = normalizeRes(types[0]);
     if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
+      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
   });
 
   _playRemove(playIndex);
@@ -243,11 +244,12 @@ function stageProduceStayCard(cardNum) {
   }
 
   const resourcesGained = {};
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   faceData.ressources.forEach(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     const key = normalizeRes(types[0]);
     if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
+      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
   });
 
   // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
@@ -336,11 +338,12 @@ function stageProduceRetainedCard(cardNum) {
   }
 
   const resourcesGained = {};
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   faceData.ressources.forEach(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     const key = normalizeRes(types[0]);
     if (key && gameState.resources[key] !== undefined)
-      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite;
+      resourcesGained[key] = (resourcesGained[key]||0) + r.quantite + (stickerBonus[key] || 0);
   });
 
   gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);

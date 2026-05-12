@@ -460,8 +460,12 @@ function getActivationFailureReason(cardInstance) {
     return types.some(t => t === 'Terrain');
   });
   if (hasTerrainRes) {
-    const playIdx = gameState.play.indexOf(cardInstance);
-    const terrains = gameState.play.filter((ci, i) => i !== playIdx && getFaceData(ci).type === 'Terrain');
+    const allPlayCards = [
+      ...gameState.play,
+      ...(gameState.retainedCards || []),
+      ...(gameState.stayInPlay || [])
+    ];
+    const terrains = allPlayCards.filter(ci => ci !== cardInstance && getFaceData(ci).type === 'Terrain');
     if (terrains.length === 0) return 'no_terrain_target';
   }
   // Si l'effet est une conversion, vérifier qu'un Bandit est en jeu
@@ -558,7 +562,16 @@ function stageActivateEffect(cardNum) {
     return types.some(t => t === 'Terrain');
   });
   if (hasTerrainResource) {
-    const terrains = gameState.play.filter((ci, i) => i !== playIndex && getFaceData(ci).type === 'Terrain' && !isBlockedByBandit(i));
+    const allPlayCards = [
+      ...gameState.play,
+      ...(gameState.retainedCards || []),
+      ...(gameState.stayInPlay || [])
+    ];
+    const terrains = allPlayCards.filter(ci => 
+      ci !== cardInstance && 
+      getFaceData(ci).type === 'Terrain' && 
+      !gameState.bandits.some(b => b.blockedNum === ci.cardDef.numero)
+    );
     if (terrains.length === 0) {
       addLog(`❌ Aucun Terrain en jeu pour activer <span class="log-card">${fd.nom}</span>.`);
       return;
@@ -653,7 +666,7 @@ function _showCardGrantModal(targetCards, sourceName) {
     const resHTML = (face.ressources || []).length
       ? face.ressources.map(r => {
           const types = Array.isArray(r.type) ? r.type : [r.type];
-          return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`).join('');
+          return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`).join('');
         }).join('')
       : '';
     const fameHTML = face.victoire ? `<div style="font-size:0.8rem;color:#f0c040;margin-top:6px;">★ +${face.victoire} Gloire</div>` : '';
@@ -855,7 +868,7 @@ function showTerrainChoiceModal(playIndex, act, terrains) {
   let html = `<p style="margin-bottom:12px;">Choisissez un <strong>Terrain</strong> dont vous voulez copier la production :</p>`;
   terrains.forEach(ci => {
     const f = getFaceData(ci);
-    const actualIdx = gameState.play.indexOf(ci);
+    const cardNum = ci.cardDef.numero;
     const emoji = getCardEmoji(f.type, f.nom);
     const resInfo = (f.ressources || []).length
       ? f.ressources.map(r => {
@@ -863,7 +876,7 @@ function showTerrainChoiceModal(playIndex, act, terrains) {
           return `+${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
         }).join(' ')
       : '(aucune production)';
-    html += `<button onclick="confirmTerrainChoice(${playIndex}, ${actualIdx})" class="sacrifice-choice-btn">
+    html += `<button onclick="confirmTerrainChoice(${playIndex}, ${cardNum})" class="sacrifice-choice-btn">
       <span class="sacrifice-emoji">${emoji}</span>
       <span class="sacrifice-info">
         <strong>${f.nom}</strong>
@@ -894,7 +907,7 @@ function cancelTerrainChoiceModal() {
   _restoreRetainedIfNeeded(playIndex);
 }
 
-function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
+function confirmTerrainChoice(exploitantPlayIndex, terrainCardNum) {
   bootstrap.Modal.getInstance(document.getElementById('terrainChoiceModal'))?.hide();
   window._pendingTerrainPlayIndex = null;
   window._pendingTerrainAct = null;
@@ -905,16 +918,23 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainPlayIndex) {
   }
 
   const exploitantCard = gameState.play[exploitantPlayIndex];
-  const terrainCard    = gameState.play[terrainPlayIndex];
+  const allPlayCards = [
+    ...gameState.play,
+    ...(gameState.retainedCards || []),
+    ...(gameState.stayInPlay || [])
+  ];
+  const terrainCard    = allPlayCards.find(c => c.cardDef.numero === terrainCardNum);
+  if (!terrainCard) return;
   const terrainFace    = getFaceData(terrainCard);
   const exploitantName = getFaceData(exploitantCard).nom;
 
   // Copier la production réelle du terrain (pas ses effets)
   const resourcesGained = {};
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(terrainCard.cardDef.numero) : {};
   (terrainFace.ressources || []).forEach(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     const key = normalizeRes(types[0]);
-    if (key) resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+    if (key) resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite + (stickerBonus[key] || 0);
   });
 
   // Retirer l'Exploitant du jeu (le terrain reste en jeu)
@@ -1274,7 +1294,7 @@ function _showDiscoverByEffectModal(candidates, sourceName) {
     const bg = typeColors[face.type] || '#3a3a3a';
     const resHTML = (face.ressources || []).map(r => {
       const types = Array.isArray(r.type) ? r.type : [r.type];
-      return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+      return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
     }).join('');
     const fameHTML = face.victoire ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire} Gloire</div>` : '';
     const facesTotal = cardDef.faces.length;

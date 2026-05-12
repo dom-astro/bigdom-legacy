@@ -66,14 +66,6 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const totalFaces = cardInstance.cardDef.faces.length;
   const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
 
-  const resHTML = hasResources ? face.ressources.map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => {
-      const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
-      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
-    }).join('');
-  }).join('') : '';
-
   const effectIcon = face.effet
     ? (Array.isArray(face.effet) ? '⚡'
       : face.effet.type==='Activable' ? '🟢'
@@ -96,19 +88,27 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
 
   let cardBg, cardBorder, nameColor, extraOverlay = '';
+  let faceBadgeStyle = '';
+  let pipStyle = '';
   if (banditCard) {
     cardBg = 'linear-gradient(160deg,#3a1010,#2a0808)';
     cardBorder = '#cc3333';
     nameColor = '#ffaaaa';
+    faceBadgeStyle = 'background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);color:#f0c040;';
+    pipStyle = '0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;';
   } else if (blocked) {
     cardBg = 'linear-gradient(160deg,#2a2010,#1a1408)';
     cardBorder = '#996600';
     nameColor = '#cc9940';
     extraOverlay = `<div class="card-blocked-overlay">🔒 BLOQUÉE</div>`;
+    faceBadgeStyle = 'background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);color:#f0c040;';
+    pipStyle = '0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;';
   } else {
     cardBg = 'linear-gradient(160deg,var(--parchment),var(--parchment-dark))';
     cardBorder = 'var(--border-ornate)';
     nameColor = 'var(--ink)';
+    faceBadgeStyle = 'background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;';
+    pipStyle = '0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;';
 
     if (canUpgradeConfirmed) {
       cardBorder = '#44ccff'; // Bleu pour la promotion
@@ -116,6 +116,14 @@ function buildCardFrontHTML(cardInstance, playIndex) {
       cardBorder = '#44dd44'; // Vert pour l'activation
     }
   }
+
+  const resHTML = typeof buildResourcePipsHTML === 'function' ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, blocked, pipStyle) : (hasResources ? face.ressources.map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return types.map(t => {
+      const isGoldBlocked = blocked && normalizeRes(t) === 'Or';
+      return `<span class="resource-pip${isGoldBlocked ? ' res-blocked' : ''}" style="font-size:${pipStyle}">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}${isGoldBlocked ? ' 🚫' : ''}</span>`;
+    }).join('');
+  }).join('') : '');
 
   const hasDestruction = hasDestructionEffect(cardInstance);
   const hasRetention = _hasRetentionEffect(cardInstance);
@@ -162,13 +170,12 @@ function buildCardFrontHTML(cardInstance, playIndex) {
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardInstance.cardDef.numero}, 'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
+        <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.48rem;opacity:1;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;letter-spacing:0.5px;${faceBadgeStyle}">Face ${cardInstance.currentFace}/${totalFaces}</span></div>
         <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
         ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
-        ${(typeof getStickerBonusForCard === 'function' && getStickerBonusForCard(cardInstance.cardDef.numero)) ? `<div class="card-resources">${getStickerBonusForCard(cardInstance.cardDef.numero)}</div>` : ''}
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:var(--gold);border-radius:0 0 0 8px;"></div></div>
@@ -430,9 +437,9 @@ function buildPermanentCardHTML(cardInstance) {
 
   // Rendu normal
   const face = getFaceData(cardInstance);
-  const resHTML = (face.ressources||[]).map(r => {
+  const resHTML = typeof buildResourcePipsHTML === 'function' ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, false, '0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;') : (face.ressources||[]).map(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => `<span class="resource-pip" style="font-size:0.5rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
   }).join('');
   return `
     <div class="card-wrapper">
@@ -471,9 +478,9 @@ function buildHeldCardHTML(cardInstance, source) {
   const badgeLabel     = isRetained ? '🕊️ RETENUE' : '🏚️ RESTE EN JEU';
   const badgeColor     = isRetained ? '#e8b840' : '#d0a030';
 
-  const resHTML = (face.ressources||[]).map(r => {
+  const resHTML = typeof buildResourcePipsHTML === 'function' ? buildResourcePipsHTML(cardNum, face, false, '0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;') : (face.ressources||[]).map(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
-    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+    return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
   }).join('');
 
   // Ressources projetées (pour hint visuel) et confirmées (pour disponibilité réelle)
@@ -535,7 +542,7 @@ function buildHeldCardHTML(cardInstance, source) {
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardNum}, '${source}')"
            style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial" style="color:${serialColor};">#${cardNum} <span style="font-size:0.38rem;opacity:0.6;">${cardInstance.currentFace}/${totalFaces}</span></div>
+        <div class="card-serial" style="color:${serialColor};">#${cardNum} <span style="font-size:0.48rem;opacity:1;background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);padding:1px 5px;border-radius:4px;margin-left:4px;color:#f0c040;font-weight:700;letter-spacing:0.5px;">Face ${cardInstance.currentFace}/${totalFaces}</span></div>
         <div class="card-name" style="color:${nameColor};">${face.nom}</div>
         <span class="card-type-badge" style="background:${badgeBg};font-size:0.42rem;">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
@@ -587,12 +594,14 @@ function updateUI() {
     $('#topDeckCard').css('cursor', 'pointer').attr('onclick', 'showDeckPile()');
     const topCard = gameState.deck[0];
     const topFace = getFaceData(topCard);
-    const topResHTML = (topFace.ressources && topFace.ressources.length)
-      ? topFace.ressources.map(r => {
-          const types = Array.isArray(r.type) ? r.type : [r.type];
-          return types.map(t => `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
-        }).join('')
-      : '';
+    const topResHTML = typeof buildResourcePipsHTML === 'function'
+      ? buildResourcePipsHTML(topCard.cardDef.numero, topFace, false, '0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;')
+      : ((topFace.ressources && topFace.ressources.length)
+        ? topFace.ressources.map(r => {
+            const types = Array.isArray(r.type) ? r.type : [r.type];
+            return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
+          }).join('')
+        : '');
     const topPromos = topFace.promotions ? topFace.promotions : (topFace.promotion ? [topFace.promotion] : []);
     const topUpgradeHTML = topPromos.length
       ? `<div class="card-upgrade-hint" style="font-size:0.38rem;">▲ ${topPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>`
@@ -603,7 +612,7 @@ function updateUI() {
     const totalTopFaces = topCard.cardDef.faces.length;
     $('#topDeckCard').html(`
       ${topFameHTML}
-      <div class="card-serial">#${topCard.cardDef.numero} <span style="font-size:0.38rem;opacity:0.6;">${topCard.currentFace}/${totalTopFaces}</span></div>
+      <div class="card-serial">#${topCard.cardDef.numero} <span style="font-size:0.48rem;opacity:1;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 5px;border-radius:4px;margin-left:4px;color:#4a2a0a;font-weight:700;letter-spacing:0.5px;">Face ${topCard.currentFace}/${totalTopFaces}</span></div>
       <div class="card-name">${topFace.nom}</div>
       <span class="card-type-badge type-${(topFace.type||'').replace('â','a').replace('è','e')}">${topFace.type}</span>
       <div class="card-img-area">${getCardEmoji(topFace.type, topFace.nom)}</div>
@@ -804,14 +813,22 @@ function openCardModal(indexOrNum, zone) {
 
   // — Production
   if (face.ressources && face.ressources.length) {
+    const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
     const resPips = face.ressources.map(r => {
       const types = Array.isArray(r.type) ? r.type : [r.type];
       return types.map(t => {
-        const icon = RESOURCE_ICONS[normalizeRes(t)] || t;
+        const resKey = normalizeRes(t);
+        const bonus = stickerBonus[resKey] || 0;
+        const totalQte = r.quantite + bonus;
+        const icon = RESOURCE_ICONS[resKey] || t;
+        const isBonus = bonus > 0;
+        const bg = isBonus ? 'rgba(42,90,154,0.18)' : 'rgba(200,150,12,0.12)';
+        const border = isBonus ? 'rgba(74,138,191,0.5)' : 'rgba(200,150,12,0.3)';
+        const colorTag = isBonus ? 'color:#aaddff;' : '';
         return `<span style="display:inline-flex;align-items:center;gap:4px;
-          background:rgba(200,150,12,0.12);border:1px solid rgba(200,150,12,0.3);
-          border-radius:12px;padding:3px 10px;font-size:0.88rem;">
-          ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;">×${r.quantite}</strong>
+          background:${bg};border:1px solid ${border};
+          border-radius:12px;padding:3px 10px;font-size:0.88rem;${colorTag}">
+          ${icon} <strong style="font-family:'Cinzel',serif;font-size:0.75rem;">×${totalQte}</strong>
           <span style="font-size:0.65rem;opacity:0.7;">${t}</span>
         </span>`;
       }).join('');
@@ -1225,7 +1242,7 @@ function showDeckPile() {
       onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
       onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
       style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} F${ci.currentFace}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} <span style="color:#4a2a0a;font-weight:700;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 4px;border-radius:3px;">Face ${ci.currentFace}</span></div>
       <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
       <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
       <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>
@@ -1244,7 +1261,7 @@ function showDiscardPile() {
       onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
       onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
       style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} F${ci.currentFace}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} <span style="color:#4a2a0a;font-weight:700;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 4px;border-radius:3px;">Face ${ci.currentFace}</span></div>
       <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
       <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
       <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>

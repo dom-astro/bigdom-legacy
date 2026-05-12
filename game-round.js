@@ -265,7 +265,7 @@ function _showNewCardsModal(discovered) {
       ? face.ressources.map(r => {
           const types = Array.isArray(r.type) ? r.type : [r.type];
           return types.map(t =>
-            `<span class="resource-pip">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`
+            `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`
           ).join('');
         }).join('')
       : `<span style="color:#666;font-size:0.65rem;font-style:italic;">Aucune production</span>`;
