@@ -112,25 +112,24 @@ function drawCards(n) {
 
   _banditsToPlace.forEach(card => {
     const banditNum = card.cardDef.numero;
-    const allGold = gameState.play
+    const newGold = gameState.play
       .filter(c => !isBandit(c) && producesGold(c) &&
+                   newCardNums.has(c.cardDef.numero) &&
                    !gameState.bandits.some(b => b.blockedNum === c.cardDef.numero) &&
                    !_blockedInQueue.has(c.cardDef.numero));
 
-    // Cartes or tirées dans CE tirage → blocage automatique prioritaire
-    const newGold = allGold.filter(c => newCardNums.has(c.cardDef.numero));
-    // Cartes or déjà en jeu avant ce tirage → choix seulement si aucune nouvelle carte or
-    const oldGold = allGold.filter(c => !newCardNums.has(c.cardDef.numero));
-
     gameState.bandits.push({ banditNum, blockedNum: null, pendingChoice: true });
 
-    if (newGold.length > 0) {
-      // Bloquer automatiquement la (première) carte or du même tirage
+    if (newGold.length === 0) {
+      // Aucun nouveau terrain or -> on ne fait rien
+      _banditQueue.push({ banditNum, goldCards: [] });
+    } else if (newGold.length === 1) {
+      // 1 seul nouveau terrain or -> on bloque automatiquement
       _blockedInQueue.add(newGold[0].cardDef.numero);
       _banditQueue.push({ banditNum, goldCards: newGold, autoBlock: newGold[0] });
     } else {
-      // Pas de nouvelle carte or → comportement classique sur les anciennes
-      _banditQueue.push({ banditNum, goldCards: oldGold });
+      // 2 terrains ou plus -> choix parmi les nouveaux terrains
+      _banditQueue.push({ banditNum, goldCards: newGold });
     }
     gameState.play.push(card);
   });
