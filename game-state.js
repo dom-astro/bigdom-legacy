@@ -65,7 +65,7 @@ function getCardEmoji(type, nom) {
     'Quartier Général':'⚑','Hôtel de Ville':'🏛️','Donjon':'🏰','Château':'🏰',
     'Commerçante':'👩‍💼','Bazar':'🏪','Marché':'🛍️','Festival':'🎪',
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
-    'Rivière':'🏞️','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
+        'Rivière':'<img src="river.svg" alt="Rivière" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">','Pont':'🌉','Pont de Pierre':'🗿','Explorateurs':'🧭',
     'Autel':'⛩️',
     'Exploitant':'⚒️','Domestique':'🧹','Bandit':'🗡️','Travailleur':'👨‍🔧',
     'Colline':'🌄','Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',

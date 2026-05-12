@@ -769,7 +769,7 @@ function openCardModal(indexOrNum, zone) {
   const typeBg = typeColors[face.type] || '#5a5040';
 
   $('#modalCardSubtitle').text(`Carte #${cardInstance.cardDef.numero} · Face ${cardInstance.currentFace}/${totalFaces}`);
-  $('#modalCardName').text(`${getCardEmoji(face.type, face.nom)}  ${face.nom}`);
+  $('#modalCardName').html(`${getCardEmoji(face.type, face.nom)}  ${face.nom}`);
   $('#modalCardTypeBadge').html(
     `<span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;` +
     `font-size:0.58rem;letter-spacing:1px;padding:2px 10px;border-radius:10px;">${face.type}</span>` +
@@ -1557,7 +1557,7 @@ function showDiscoveredCardModal(cardNum) {
   } else {
     const typeBg = typeColors[face1.type] || '#5a5040';
     $('#discoveredCardSubtitle').text('Carte #' + cardNum + ' · ' + totalFaces + ' face' + (totalFaces > 1 ? 's' : '') + ' au total');
-    $('#discoveredCardName').text(getCardEmoji(face1.type, face1.nom) + '  ' + face1.nom);
+    $('#discoveredCardName').html(getCardEmoji(face1.type, face1.nom) + '  ' + face1.nom);
     $('#discoveredCardTypeBadge').html(
       '<span style="display:inline-block;background:' + typeBg + ';color:#fff;font-family:\'Cinzel\',serif;' +
       'font-size:0.58rem;letter-spacing:1px;padding:2px 10px;border-radius:10px;">' + face1.type + '</span>' +

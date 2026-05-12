@@ -1380,14 +1380,14 @@ function _showConversionReveal(banditCard, face2, act, missionaireName) {
 
   // Remplir la face avant (Bandit)
   document.getElementById('convFrontSerial').textContent = `#${banditCard.cardDef.numero}`;
-  document.getElementById('convFrontEmoji').textContent  = getCardEmoji(face1.type, face1.nom);
+  document.getElementById('convFrontEmoji').innerHTML    = getCardEmoji(face1.type, face1.nom);
   document.getElementById('convFrontName').textContent   = face1.nom;
   document.getElementById('convFrontDesc').textContent   = face1.description || '';
 
   // Remplir la face arrière (nouvelle identité)
   const face2Data = face2 || { nom: '?', type: 'Personne', description: '' };
   document.getElementById('convBackSerial').textContent  = `#${banditCard.cardDef.numero}`;
-  document.getElementById('convBackEmoji').textContent   = getCardEmoji(face2Data.type, face2Data.nom);
+  document.getElementById('convBackEmoji').innerHTML     = getCardEmoji(face2Data.type, face2Data.nom);
   document.getElementById('convBackName').textContent    = face2Data.nom;
   document.getElementById('convBackType').textContent    = face2Data.type || 'Personne';
   document.getElementById('convBackDesc').textContent    = face2Data.description || '';
