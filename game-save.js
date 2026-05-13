@@ -3,6 +3,8 @@
 // ============================================================
 
 const SESSION_KEY = 'bigdom-autosave';
+const ROUND_SESSION_KEY = 'bigdom-autosave-round';
+let _roundSnapshotJSON = null;
 
 function _buildSaveObject() {
   const serializeCards = (list) =>
@@ -94,12 +96,64 @@ function _autosave() {
   catch (e) { console.warn('Autosave localStorage échoué :', e); }
 }
 
+function saveRoundSnapshot() {
+  _roundSnapshotJSON = JSON.stringify(_buildSaveObject());
+  try { localStorage.setItem(ROUND_SESSION_KEY, _roundSnapshotJSON); } catch(e) {}
+}
+
+function restoreRoundSnapshot() {
+  if (!_roundSnapshotJSON) return;
+  try {
+    const save = JSON.parse(_roundSnapshotJSON);
+    _applyImport(save);
+    addLog(`🔄 La manche a été réinitialisée.`, true);
+    drawCards(4);
+  } catch(e) {
+    console.error('Erreur lors de la restauration de la manche:', e);
+  }
+}
+
+function confirmRestartRound() {
+  if ($('#confirmRestartRoundModal').length === 0) {
+    $('body').append(`
+      <div class="modal fade" id="confirmRestartRoundModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content confirm-modal-content">
+            <div class="confirm-modal-header">
+              <div class="confirm-modal-icon">🔄</div>
+              <h5 class="confirm-modal-title">Recommencer la Manche</h5>
+            </div>
+            <div class="confirm-modal-body">
+              <p>Voulez-vous vraiment recommencer cette manche depuis le début ?</p>
+              <p>Toute votre progression dans cette manche sera perdue.</p>
+            </div>
+            <div class="confirm-modal-footer">
+              <button type="button" class="confirm-modal-btn confirm-modal-btn-cancel" data-bs-dismiss="modal">Annuler</button>
+              <button type="button" class="confirm-modal-btn confirm-modal-btn-ok" onclick="doRestartRound()">Confirmer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+  new bootstrap.Modal(document.getElementById('confirmRestartRoundModal')).show();
+}
+
+function doRestartRound() {
+  bootstrap.Modal.getInstance(document.getElementById('confirmRestartRoundModal'))?.hide();
+  restoreRoundSnapshot();
+}
+
 function _restoreAutosave() {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return false;
     const save = JSON.parse(raw);
     if (!save || !save._tech) return false;
+
+    const roundRaw = localStorage.getItem(ROUND_SESSION_KEY);
+    if (roundRaw) _roundSnapshotJSON = roundRaw;
+
     _applyImport(save);
     addLog(`🔄 Session restaurée automatiquement — <strong>${gameState.kingdomName}</strong>.`, true);
     return true;
@@ -113,6 +167,8 @@ function confirmRestartGame() {
 function doRestartGame() {
   bootstrap.Modal.getInstance(document.getElementById('restartModal'))?.hide();
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  try { localStorage.removeItem(ROUND_SESSION_KEY); } catch(e) {}
+  _roundSnapshotJSON = null;
   cardStateMap = {};
   choiceNeeded = new Set();
   ALL_CARDS = [ ...BEGIN_CARDS ];
@@ -150,7 +206,11 @@ function importGame() {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      try { _applyImport(JSON.parse(ev.target.result)); }
+      try { 
+        _roundSnapshotJSON = null;
+        try { localStorage.removeItem(ROUND_SESSION_KEY); } catch(e) {}
+        _applyImport(JSON.parse(ev.target.result)); 
+      }
       catch (err) { alert('❌ Fichier invalide ou corrompu.\n' + err.message); }
     };
     reader.readAsText(file);

@@ -72,7 +72,6 @@ function drawCards(n) {
   window._dealExistingPlayNums = existingPlayNums;
   window._dealExistingStayInPlayNums = existingStayInPlayNums;
 
-  // Règle : les cartes normales sont placées EN PREMIER, les bandits EN DERNIER.
   // Si une carte or fait partie du même tirage que le bandit, elle est bloquée
   // automatiquement et prioritairement — sans modal de choix.
   const _eruptionWasActiveBeforeDraw = gameState.eruptionActive;
@@ -92,15 +91,16 @@ function drawCards(n) {
       if (isStayInPlay(getFaceData(card))) {
         _cardsToStayInPlayTemp.push(card);
       } else {
+        gameState.play.push(card);
         _cardsToPlayTemp.push(card);
       }
     } else {
+      gameState.play.push(card);
+      _cardsToPlayTemp.push(card);
       _banditsToPlace.push(card);
     }
   }
 
-  // Add cards to their respective gameState arrays
-  _cardsToPlayTemp.forEach(card => gameState.play.push(card));
   _cardsToStayInPlayTemp.forEach(card => {
     if (!gameState.stayInPlay) gameState.stayInPlay = [];
     // Éviter les doublons (la carte peut déjà y être d'un tour précédent)
@@ -131,7 +131,6 @@ function drawCards(n) {
       // 2 terrains ou plus -> choix parmi les nouveaux terrains
       _banditQueue.push({ banditNum, goldCards: newGold });
     }
-    gameState.play.push(card);
   });
 
   addLog(`📜 Vous jouez ${toDraw} carte${toDraw > 1 ? 's' : ''}.`);

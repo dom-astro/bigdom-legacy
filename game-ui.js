@@ -726,6 +726,12 @@ function updateUI() {
   const canUndo = !!_drawSnapshot && gameState.staging.length === 0;
   $('#btnUndo').toggle(canUndo).prop('disabled', !canUndo);
 
+  const canRestartRound = gameState.round > 0 && typeof _roundSnapshotJSON !== 'undefined' && !!_roundSnapshotJSON;
+  if ($('#btnRestartRound').length === 0) {
+    $('<button id="btnRestartRound" class="btn-medieval btn-restart-round" onclick="confirmRestartRound()">↺ Relancer Manche</button>').insertBefore('#btnUndo');
+  }
+  $('#btnRestartRound').toggle(canRestartRound).prop('disabled', !canRestartRound);
+
   const canPass = gameState.play.length > 0 || gameState.staging.length > 0;
   $('#btnPass').prop('disabled', !canPass).css('opacity', canPass ? 1 : 0.4)
     .attr('title', canPass ? '' : 'Aucune carte à jouer');

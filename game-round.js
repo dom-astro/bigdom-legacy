@@ -375,6 +375,7 @@ function _finalizeNewRound(allCards, discovered) {
   gameState.turn = 1; gameState.round++; gameState.turnStarted = false;
   addLog(`🔄 Manche ${gameState.round} commence ! Pioche : ${newDeck.length} cartes.`, true);
   updateUI();
+  if (typeof saveRoundSnapshot === 'function') saveRoundSnapshot();
 }
 
 function discoverNextCards(n) {

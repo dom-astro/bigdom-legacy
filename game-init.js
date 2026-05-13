@@ -172,6 +172,7 @@ function _startGameWithName(name) {
   updateUI();
   addLog(`⚜ Que le Royaume de <strong>${name}</strong> prospère ! La partie commence.`, true);
   addLog(`📦 ${gameState.deck.length} cartes en pioche | ${gameState.box.length} cartes à découvrir (11–22).`);
+  if (typeof saveRoundSnapshot === 'function') saveRoundSnapshot();
   drawCards(4);
 }
 
