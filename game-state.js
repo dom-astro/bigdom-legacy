@@ -72,7 +72,7 @@ function getCardEmoji(type, nom) {
     'Bazar':'🏪','Marché':'🛍️','Festival':'🎪',
     'Jungle':'🌴','Arbres Géants':'🌳','Jungle Profonde':'🏕️','Cabane dans les Arbres':'🛖',
     'Rivière':'<img src="img/river.svg" alt="Rivière" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">',
-    'Pont':'<img src="img/pont.png" alt="Pont" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">',
+    'Pont':'<img src="img/pont.png" alt="Pont" style="width:2em;height:2em;vertical-align:-0.15em;object-fit:contain;">',
     'Pont de Pierre':'🗿','Explorateurs':'🧭',
     'Autel':'<img src="img/autel.png" alt="Autel" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Exploitant':'<img src="img/exploitant.png" alt="Exploitant" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',

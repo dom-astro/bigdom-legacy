@@ -57,6 +57,19 @@ function _handleCardDoubleClick(cardNum, zone) {
 }
 
 // ============================================================
+//  RENDER — UI/UX Helpers
+// ============================================================
+function buildFaceIndicatorHTML(currentFace, totalFaces, faceStyle) {
+  if (totalFaces <= 1) return '';
+  let pips = '';
+  for (let i = 1; i <= totalFaces; i++) {
+    const isActive = i === (currentFace || 1);
+    pips += `<span style="opacity:${isActive ? 1 : 0.4}; font-size:${isActive ? '0.55rem' : '0.45rem'}; text-shadow:${isActive ? '0 0 4px currentColor' : 'none'}; transition:all 0.3s;">${isActive ? '✦' : '✧'}</span>`;
+  }
+  return `<span class="card-id-face" title="Évolution : Niveau ${currentFace || 1} sur ${totalFaces}" style="${faceStyle} display:inline-flex; align-items:center; gap:2px; padding:3px 6px; cursor:help;">${pips}</span>`;
+}
+
+// ============================================================
 //  RENDER — cartes en jeu
 // ============================================================
 function buildCardFrontHTML(cardInstance, playIndex) {
@@ -92,26 +105,32 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
 
   let cardBg, cardBorder, nameColor, extraOverlay = '';
-  let faceBadgeStyle = '';
+  let badgeWrapperStyle = '', numStyle = '', faceStyle = '';
   let pipStyle = '';
   if (banditCard) {
     cardBg = 'linear-gradient(160deg,#3a1010,#2a0808)';
     cardBorder = '#cc3333';
     nameColor = '#ffaaaa';
-    faceBadgeStyle = 'background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);color:#f0c040;';
+    badgeWrapperStyle = 'background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3); box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+    numStyle = 'color:#f0c040;';
+    faceStyle = 'background:rgba(200,150,12,0.25); color:#ffe080; border-left:1px solid rgba(200,150,12,0.3);';
     pipStyle = '0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;';
   } else if (blocked) {
     cardBg = 'linear-gradient(160deg,#2a2010,#1a1408)';
     cardBorder = '#996600';
     nameColor = '#cc9940';
     extraOverlay = `<div class="card-blocked-overlay">🔒 BLOQUÉE</div>`;
-    faceBadgeStyle = 'background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);color:#f0c040;';
+    badgeWrapperStyle = 'background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3); box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+    numStyle = 'color:#f0c040;';
+    faceStyle = 'background:rgba(200,150,12,0.25); color:#ffe080; border-left:1px solid rgba(200,150,12,0.3);';
     pipStyle = '0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;';
   } else {
     cardBg = 'linear-gradient(160deg,var(--parchment),var(--parchment-dark))';
     cardBorder = 'var(--border-ornate)';
     nameColor = 'var(--ink)';
-    faceBadgeStyle = 'background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;';
+    badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+    numStyle = 'color:var(--ink);';
+    faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
     pipStyle = '0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;';
 
     if (canUpgradeConfirmed) {
@@ -169,12 +188,20 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     if (hasUpgrade) actionBtns.push(`<button class="card-action-btn btn-upgrade-action${canUpgradeConfirmed?'':' btn-upgrade-disabled'}" onclick="event.stopPropagation();stageUpgradeCard(${cardInstance.cardDef.numero})" title="${upgradeAlreadyStaged ? 'Une promotion a déjà été jouée ce tour' : 'Promouvoir cette carte'}">▲ Prom.</button>`);
   }
 
+  const serialHTML = `
+    <div class="card-header-info">
+      <div class="card-id-badge" style="${badgeWrapperStyle}">
+        <span class="card-id-num" style="${numStyle}">#${cardInstance.cardDef.numero}</span>
+          ${buildFaceIndicatorHTML(cardInstance.currentFace, totalFaces, faceStyle)}
+      </div>
+    </div>`;
+
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}${isActionable ? ' card-wrapper-actionable' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardInstance.cardDef.numero}, 'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial">#${cardInstance.cardDef.numero} <span style="font-size:0.48rem;opacity:1;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;letter-spacing:0.5px;${faceBadgeStyle}">Face ${cardInstance.currentFace}/${totalFaces}</span></div>
+        ${serialHTML}
         <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
@@ -273,7 +300,11 @@ function buildPermanentCardHTML(cardInstance) {
       return `
         <div class="card-wrapper" style="cursor:pointer;" onclick="openArmeeModal()" title="Cliquer pour investir des Épées">
           <div class="card-front card-permanent" style="border-color:#cc4444;background:linear-gradient(160deg,#1a0a0a,#0e0606);">
-            <div class="card-serial" style="font-size:0.45rem;color:#ff8888;">#25</div>
+            <div class="card-header-info" style="margin-bottom:2px;">
+              <div class="card-id-badge" style="background:rgba(200,50,50,0.15); border:1px solid rgba(200,50,50,0.3);">
+                <span class="card-id-num" style="color:#ff8888;">#25</span>
+              </div>
+            </div>
             <div class="card-name" style="font-size:0.5rem;color:#ffaaaa;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a1a1a;">Progression</span>
             <div style="font-size:1.4rem;margin:4px 0;">⚔️</div>
@@ -317,7 +348,11 @@ function buildPermanentCardHTML(cardInstance) {
       return `
         <div class="card-wrapper" style="cursor:pointer;" onclick="openTresorModal()" title="Cliquer pour investir de l'Or">
           <div class="card-front card-permanent" style="border-color:#c8960c;background:linear-gradient(160deg,#1a1408,#0e0a04);">
-            <div class="card-serial" style="font-size:0.45rem;color:#c8960c;">#26</div>
+            <div class="card-header-info" style="margin-bottom:2px;">
+              <div class="card-id-badge" style="background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3);">
+                <span class="card-id-num" style="color:#c8960c;">#26</span>
+              </div>
+            </div>
             <div class="card-name" style="font-size:0.5rem;color:#f0c040;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Progression</span>
             <div style="font-size:1.4rem;margin:4px 0;">🪙</div>
@@ -356,7 +391,11 @@ function buildPermanentCardHTML(cardInstance) {
       return `
         <div class="card-wrapper" style="cursor:pointer;" onclick="openExportModal()" title="Cliquer pour investir des Marchandises">
           <div class="card-front card-permanent" style="border-color:#8844cc;background:linear-gradient(160deg,#120a1a,#0a0610);">
-            <div class="card-serial" style="font-size:0.45rem;color:#aa66ff;">#27</div>
+            <div class="card-header-info" style="margin-bottom:2px;">
+              <div class="card-id-badge" style="background:rgba(136,68,204,0.15); border:1px solid rgba(136,68,204,0.3);">
+                <span class="card-id-num" style="color:#aa66ff;">#27</span>
+              </div>
+            </div>
             <div class="card-name" style="font-size:0.5rem;color:#cc88ff;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#5a2a8a;">Progression</span>
             <div style="font-size:1.4rem;margin:4px 0;">🛒</div>
@@ -395,7 +434,11 @@ function buildPermanentCardHTML(cardInstance) {
       return `
         <div class="card-wrapper" style="cursor:pointer;" onclick="ouvrirCarte24Modal()" title="Cliquer pour appliquer les effets permanents">
           <div class="card-front card-permanent" style="border-color:${color24};background:linear-gradient(160deg,#1a1408,#0e0a04);">
-            <div class="card-serial" style="font-size:0.45rem;color:${color24};">#24</div>
+            <div class="card-header-info" style="margin-bottom:2px;">
+              <div class="card-id-badge" style="background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3);">
+                <span class="card-id-num" style="color:${color24};">#24</span>
+              </div>
+            </div>
             <div class="card-name" style="font-size:0.5rem;color:#f0c040;">Terre fertile</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Parchemin</span>
             <div style="font-size:1.4rem;margin:4px 0;">\uD83C\uDF3E</div>
@@ -428,7 +471,11 @@ function buildPermanentCardHTML(cardInstance) {
       <div class="card-wrapper">
         <div class="card-front card-permanent" title="Carte Héritage — reste en jeu définitivement"
              style="border-color:${color};background:linear-gradient(160deg,#1a1008,#0e0a04);">
-          <div class="card-serial" style="font-size:0.45rem;color:#c8960c;">#${rawCard.numero}</div>
+          <div class="card-header-info" style="margin-bottom:2px;">
+            <div class="card-id-badge" style="background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3);">
+              <span class="card-id-num" style="color:#c8960c;">#${rawCard.numero}</span>
+            </div>
+          </div>
           <div class="card-name" style="font-size:0.5rem;color:#f0c040;">${rawCard.nom || '#' + rawCard.numero}</div>
           <span class="card-type-badge" style="font-size:0.38rem;background:${color};">${rawCard.type}</span>
           <div class="card-img-area" style="font-size:1.3rem;flex:1;">${emoji}</div>
@@ -449,7 +496,11 @@ function buildPermanentCardHTML(cardInstance) {
     <div class="card-wrapper">
       <div class="card-front card-permanent" title="Carte permanente">
         ${face.victoire ? `<div class="card-victory">★${face.victoire}</div>` : ''}
-        <div class="card-serial" style="font-size:0.45rem;">#${cardInstance.cardDef.numero}</div>
+        <div class="card-header-info" style="margin-bottom:2px;">
+          <div class="card-id-badge" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">
+            <span class="card-id-num" style="color:white;">#${cardInstance.cardDef.numero}</span>
+          </div>
+        </div>
         <div class="card-name" style="font-size:0.52rem;">${face.nom}</div>
         <span class="card-type-badge type-Batiment" style="font-size:0.42rem;">${face.type}</span>
         <div class="card-img-area" style="font-size:1.3rem;flex:1;">${getCardEmoji(face.type, face.nom)}</div>
@@ -543,12 +594,23 @@ function buildHeldCardHTML(cardInstance, source) {
     }
   }
 
+  const badgeWrapperStyle = 'background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3);';
+  const numStyle = 'color:#f0c040;';
+  const faceStyle = 'background:rgba(200,150,12,0.25); color:#ffe080; border-left:1px solid rgba(200,150,12,0.3);';
+  const serialHTML = `
+    <div class="card-header-info">
+      <div class="card-id-badge" style="${badgeWrapperStyle}">
+        <span class="card-id-num" style="${numStyle}">#${cardNum}</span>
+        ${buildFaceIndicatorHTML(cardInstance.currentFace, totalFaces, faceStyle)}
+      </div>
+    </div>`;
+
   return `
     <div class="card-wrapper${isActionable ? ' card-wrapper-actionable' : ''}" data-held-num="${cardNum}" data-held-source="${source}">
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardNum}, '${source}')"
            style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
         ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
-        <div class="card-serial" style="color:${serialColor};">#${cardNum} <span style="font-size:0.48rem;opacity:1;background:rgba(200,150,12,0.25);border:1px solid rgba(200,150,12,0.4);padding:1px 5px;border-radius:4px;margin-left:4px;color:#f0c040;font-weight:700;letter-spacing:0.5px;">Face ${cardInstance.currentFace}/${totalFaces}</span></div>
+        ${serialHTML}
         <div class="card-name" style="color:${nameColor};">${face.nom}</div>
         <span class="card-type-badge" style="background:${badgeBg};font-size:0.42rem;">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
@@ -567,9 +629,20 @@ function buildRetainedCardHTML(ci)   { return buildHeldCardHTML(ci, 'retained');
 
 function buildDiscardTopHTML(cardInstance) {
   const face = getFaceData(cardInstance);
+  const totalFaces = cardInstance.cardDef.faces ? cardInstance.cardDef.faces.length : 1;
+  const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+  const numStyle = 'color:var(--ink);';
+  const faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
+  const serialHTML = `
+    <div class="card-header-info" style="margin-bottom:2px;">
+      <div class="card-id-badge" style="${badgeWrapperStyle}">
+        <span class="card-id-num" style="${numStyle}">#${cardInstance.cardDef.numero}</span>
+        ${buildFaceIndicatorHTML(cardInstance.currentFace, totalFaces, faceStyle)}
+      </div>
+    </div>`;
   return `
     <div class="card-front" style="cursor:pointer;width:130px;height:185px;border-radius:10px;border:2px solid var(--border-ornate);background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;">
-      <div style="font-family:'Cinzel',serif;font-size:0.55rem;color:var(--stone);">#${cardInstance.cardDef.numero}</div>
+      ${serialHTML}
       <div style="font-family:'Cinzel',serif;font-size:0.6rem;font-weight:600;color:var(--ink);text-align:center;">${face.nom}</div>
       <div style="font-size:2rem;margin:4px 0;">${getCardEmoji(face.type, face.nom)}</div>
       <div style="font-style:italic;font-size:0.5rem;color:var(--stone);">${face.type}</div>
@@ -616,9 +689,19 @@ function updateUI() {
       ? `<div class="card-victory" style="${topFace.victoire < 0 ? 'background:var(--crimson)' : ''}">${topFace.victoire > 0 ? '★' : ''}${topFace.victoire}</div>`
       : '';
     const totalTopFaces = topCard.cardDef.faces.length;
+    const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+    const numStyle = 'color:var(--ink);';
+    const faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
+    const topSerialHTML = `
+      <div class="card-header-info">
+        <div class="card-id-badge" style="${badgeWrapperStyle}">
+          <span class="card-id-num" style="${numStyle}">#${topCard.cardDef.numero}</span>
+            ${buildFaceIndicatorHTML(topCard.currentFace, totalTopFaces, faceStyle)}
+        </div>
+      </div>`;
     $('#topDeckCard').html(`
       ${topFameHTML}
-      <div class="card-serial">#${topCard.cardDef.numero} <span style="font-size:0.48rem;opacity:1;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 5px;border-radius:4px;margin-left:4px;color:#4a2a0a;font-weight:700;letter-spacing:0.5px;">Face ${topCard.currentFace}/${totalTopFaces}</span></div>
+      ${topSerialHTML}
       <div class="card-name">${topFace.nom}</div>
       <span class="card-type-badge type-${(topFace.type||'').replace('â','a').replace('è','e')}">${topFace.type}</span>
       <div class="card-img-area">${getCardEmoji(topFace.type, topFace.nom)}</div>
@@ -780,7 +863,7 @@ function openCardModal(indexOrNum, zone) {
   };
   const typeBg = typeColors[face.type] || '#5a5040';
 
-  $('#modalCardSubtitle').text(`Carte #${cardInstance.cardDef.numero} · Face ${cardInstance.currentFace}/${totalFaces}`);
+  $('#modalCardSubtitle').text(`Carte #${cardInstance.cardDef.numero} · Niveau ${cardInstance.currentFace}/${totalFaces}`);
   $('#modalCardName').html(`${getCardEmoji(face.type, face.nom)}  ${face.nom}`);
   $('#modalCardTypeBadge').html(
     `<span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;` +
@@ -1267,11 +1350,22 @@ function showDeckPile() {
   // On affiche les cartes dans l'ordre de la pioche (haut vers bas)
   gameState.deck.forEach(ci => {
     const f = getFaceData(ci);
+    const totalFaces = ci.cardDef.faces ? ci.cardDef.faces.length : 1;
+    const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+    const numStyle = 'color:var(--ink);';
+    const faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
+    const serialHTML = `
+      <div class="card-header-info" style="margin-bottom:2px;">
+        <div class="card-id-badge" style="${badgeWrapperStyle}">
+          <span class="card-id-num" style="${numStyle}">#${ci.cardDef.numero}</span>
+          ${buildFaceIndicatorHTML(ci.currentFace, totalFaces, faceStyle)}
+        </div>
+      </div>`;
     $g.append(`<div style="text-align:center;"><div 
       onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
       onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
       style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} <span style="color:#4a2a0a;font-weight:700;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 4px;border-radius:3px;">Face ${ci.currentFace}</span></div>
+      ${serialHTML}
       <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
       <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
       <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>
@@ -1286,11 +1380,22 @@ function showDiscardPile() {
   const $g = $('#discardPileGrid'); $g.empty();
   [...gameState.discard].reverse().forEach(ci => {
     const f = getFaceData(ci);
+    const totalFaces = ci.cardDef.faces ? ci.cardDef.faces.length : 1;
+    const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+    const numStyle = 'color:var(--ink);';
+    const faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
+    const serialHTML = `
+      <div class="card-header-info" style="margin-bottom:2px;">
+        <div class="card-id-badge" style="${badgeWrapperStyle}">
+          <span class="card-id-num" style="${numStyle}">#${ci.cardDef.numero}</span>
+          ${buildFaceIndicatorHTML(ci.currentFace, totalFaces, faceStyle)}
+        </div>
+      </div>`;
     $g.append(`<div style="text-align:center;"><div 
       onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
       onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
       style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.5rem;color:var(--stone);">#${ci.cardDef.numero} <span style="color:#4a2a0a;font-weight:700;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);padding:1px 4px;border-radius:3px;">Face ${ci.currentFace}</span></div>
+      ${serialHTML}
       <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
       <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
       <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>

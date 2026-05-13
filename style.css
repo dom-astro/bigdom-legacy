@@ -345,7 +345,24 @@ body.light-mode .zone-title { color: #8a6200; }
 }
 .card-front::before { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(139,105,20,0.3); border-radius: 7px; pointer-events: none; }
 
-.card-serial { font-family: 'Cinzel', serif; font-size: 0.5rem; color: var(--stone); text-align: center; margin-bottom: 2px; }
+.card-header-info {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.card-id-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.45rem;
+  font-weight: 700;
+  overflow: hidden;
+  line-height: 1;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+.card-id-num { padding: 3px 5px; letter-spacing: 0.5px; }
+.card-id-face { padding: 3px 5px; }
 .card-name   { font-family: 'Cinzel', serif; font-size: 0.58rem; font-weight: 600; color: var(--ink); text-align: center; line-height: 1.2; margin-bottom: 3px; }
 
 .card-type-badge { display: inline-block; font-family: 'Crimson Text', serif; font-size: 0.5rem; font-style: italic; color: white; padding: 1px 6px; border-radius: 10px; text-align: center; margin: 0 auto 3px; }
