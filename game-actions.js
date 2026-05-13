@@ -1059,26 +1059,79 @@ function showResourceChoiceModal(playIndex, act) {
   <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">`;
   choices.forEach((c, i) => {
     const icon = RESOURCE_ICONS[normalizeRes(c.type)] || c.type;
-    html += `<button onclick="confirmResourceChoice(${playIndex}, ${i})" class="bandit-reward-btn" style="min-width:80px;font-size:1rem;">
+    html += `<button id="resChoiceBtn_${i}" onclick="selectResourceChoice(${i})" class="bandit-reward-btn" style="min-width:80px;font-size:1rem;">
       ${icon}<br><span style="font-size:0.65rem;">${c.type}</span>
     </button>`;
   });
   html += '</div>';
 
+  html += `
+  <div style="text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;">
+    <button onclick="cancelResourceChoiceModal()" class="btn"
+      style="font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:1px;
+      background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);
+      color:var(--stone-light);padding:8px 18px;border-radius:6px;cursor:pointer;">
+      ✕ Fermer
+    </button>
+    <button id="btnConfirmResourceChoice" onclick="confirmResourceChoice()" disabled style="
+      font-family:'Cinzel',serif;font-weight:700;font-size:0.72rem;letter-spacing:1px;
+      background:rgba(0,0,0,0.4);border:2px solid #444;color:#666;
+      padding:8px 22px;border-radius:6px;cursor:not-allowed;transition:all 0.2s;">
+      ✔ Valider
+    </button>
+  </div>`;
+
   window._pendingResourceChoices = choices;
   window._pendingResourcePlayIndex = playIndex;
   window._pendingResourceAct = act;
+  window._pendingResourceChoiceIdx = null;
   $('#resourceChoiceBody').html(html);
   new bootstrap.Modal(document.getElementById('resourceChoiceModal')).show();
 }
 
-function confirmResourceChoice(playIndex, choiceIdx) {
-  bootstrap.Modal.getInstance(document.getElementById('resourceChoiceModal'))?.hide();
+function selectResourceChoice(idx) {
+  window._pendingResourceChoiceIdx = idx;
   const choices = window._pendingResourceChoices || [];
-  const act     = window._pendingResourceAct;
+  choices.forEach((c, i) => {
+    const btn = document.getElementById(`resChoiceBtn_${i}`);
+    if (btn) {
+      if (i === idx) btn.classList.add('selected');
+      else btn.classList.remove('selected');
+    }
+  });
+  const confirmBtn = document.getElementById('btnConfirmResourceChoice');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.style.cursor = 'pointer';
+    confirmBtn.style.background = 'linear-gradient(135deg,#1a5a1a,#0e3a0e)';
+    confirmBtn.style.borderColor = '#44cc44';
+    confirmBtn.style.color = '#aaffaa';
+  }
+}
+
+function cancelResourceChoiceModal() {
+  bootstrap.Modal.getInstance(document.getElementById('resourceChoiceModal'))?.hide();
+  const playIndex = window._pendingResourcePlayIndex;
   window._pendingResourceChoices   = null;
   window._pendingResourcePlayIndex = null;
   window._pendingResourceAct       = null;
+  window._pendingResourceChoiceIdx = null;
+  _restoreRetainedIfNeeded(playIndex);
+}
+
+function confirmResourceChoice() {
+  const choiceIdx = window._pendingResourceChoiceIdx;
+  if (choiceIdx == null) return;
+  bootstrap.Modal.getInstance(document.getElementById('resourceChoiceModal'))?.hide();
+
+  const choices = window._pendingResourceChoices || [];
+  const act     = window._pendingResourceAct;
+  const playIndex = window._pendingResourcePlayIndex;
+
+  window._pendingResourceChoices   = null;
+  window._pendingResourcePlayIndex = null;
+  window._pendingResourceAct       = null;
+  window._pendingResourceChoiceIdx = null;
 
   const fromRetained = !!window._pendingRetainedActivateNum;
   if (fromRetained) {
