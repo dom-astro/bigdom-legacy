@@ -802,6 +802,34 @@ body.light-mode .confirm-modal-btn-ok {
   pointer-events: none;
 }
 /* ============================================================
+   ANIMATION FLIP — Promotion
+   ============================================================ */
+.promo-anim-container {
+  perspective: 1000px;
+}
+.promo-flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.promo-flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.promo-flip-front,
+.promo-flip-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.promo-flip-back {
+  transform: rotateY(180deg);
+}
+/* ============================================================
    TOOLTIP PARCHEMIN — choix de promotion
    ============================================================ */
 .promo-btn-wrap {

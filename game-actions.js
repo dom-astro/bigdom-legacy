@@ -1644,67 +1644,6 @@ function confirmConversion() {
   _showConversionReveal(banditCard, face2, act, missionaireName);
 }
 
-/**
- * Confirme les actions en attente dans la zone de staging.
- * Applique les gains de ressources, les changements de gloire et les promotions.
- * Si une promotion a été confirmée, le tour se termine.
- */
-function confirmStagedActions() {
-  if (gameState.staging.length === 0) return;
-
-  const hadUpgrade = gameState.staging.some(e => e.action === 'upgrade');
-
-  // Appliquer les effets de staging
-  gameState.staging.forEach(entry => {
-    // Appliquer les gains de ressources
-    Object.entries(entry.resourcesGained).forEach(([key, v]) => {
-      gameState.resources[key] = (gameState.resources[key] || 0) + v;
-    });
-
-    // Appliquer les gains de gloire
-    if (entry.fameGained) {
-        gameState.fame = (gameState.fame || 0) + entry.fameGained;
-    }
-
-    // Gérer la promotion
-    if (entry.newFace) {
-      entry.cardInstance.currentFace = entry.newFace;
-      cardStateMap[entry.cardInstance.cardDef.numero] = entry.newFace;
-    }
-
-    // Placer la carte promue en zone de retenue si elle a l'effet "Reste en jeu"
-    const fd = getFaceData(entry.cardInstance);
-    if (entry.newFace && isStayInPlay(fd)) {
-      if (!gameState.stayInPlay) gameState.stayInPlay = [];
-      gameState.stayInPlay.push(entry.cardInstance);
-      addLog(`🏚️ <span class="log-card">${fd.nom}</span> rejoint la zone de retenue.`);
-    } else {
-      gameState.discard.push(entry.cardInstance);
-    }
-
-    if (entry.sacrificeCardInstance) {
-      gameState.discard.push(entry.sacrificeCardInstance);
-    }
-  });
-
-  const stagedCount = gameState.staging.length;
-  gameState.staging = [];
-
-  addLog(`✅ ${stagedCount} action${stagedCount > 1 ? 's' : ''} confirmée${stagedCount > 1 ? 's' : ''}.`);
-
-  if (hadUpgrade) {
-    addLog('🔼 Une promotion termine le tour.', true);
-    if (gameState.deck.length === 0) {
-      addLog('Pioche vide, une nouvelle manche commence automatiquement !', true);
-      newRound();
-    } else {
-      endTurn();
-    }
-  } else {
-    updateUI();
-  }
-}
-
 // ============================================================
 //  ÉRUPTION VOLCANIQUE (carte 28) — Effet Force
 // ============================================================

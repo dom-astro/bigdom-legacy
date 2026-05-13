@@ -1,67 +1,82 @@
 // ============================================================
 //  CONFIRMER LE TOUR : applique toutes les actions du staging
 // ============================================================
-function confirmTurn() {
-  _drawSnapshot = null;
-  if (gameState.staging.length === 0) { endTurn(); return; }
 
-  const hasUpgrade = gameState.staging.some(e => e.action === 'upgrade');
+function _processSingleStagedAction(entry) {
+  const { cardInstance, action, resourcesGained, fameGained, newFace, cout } = entry;
+  const oldName = getFaceData(cardInstance).nom;
 
-  gameState.staging.forEach(entry => {
-    const { cardInstance, action, resourcesGained, fameGained, newFace, cout } = entry;
-    const oldName = getFaceData(cardInstance).nom;
+  if (action === 'produce') {
+    Object.entries(resourcesGained).forEach(([k, v]) => { gameState.resources[k] += v; });
+    gameState.discard.push(cardInstance);
+    addLog(`✅ <span class="log-card">${oldName}</span> — production appliquée.`);
 
-    if (action === 'produce') {
-      Object.entries(resourcesGained).forEach(([k, v]) => { gameState.resources[k] += v; });
-      gameState.discard.push(cardInstance);
-      addLog(`✅ <span class="log-card">${oldName}</span> — production appliquée.`);
-
-    } else if (action === 'activate') {
-      (cout || []).forEach(c => { gameState.resources[normalizeRes(c.type)] -= c.quantite; });
-      Object.entries(resourcesGained).forEach(([k, v]) => { gameState.resources[k] += v; });
-      const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
-      if (newFace) {
-        cardInstance.currentFace = newFace;
-        cardStateMap[cardInstance.cardDef.numero] = newFace;
-        const newFaceData = getFaceData(cardInstance);
-        gameState.discard.push(cardInstance);
-        addLog(`🟢 <span class="log-card">${oldName}</span> abattue → <span class="log-card">${newFaceData.nom}</span> + ${resStr}`, true);
-      } else {
-        gameState.discard.push(cardInstance);
-        if (entry.sacrificeCardInstance) {
-          if (!gameState.destroyed) gameState.destroyed = [];
-          gameState.destroyed.push(entry.sacrificeCardInstance);
-          const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
-          addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
-        } else {
-          addLog(`✅ <span class="log-card">${oldName}</span> — effet activé et défaussée. ${resStr}`);
-        }
-      }
-
-    } else if (action === 'upgrade') {
-      if (cout) cout.forEach(c => { gameState.resources[normalizeRes(c.type)] -= c.quantite; });
+  } else if (action === 'activate') {
+    (cout || []).forEach(c => { gameState.resources[normalizeRes(c.type)] -= c.quantite; });
+    Object.entries(resourcesGained).forEach(([k, v]) => { gameState.resources[k] += v; });
+    const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
+    if (newFace) {
       cardInstance.currentFace = newFace;
       cardStateMap[cardInstance.cardDef.numero] = newFace;
-      if (fameGained) { gameState.fame += fameGained; addLog(`⭐ Gloire +${fameGained} (Total: ${gameState.fame})`, true); }
       const newFaceData = getFaceData(cardInstance);
-      applyDestructionEffect(cardInstance);
-      if (isStayInPlay(newFaceData)) {
-        if (!gameState.stayInPlay) gameState.stayInPlay = [];
-        gameState.stayInPlay.push(cardInstance);
-        addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — rejoint la zone de retenue !`, true);
+      gameState.discard.push(cardInstance);
+      addLog(`🟢 <span class="log-card">${oldName}</span> abattue → <span class="log-card">${newFaceData.nom}</span> + ${resStr}`, true);
+    } else {
+      gameState.discard.push(cardInstance);
+      if (entry.sacrificeCardInstance) {
+        if (!gameState.destroyed) gameState.destroyed = [];
+        gameState.destroyed.push(entry.sacrificeCardInstance);
+        const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
+        addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
       } else {
-        gameState.discard.push(cardInstance);
-        addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue !`, true);
+        addLog(`✅ <span class="log-card">${oldName}</span> — effet activé et défaussée. ${resStr}`);
       }
     }
-  });
 
-  gameState.staging = [];
+  } else if (action === 'upgrade') {
+    if (cout) cout.forEach(c => { gameState.resources[normalizeRes(c.type)] -= c.quantite; });
+    cardInstance.currentFace = newFace;
+    cardStateMap[cardInstance.cardDef.numero] = newFace;
+    if (fameGained) { gameState.fame += fameGained; addLog(`⭐ Gloire +${fameGained} (Total: ${gameState.fame})`, true); }
+    const newFaceData = getFaceData(cardInstance);
+    applyDestructionEffect(cardInstance);
+    if (isStayInPlay(newFaceData)) {
+      if (!gameState.stayInPlay) gameState.stayInPlay = [];
+      gameState.stayInPlay.push(cardInstance);
+      addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — rejoint la zone de retenue !`, true);
+    } else {
+      gameState.discard.push(cardInstance);
+      addLog(`🔼 <span class="log-card">${oldName}</span> → <span class="log-card">${newFaceData.nom}</span> — promue !`, true);
+    }
+  }
+}
 
-  if (hasUpgrade) {
-    addLog('— Tour terminé par promotion —');
+function confirmStagedActions() {
+  _drawSnapshot = null;
+  if (gameState.staging.length === 0) {
     endTurn();
+    return;
+  }
+
+  const upgradeIndex = gameState.staging.findIndex(e => e.action === 'upgrade');
+
+  if (upgradeIndex !== -1) {
+    const upgradeEntry = gameState.staging[upgradeIndex];
+    const allStagedEntries = [...gameState.staging];
+
+    const afterAnimationCallback = () => {
+      allStagedEntries.forEach(_processSingleStagedAction);
+      gameState.staging = [];
+      addLog('— Tour terminé par promotion —', true);
+      endTurn();
+    };
+
+    _animatePromotion(upgradeEntry, upgradeIndex, afterAnimationCallback);
   } else {
+    const stagedCount = gameState.staging.length;
+    gameState.staging.forEach(_processSingleStagedAction);
+    gameState.staging = [];
+    addLog(`✅ ${stagedCount} action${stagedCount > 1 ? 's' : ''} confirmée${stagedCount > 1 ? 's' : ''}.`);
     updateUI();
   }
 }

@@ -1523,6 +1523,87 @@ function _animateCardsToDiscard(cardElements, discardRect, callback) {
   });
 }
 
+/**
+ * Animates a card promotion from the staging area.
+ * @param {object} upgradeEntry - The staging entry for the upgrade.
+ * @param {number} stagingIndex - The index of the card in the staging area.
+ * @param {Function} callback - Function to call after all animations are complete.
+ */
+function _animatePromotion(upgradeEntry, stagingIndex, callback) {
+  const stagingArea = document.getElementById('stagingArea');
+  const sourceEl = stagingArea.querySelectorAll('.staging-card-wrapper')[stagingIndex];
+  const discardEl = document.querySelector('#discardVisual .card-front');
+
+  if (!sourceEl || !discardEl) {
+    callback();
+    return;
+  }
+
+  const startRect = sourceEl.getBoundingClientRect();
+  const discardRect = discardEl.getBoundingClientRect();
+
+  // 1. Create the animation element
+  const animContainer = document.createElement('div');
+  animContainer.className = 'promo-anim-container';
+  document.body.appendChild(animContainer);
+
+  // 2. Build front and back faces
+  const frontHTML = sourceEl.querySelector('.staging-card').outerHTML;
+
+  const tempInstance = { ...upgradeEntry.cardInstance, currentFace: upgradeEntry.newFace };
+  const backHTML = buildCardFrontHTML(tempInstance, -1); // -1 for no specific play index
+
+  const finalW = 130, finalH = 185;
+  const startW = startRect.width, startH = startRect.height;
+
+  animContainer.innerHTML = `
+    <div class="promo-flip-card">
+      <div class="promo-flip-front" style="display:flex;align-items:center;justify-content:center;">
+        <div style="transform: scale(${startW/finalW}, ${startH/finalH});">${frontHTML}</div>
+      </div>
+      <div class="promo-flip-back">${backHTML}</div>
+    </div>
+  `;
+
+  // 3. Position the animation element
+  const startCx = startRect.left + startW / 2;
+  const startCy = startRect.top + startH / 2;
+  animContainer.style.position = 'fixed';
+  animContainer.style.left = `${startCx - finalW / 2}px`;
+  animContainer.style.top = `${startCy - finalH / 2}px`;
+  animContainer.style.width = `${finalW}px`;
+  animContainer.style.height = `${finalH}px`;
+  animContainer.style.zIndex = '10000';
+
+  // 4. Hide original staging area and start animation
+  stagingArea.parentElement.style.visibility = 'hidden';
+
+  requestAnimationFrame(() => {
+    const flipCard = animContainer.querySelector('.promo-flip-card');
+    flipCard.classList.add('is-flipped');
+
+    // 5. After flip, animate to discard pile
+    setTimeout(() => {
+      const discardCx = discardRect.left + discardRect.width / 2;
+      const discardCy = discardRect.top + discardRect.height / 2;
+      const dx = discardCx - startCx;
+      const dy = discardCy - startCy;
+      const scale = discardRect.width / finalW;
+
+      animContainer.style.transition = 'transform 0.6s ease-in, opacity 0.6s ease-in';
+      animContainer.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      animContainer.style.opacity = '0';
+
+      animContainer.addEventListener('transitionend', () => {
+        animContainer.remove();
+        stagingArea.parentElement.style.visibility = ''; // Show staging area again
+        callback();
+      }, { once: true });
+
+    }, 950); // Corresponds to flip animation duration + a small buffer
+  });
+}
+
 // ============================================================
 //  MODAL — détail d'une carte découverte (pas encore en jeu)
 // ============================================================
