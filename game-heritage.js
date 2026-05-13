@@ -986,6 +986,166 @@ function utiliserSeuilExport(seuilIndex) {
 }
 
 // ============================================================
+//  CARTE 90 — BIJOUX
+// ============================================================
+
+// État de progression de la carte 90 (persisté dans gameState)
+// gameState.bijouxProgress = { casesMarquees: 0 }
+
+function _getBijouxData() {
+  const raw = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []).find(c => c.numero === 90);
+  if (!raw || !raw.faces) return null;
+  return raw.faces.find(f => f.face === 1) || null;
+}
+
+function _getBijouxProgress() {
+  if (!gameState.bijouxProgress) gameState.bijouxProgress = { casesMarquees: 0 };
+  return gameState.bijouxProgress;
+}
+
+// Ouvre le modal d'investissement pour la carte Bijoux
+function openBijouxModal() {
+  const prog = _getBijouxProgress();
+  const faceData = _getBijouxData();
+  if (!faceData) return;
+
+  const cases       = faceData.cases || [];
+  const nextIndex   = prog.casesMarquees;
+  const nextCase    = cases[nextIndex];
+  const projected   = getProjectedResources();
+  const metalDispo  = projected['Métal'] || 0;
+
+  const nomCarte    = '💎 Bijoux';
+  const glorieActuelle = (nextIndex > 0 ? cases[nextIndex - 1].gloire : 0);
+  const dejaCoche   = !!gameState.bijouxCaseCeTour;
+
+  // Construction HTML des cases
+  let casesHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:16px 0;">';
+  cases.forEach((c, i) => {
+    const marked  = i < prog.casesMarquees;
+    const isCurrent = i === nextIndex;
+    const locked  = i > nextIndex;
+    let bg, border, textColor;
+    if (marked)       { bg = 'linear-gradient(135deg,#3a5a1a,#5a8a2a)'; border = '#8acc44'; textColor = '#ccff88'; }
+    else if (isCurrent) { bg = 'linear-gradient(135deg,#304050,#546e7a)'; border = '#90a4ae'; textColor = '#eceff1'; }
+    else               { bg = 'rgba(0,0,0,0.3)'; border = '#444'; textColor = '#666'; }
+
+    const icon = marked ? '✓' : isCurrent ? '▶' : '🔒';
+    casesHTML += `
+      <div style="
+        background:${bg};border:2px solid ${border};border-radius:8px;
+        padding:8px 10px;text-align:center;min-width:58px;
+        opacity:${locked ? 0.4 : 1};">
+        <div style="font-size:0.6rem;color:${textColor};font-family:'Cinzel',serif;">${icon} Case ${c.index}</div>
+        <div style="font-size:0.7rem;color:#fff;margin:3px 0;">${c.cout_metal}⚙️</div>
+        <div style="font-size:0.75rem;color:#f0c040;font-weight:bold;">★${c.gloire}</div>
+      </div>`;
+  });
+  casesHTML += '</div>';
+
+  const canMark  = nextCase && metalDispo >= nextCase.cout_metal;
+  const allDone  = nextIndex >= cases.length;
+
+  let actionHTML = '';
+  if (allDone) {
+    actionHTML = `<p style="text-align:center;font-family:'Cinzel',serif;font-size:0.8rem;color:#8acc44;">✅ Tous les bijoux ont été forgés !</p>`;
+  } else {
+    actionHTML = `
+      <div style="
+        background:rgba(0,0,0,0.3);border:1px solid ${(canMark && !dejaCoche) ? '#90a4ae' : '#444'};
+        border-radius:10px;padding:14px;text-align:center;margin-top:8px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Prochain bijou</div>
+        <div style="font-size:1.1rem;color:#fff;margin-bottom:4px;">
+          Coût : <strong style="color:#b0bec5;">${nextCase.cout_metal} ⚙️</strong>
+        </div>
+        <div style="font-size:0.9rem;color:#f0c040;">
+          Gain : ★ ${nextCase.gloire} gloire + 5 🏺
+        </div>
+        <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
+          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo}⚙️ — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal}⚙️ (vous avez ${metalDispo})`}
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:14px;">
+        <button onclick="confirmBijouxCase()" ${(canMark && !dejaCoche) ? '' : 'disabled'} style="
+          font-family:'Cinzel',serif;font-weight:700;font-size:0.8rem;
+          letter-spacing:1px;text-transform:uppercase;
+          background:${(canMark && !dejaCoche) ? 'linear-gradient(135deg,#455a64,#78909c,#455a64)' : 'rgba(0,0,0,0.4)'};
+          border:2px solid ${(canMark && !dejaCoche) ? '#b0bec5' : '#444'};
+          color:${(canMark && !dejaCoche) ? '#102027' : '#666'};
+          padding:10px 28px;border-radius:6px;cursor:${(canMark && !dejaCoche) ? 'pointer' : 'not-allowed'};
+          transition:all 0.2s;">
+          💎 Forger & Finir le tour
+        </button>
+      </div>`;
+  }
+
+  const body = `
+    <div style="text-align:center;margin-bottom:10px;">
+      <div style="font-size:0.6rem;font-family:'Cinzel',serif;color:#888;letter-spacing:2px;">CARTE #90 — PERMANENTE</div>
+      <div style="font-size:0.75rem;font-family:'Cinzel',serif;color:#aaa;margin-top:4px;font-style:italic;">${faceData.description}</div>
+    </div>
+    <div style="text-align:center;font-family:'Cinzel',serif;font-size:0.75rem;color:#f0c040;margin-bottom:4px;">
+      Gloire actuelle de la carte : <strong>★ ${glorieActuelle}</strong>
+    </div>
+    ${casesHTML}
+    ${actionHTML}`;
+
+  document.getElementById('bijouxModalTitle').textContent = nomCarte;
+  document.getElementById('bijouxModalBody').innerHTML = body;
+  new bootstrap.Modal(document.getElementById('bijouxModal')).show();
+}
+
+// Confirme le marquage de la prochaine case
+function confirmBijouxCase() {
+  if (document.activeElement) document.activeElement.blur();
+  bootstrap.Modal.getInstance(document.getElementById('bijouxModal'))?.hide();
+
+  const prog     = _getBijouxProgress();
+  const faceData = _getBijouxData();
+  if (!faceData) return;
+  const cases    = faceData.cases || [];
+  const nextCase = cases[prog.casesMarquees];
+  if (!nextCase) return;
+
+  // Dépenser le métal
+  gameState.resources['Métal'] = Math.max(0, (gameState.resources['Métal'] || 0) - nextCase.cout_metal);
+  // Gagner les marchandises
+  gameState.resources['Troc'] = (gameState.resources['Troc'] || 0) + (nextCase.ressources.find(r => r.type === 'Troc')?.quantite || 0);
+
+  prog.casesMarquees++;
+  gameState.bijouxCaseCeTour = true;
+
+  addLog(`💎 <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal}⚙️ +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
+
+  // Mise à jour de la gloire effective de la carte
+  _updateBijouxGloire();
+  
+  // Fin du tour
+  endTurn();
+}
+
+// Recalcule et applique la gloire de la carte Bijoux dans gameState.fame
+function _updateBijouxGloire() {
+  const prog     = _getBijouxProgress();
+  const faceData = _getBijouxData();
+  if (!faceData) return;
+  const cases    = faceData.cases || [];
+
+  // Gloire de la dernière case marquée
+  const lastMarked = prog.casesMarquees > 0 ? cases[prog.casesMarquees - 1] : null;
+  const newGloire  = lastMarked ? lastMarked.gloire : 0;
+
+  // Différentiel par rapport à la valeur précédente
+  const prev = gameState.bijouxGloirePrev || 0;
+  const diff = newGloire - prev;
+  if (diff !== 0) {
+    gameState.fame = Math.max(0, (gameState.fame || 0) + diff);
+    gameState.bijouxGloirePrev = newGloire;
+    if (diff > 0) addLog(`⭐ Gloire Bijoux +${diff} → Total : ${gameState.fame}`, true);
+  }
+}
+
+// ============================================================
 //  STICKERS — Autocollants permanents sur les cartes du royaume
 // ============================================================
 //

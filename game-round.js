@@ -139,6 +139,7 @@ function endTurn() {
   gameState.armeeCaseCeTour  = false;
   gameState.tresorCaseCeTour = false;
   gameState.exportCaseCeTour = false;
+  gameState.bijouxCaseCeTour = false;
   clearResources();
   gameState.turnStarted = false;
   gameState.turn++;
@@ -183,6 +184,7 @@ function newRound() {
   gameState.armeeCaseCeTour  = false;
   gameState.tresorCaseCeTour = false;
   gameState.exportCaseCeTour = false;
+  gameState.bijouxCaseCeTour = false;
 
   // ── Rétention (cartes 82/83) ─────────────────────────────────────────────
   const retainedCards = gameState.retainedCards || [];

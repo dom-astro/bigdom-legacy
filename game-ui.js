@@ -275,6 +275,53 @@ function buildStagingCardHTML(entry, stagingIndex) {
 //  RENDER — permanentes
 // ============================================================
 function buildPermanentCardHTML(cardInstance) {
+  // Rendu spécial carte 90 — Bijoux
+  if (cardInstance.cardDef.numero === 90) {
+    const prog      = _getBijouxProgress();
+    const faceData  = _getBijouxData();
+    const cases     = faceData?.cases || [];
+    const total     = cases.length;
+    const marked    = prog.casesMarquees;
+    const lastCase  = marked > 0 ? cases[marked - 1] : null;
+    const gloire    = lastCase ? lastCase.gloire : 0;
+    const pct       = total > 0 ? Math.round((marked / total) * 100) : 0;
+    const nomAffiche = 'Bijoux';
+    const projected  = getProjectedResources();
+    const metal      = projected['Métal'] || 0;
+    const nextCase   = cases[marked];
+    const dejaCoche  = !!gameState.bijouxCaseCeTour;
+    const canMark    = !dejaCoche && nextCase && metal >= (nextCase.cout_metal || 0);
+    const allDone    = marked >= total;
+
+    return `
+      <div class="card-wrapper" style="cursor:pointer;" onclick="openBijouxModal()" title="Cliquer pour forger un bijou et terminer le tour">
+        <div class="card-front card-permanent" style="border-color:#607d8b;background:linear-gradient(160deg,#101820,#080c12);">
+          <div class="card-header-info" style="margin-bottom:2px;">
+            <div class="card-id-badge" style="background:rgba(96,125,139,0.15); border:1px solid rgba(96,125,139,0.3);">
+              <span class="card-id-num" style="color:#b0bec5;">#90</span>
+            </div>
+          </div>
+          <div class="card-name" style="font-size:0.5rem;color:#eceff1;">${nomAffiche}</div>
+          <span class="card-type-badge" style="font-size:0.38rem;background:#455a64;">Progression</span>
+          <div style="font-size:1.4rem;margin:4px 0;">💎</div>
+          <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#90a4ae,#eceff1);border-radius:3px;transition:width 0.4s;"></div>
+          </div>
+          <div style="font-size:0.38rem;color:#90a4ae;text-align:center;margin:1px 0;">${marked}/${total} bijoux</div>
+          ${gloire > 0 ? `<div style="font-size:0.48rem;color:#f0c040;text-align:center;">★ ${gloire}</div>` : ''}
+          ${allDone
+            ? '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
+            : dejaCoche
+              ? '<div style="font-size:0.35rem;color:#cc8844;text-align:center;margin-top:1px;">⏳ Déjà coché ce tour</div>'
+              : canMark
+                ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_metal}⚙️ dispo</div>`
+                : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_metal || '?'}⚙️ requis</div>`
+          }
+          <div style="text-align:center;font-size:0.35rem;color:#607d8b;font-family:'Cinzel',serif;margin-top:2px;">⚜ DÉCOUVERTE</div>
+        </div>
+      </div>`;
+  }
+
   if (cardInstance.cardDef._level1) {
     const rawCard = cardInstance.cardDef._level1;
 

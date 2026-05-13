@@ -454,6 +454,37 @@
   </div>
 </div>
 
+<!-- BIJOUX MODAL (carte 90 — investissement de Métal) -->
+<div class="modal fade" id="bijouxModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content" style="
+      background:linear-gradient(160deg,#101820,#080c12);
+      border:3px solid #607d8b;
+      box-shadow:0 0 30px rgba(96,125,139,0.3);">
+      <div class="modal-header border-0" style="
+        flex-direction:column;text-align:center;
+        padding:20px 24px 8px;
+        border-bottom:1px solid rgba(96,125,139,0.2);">
+        <div style="font-size:2.4rem;margin-bottom:4px;filter:drop-shadow(0 0 10px rgba(96,125,139,0.5));">💎</div>
+        <h5 id="bijouxModalTitle" style="
+          font-family:'Cinzel',serif;color:#b0bec5;
+          font-size:1rem;letter-spacing:3px;margin:0;text-transform:uppercase;">
+          Bijoux
+        </h5>
+      </div>
+      <div class="modal-body" id="bijouxModalBody" style="padding:16px 22px 10px;color:#f5e6c8;max-height:70vh;overflow-y:auto;"></div>
+      <div class="modal-footer border-0" style="justify-content:center;padding:8px 22px 18px;">
+        <button onclick="bootstrap.Modal.getInstance(document.getElementById('bijouxModal')).hide()" style="
+          font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:1px;
+          background:rgba(0,0,0,0.4);border:1px solid #444;color:#888;
+          padding:8px 20px;border-radius:6px;cursor:pointer;">
+          ✕ Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- STICKER MODAL (pose d'autocollant sur une carte du royaume) -->
 <div class="modal fade" id="stickerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-md modal-dialog-centered">
