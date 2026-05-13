@@ -85,6 +85,7 @@ let _heritageInspectState = null;
 // Appelé quand le joueur clique "J'ai lu la règle" dans le modal #23
 // Lance l'inspection une par une des cartes 24-27
 function confirmHeritageRule() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('heritageRuleModal'))?.hide();
   const allCards = window._heritageAllCards;
   window._heritageAllCards = null;
@@ -223,6 +224,7 @@ function _showNextHeritageCard() {
 
 // Le joueur confirme l'inspection de la carte courante
 function confirmHeritageInspect() {
+  if (document.activeElement) document.activeElement.blur();
   const modal = bootstrap.Modal.getInstance(document.getElementById('heritageInspectModal'));
   modal?.hide();
 
@@ -383,6 +385,7 @@ function openArmeeModal() {
 
 // Confirme le marquage de la prochaine case
 function confirmArmeeCase() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('armeeModal'))?.hide();
 
   const prog     = _getArmeeProgress();
@@ -603,6 +606,7 @@ function openTresorModal() {
 
 // Confirme le marquage de la prochaine case du Trésor
 function confirmTresorCase() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('tresorModal'))?.hide();
 
   const prog     = _getTresorProgress();
@@ -877,6 +881,7 @@ function openExportModal() {
 
 // Investit N Marchandises dans l'Export (sans fermer le modal)
 function investirExport(n) {
+  if (document.activeElement) document.activeElement.blur();
   if (gameState.exportCaseCeTour) {
     addLog(`❌ Export — un investissement a déjà été effectué ce tour.`);
     return;
@@ -920,6 +925,7 @@ function investirExport(n) {
 
 // Marque un seuil comme utilisé (barré)
 function utiliserSeuilExport(seuilIndex) {
+  if (document.activeElement) document.activeElement.blur();
   const prog = _getExportProgress();
   if (prog.seuilsUtilises.includes(seuilIndex)) return;
 
@@ -1308,6 +1314,7 @@ function _selectionnerCibleSticker(cardNum) {
 }
 
 function _annulerModalSticker() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('stickerModal'))?.hide();
   window._pendingStickerOptions = null;
   window._stickerSelections     = [];
@@ -1315,6 +1322,7 @@ function _annulerModalSticker() {
 }
 
 function _confirmerPoseSticker() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('stickerModal'))?.hide();
   const opts = window._pendingStickerOptions || {};
   const sel  = window._stickerSelections || [];
@@ -1387,6 +1395,12 @@ function applyStickerFromCarte24(effetIndex) {
   });
 }
 
+function _applyStickerFromCarte24WithHide(effetIndex) {
+    if (document.activeElement) document.activeElement.blur();
+    bootstrap.Modal.getInstance(document.getElementById('carte24Modal'))?.hide();
+    setTimeout(()=>applyStickerFromCarte24(effetIndex), 200);
+}
+
 // Ouvre un modal récapitulatif de la carte 24 avec boutons d'action (accessible depuis la zone permanente)
 function ouvrirCarte24Modal() {
   const carte24 = LEGACY_CARDS.find(c => c.numero === 24);
@@ -1411,8 +1425,7 @@ function ouvrirCarte24Modal() {
         ${stickerPreviews(e.stickers) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${stickerPreviews(e.stickers)}</div>` : ''}
         ${done
           ? `<div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#8acc44;">\u2713 Appliqu\xe9</div>`
-          : e.type_effet === 'sticker'
-            ? `<button onclick="bootstrap.Modal.getInstance(document.getElementById('carte24Modal'))?.hide();setTimeout(()=>applyStickerFromCarte24(${i}),200);" style="
+          : e.type_effet === 'sticker' ? `<button onclick="_applyStickerFromCarte24WithHide(${i})" style="
                 font-family:'Cinzel',serif;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;
                 background:linear-gradient(135deg,#1a3a6a,#2a5a9a);border:2px solid #4a7aaa;
                 color:#aaddff;padding:6px 14px;border-radius:6px;cursor:pointer;">
@@ -1592,6 +1605,7 @@ function toggleRetentionCard(idx, max) {
 }
 
 function closeRetentionModal() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
   window._retentionSelected = [];
   // Remettre la carte source en jeu — l'effet n'est pas activé
@@ -1603,6 +1617,7 @@ function closeRetentionModal() {
 }
 
 function confirmRetentionSelection() {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
   const selected = window._retentionSelected || [];
   window._retentionSelected = [];

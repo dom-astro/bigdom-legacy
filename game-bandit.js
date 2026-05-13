@@ -22,13 +22,6 @@ function isBandit(cardInstance) {
   return fd.type === 'Ennemi' && fd.nom === 'Bandit';
 }
 
-// Résout l'index dans play[] à partir d'un numéro de carte (retourne -1 si absent)
-function _playIndexOf(cardNum) {
-  return gameState.play.findIndex(ci => ci.cardDef.numero === cardNum);
-}
-// Alias court
-const _playIdxByNum = _playIndexOf;
-
 // La carte à playIndex est-elle bloquée par un bandit ?
 function isBlockedByBandit(playIndex) {
   const ci = gameState.play[playIndex];

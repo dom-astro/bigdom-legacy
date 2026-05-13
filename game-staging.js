@@ -1,55 +1,3 @@
-// ============================================================
-//  STAGING — mise en attente sans application immédiate
-// ============================================================
-
-// Calcule les ressources disponibles en tenant compte du staging
-function getProjectedResources() {
-  const proj = { ...gameState.resources };
-  gameState.staging.forEach(entry => {
-    if (entry.action === 'produce') {
-      Object.entries(entry.resourcesGained).forEach(([k, v]) => { proj[k] = (proj[k]||0) + v; });
-    } else if (entry.action === 'activate') {
-      // Déduire le coût de l'activation
-      (entry.cout || []).forEach(c => {
-        const key = normalizeRes(c.type);
-        proj[key] = (proj[key]||0) - c.quantite;
-      });
-      // Ajouter les ressources gagnées
-      Object.entries(entry.resourcesGained).forEach(([k, v]) => { proj[k] = (proj[k]||0) + v; });
-    } else if (entry.action === 'upgrade' && entry.cout) {
-      entry.cout.forEach(c => {
-        const key = normalizeRes(c.type);
-        proj[key] = (proj[key]||0) - c.quantite;
-      });
-    }
-  });
-  return proj;
-}
-
-// Ressources réellement disponibles (hors staging) — utilisées pour vérifier
-// si une promotion ou un effet activable est payable avec des ressources acquises.
-// Les productions en attente dans la staging zone ne sont PAS incluses.
-function getConfirmedResources() {
-  const confirmed = { ...gameState.resources };
-  // Déduire uniquement les coûts déjà engagés (upgrades et activations en staging)
-  gameState.staging.forEach(entry => {
-    if (entry.action === 'activate') {
-      (entry.cout || []).forEach(c => {
-        const key = normalizeRes(c.type);
-        confirmed[key] = (confirmed[key] || 0) - c.quantite;
-      });
-    } else if (entry.action === 'upgrade' && entry.cout) {
-      entry.cout.forEach(c => {
-        const key = normalizeRes(c.type);
-        confirmed[key] = (confirmed[key] || 0) - c.quantite;
-      });
-    }
-    // Les productions (action='produce') ne sont PAS ajoutées : elles ne sont
-    // pas encore confirmées et ne peuvent pas financer une promo ou un effet.
-  });
-  return confirmed;
-}
-
 // Met une carte en staging pour production (sans défausser ni donner les ressources)
 function stageProduceCard(cardNum) {
   const playIndex = _playIdxByNum(cardNum);
@@ -190,6 +138,7 @@ function showPromoChoiceModal(playIndex, promos) {
 }
 
 function selectPromoChoice(playIndex, promoIdx) {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('promoChoiceModal'))?.hide();
   const promo = (window._pendingPromos || [])[promoIdx];
   if (!promo) return;

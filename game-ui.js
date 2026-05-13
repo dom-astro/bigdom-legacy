@@ -1317,6 +1317,7 @@ function openCardModal(indexOrNum, zone) {
   $('#modalProduceBtn')
     .toggle(inPlay && hasResources)
     .off('click').on('click', () => {
+      if (document.activeElement) document.activeElement.blur();
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
       if (isRetained) stageProduceRetainedCard(modalCardIndex);
       else stageProduceCard(modalCardIndex);
@@ -1325,6 +1326,7 @@ function openCardModal(indexOrNum, zone) {
   $('#modalUpgradeBtn')
     .toggle(inPlay && hasModalUpgrade)
     .off('click').on('click', () => {
+      if (document.activeElement) document.activeElement.blur();
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
       if (isRetained) stageUpgradeRetainedCard(modalCardIndex);
       else stageUpgradeCard(modalCardIndex);
@@ -1336,6 +1338,7 @@ function openCardModal(indexOrNum, zone) {
     .css('opacity', canModalActivate ? 1 : 0.5)
     .attr('title', canModalActivate ? '' : 'Ressources insuffisantes ou conditions non remplies')
     .off('click').on('click', () => {
+      if (document.activeElement) document.activeElement.blur();
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
       if (isRetained) stageActivateRetainedEffect(modalCardIndex);
       else stageActivateEffect(modalCardIndex);
@@ -1403,6 +1406,36 @@ function showDiscardPile() {
     </div></div>`);
   });
   new bootstrap.Modal(document.getElementById('discardModal')).show();
+}
+
+function showSacrificedPile() {
+  const $g = $('#sacrificedPileGrid'); $g.empty();
+  // On affiche les cartes dans l'ordre inverse (la plus récemment sacrifiée en haut)
+  [...gameState.destroyed].reverse().forEach(ci => {
+    const f = getFaceData(ci);
+    const totalFaces = ci.cardDef.faces ? ci.cardDef.faces.length : 1;
+    const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
+    const numStyle = 'color:var(--ink);';
+    const faceStyle = 'background:rgba(60,40,10,0.08); color:var(--stone); border-left:1px solid rgba(60,40,10,0.15);';
+    const serialHTML = `
+      <div class="card-header-info" style="margin-bottom:2px;">
+        <div class="card-id-badge" style="${badgeWrapperStyle}">
+          <span class="card-id-num" style="${numStyle}">#${ci.cardDef.numero}</span>
+          ${buildFaceIndicatorHTML(ci.currentFace, totalFaces, faceStyle)}
+        </div>
+      </div>`;
+    $g.append(`<div style="text-align:center;"><div 
+      onmouseover="this.style.transform='scale(1.1) translateY(-5px)'; this.style.zIndex='10'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';"
+      onmouseout="this.style.transform='none'; this.style.zIndex='1'; this.style.boxShadow='none';"
+      style="position:relative; z-index:1; transition:all 0.2s ease-in-out; width:100px;height:145px;border-radius:8px;background:linear-gradient(160deg,var(--parchment),var(--parchment-dark));border:2px solid var(--border-ornate);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px;">
+      ${serialHTML}
+      <div style="font-family:'Cinzel',serif;font-size:0.55rem;font-weight:600;color:var(--ink);text-align:center;">${f.nom}</div>
+      <div style="font-size:1.5rem;margin:2px 0;">${getCardEmoji(f.type,f.nom)}</div>
+      <div style="font-style:italic;font-size:0.45rem;color:var(--stone);">${f.type}</div>
+      ${f.victoire?`<div style="font-size:0.5rem;color:var(--gold);">★${f.victoire}</div>`:''}
+    </div></div>`);
+  });
+  new bootstrap.Modal(document.getElementById('sacrificedModal')).show();
 }
 // ============================================================
 //  ANIMATION — Distribution des cartes (depuis la pioche)
@@ -1481,46 +1514,6 @@ function _applyCardDealAnimation(cardEl, deckRect, targetRect, index) {
     cardEl.style.animationDelay    = '';
     cardEl.style.animationDuration = '';
   }, totalDuration);
-}
-
-/**
- * Animates a list of card elements to the discard pile.
- * @param {HTMLElement[]} cardElements - Array of DOM elements for the cards to animate.
- * @param {DOMRect} discardRect - The bounding rectangle of the discard pile (target position).
- * @param {Function} callback - Function to call after all animations are complete.
- */
-function _animateCardsToDiscard(cardElements, discardRect, callback) {
-  if (!cardElements || cardElements.length === 0 || !discardRect) {
-    callback();
-    return;
-  }
-
-  let animationsCompleted = 0;
-  const totalAnimations = cardElements.length;
-
-  cardElements.forEach((cardEl, index) => {
-    const startRect = cardEl.getBoundingClientRect();
-
-    // Calculate the translation needed to move the card from its current position
-    // to the center of the discard pile.
-    const dx = discardRect.left + discardRect.width / 2 - (startRect.left + startRect.width / 2);
-    const dy = discardRect.top + discardRect.height / 2 - (startRect.top + startRect.height / 2);
-
-    cardEl.style.transition = 'transform 0.5s ease-in, opacity 0.5s ease-in';
-    cardEl.style.zIndex = 1000; // Bring to front during animation
-
-    setTimeout(() => {
-      cardEl.style.transform = `translate(${dx}px, ${dy}px) scale(0.2) rotate(${Math.random() * 360}deg)`;
-      cardEl.style.opacity = '0';
-    }, index * 50); // Stagger animations slightly
-
-    cardEl.addEventListener('transitionend', function onTransitionEnd() {
-      cardEl.removeEventListener('transitionend', onTransitionEnd);
-      cardEl.remove(); // Remove the card element from DOM after animation
-      animationsCompleted++;
-      if (animationsCompleted === totalAnimations) { callback(); }
-    });
-  });
 }
 
 /**

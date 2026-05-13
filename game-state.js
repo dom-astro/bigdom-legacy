@@ -42,6 +42,13 @@ function getFaceData(ci) {
 function getFaceName(cardDef, faceNum) {
   const f = cardDef.faces.find(f => f.face === faceNum); return f ? f.nom : '?';
 }
+
+// Résout l'index dans play[] à partir d'un numéro de carte (retourne -1 si absent)
+function _playIndexOf(cardNum) {
+  return gameState.play.findIndex(ci => ci.cardDef.numero === cardNum);
+}
+const _playIdxByNum = _playIndexOf; // Alias court
+
 function normalizeRes(t) {
   const val = Array.isArray(t) ? t[0] : t;
   return { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', Troc:'Troc' }[val] || val;
@@ -84,12 +91,16 @@ function getCardEmoji(type, nom) {
     'Domestique':'<img src="img/domestique.png" alt="Domestique" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Bandit':'<img src="img/bandit.png" alt="Bandit" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Travailleur':'👨‍🔧',
+    'Missionaire':'<img src="img/missionnaire.png" alt="Missionnaire" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Colline':'<img src="img/colline.png" alt="Colline" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Chapelle':'⛪','Eglise':'⛪','Cathédrale':'🕍',
-    'Forge':'🔨','Armurerie':'⚔️','Muraille':'🏯',
+    'Forge':'<img src="img/forge.png" alt="Forge" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Armurerie':'⚔️',
+    'Muraille':'🏯',
     'Marais':'<img src="img/marais.png" alt="Marais" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Marais Amenagés':'🌿','Jardin du Marais':'🌺','Arbres à Fruits Exotiques':'🍍',
-    'Lac':'🏞️','Bateau de Pêche':'⛵','Chalet du Pêcheur':'🏡','Phare':'🗼',
+    'Lac':'<img src="img/lac.png" alt="Lac" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Bateau de Pêche':'⛵','Chalet du Pêcheur':'🏡','Phare':'🗼',
     'Falaises de l\'Est': '<img src="img/falaises.png" alt="Falaises de l\'Est" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Eruption volcanique':'🌋',
   }[nom]) || TYPE_ICONS[type] || '📄';
@@ -97,6 +108,54 @@ function getCardEmoji(type, nom) {
 
 function createCardInstance(cardDef) {
   return { cardDef, currentFace: cardStateMap[cardDef.numero] || 1 };
+}
+
+// Calcule les ressources disponibles en tenant compte du staging
+function getProjectedResources() {
+  const proj = { ...gameState.resources };
+  gameState.staging.forEach(entry => {
+    if (entry.action === 'produce') {
+      Object.entries(entry.resourcesGained).forEach(([k, v]) => { proj[k] = (proj[k]||0) + v; });
+    } else if (entry.action === 'activate') {
+      // Déduire le coût de l'activation
+      (entry.cout || []).forEach(c => {
+        const key = normalizeRes(c.type);
+        proj[key] = (proj[key]||0) - c.quantite;
+      });
+      // Ajouter les ressources gagnées
+      Object.entries(entry.resourcesGained).forEach(([k, v]) => { proj[k] = (proj[k]||0) + v; });
+    } else if (entry.action === 'upgrade' && entry.cout) {
+      entry.cout.forEach(c => {
+        const key = normalizeRes(c.type);
+        proj[key] = (proj[key]||0) - c.quantite;
+      });
+    }
+  });
+  return proj;
+}
+
+// Ressources réellement disponibles (hors staging) — utilisées pour vérifier
+// si une promotion ou un effet activable est payable avec des ressources acquises.
+// Les productions en attente dans la staging zone ne sont PAS incluses.
+function getConfirmedResources() {
+  const confirmed = { ...gameState.resources };
+  // Déduire uniquement les coûts déjà engagés (upgrades et activations en staging)
+  gameState.staging.forEach(entry => {
+    if (entry.action === 'activate') {
+      (entry.cout || []).forEach(c => {
+        const key = normalizeRes(c.type);
+        confirmed[key] = (confirmed[key] || 0) - c.quantite;
+      });
+    } else if (entry.action === 'upgrade' && entry.cout) {
+      entry.cout.forEach(c => {
+        const key = normalizeRes(c.type);
+        confirmed[key] = (confirmed[key] || 0) - c.quantite;
+      });
+    }
+    // Les productions (action='produce') ne sont PAS ajoutées : elles ne sont
+    // pas encore confirmées et ne peuvent pas financer une promo ou un effet.
+  });
+  return confirmed;
 }
 
 // Une carte nécessite un choix de face si :
