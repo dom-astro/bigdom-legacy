@@ -259,20 +259,31 @@ function buildStagingCardHTML(entry, stagingIndex) {
         <div class="staging-emoji">${getCardEmoji(sf.type, sf.nom)}</div>
         <div class="staging-name">${sf.nom}</div>
         <div class="staging-summary" style="color:#ff8888;font-size:0.48rem;">lié aux Plaines</div>
+      </div>
     </div>`;
   }
 
-  return `
-    ${sacrificeHTML}
-    <div class="staging-card-wrapper">
-      <div class="staging-card" style="border-color:${accentColor}40;background:linear-gradient(160deg,${bgTop},#0e0e08);">
-        <div class="staging-label" style="color:${accentColor};">${label}</div>
-        <div class="staging-emoji">${getCardEmoji(face.type, face.nom)}</div>
-        <div class="staging-name">${face.nom}</div>
-        <div class="staging-summary" style="color:${accentColor};">${actionSummary}</div>
-        <button class="staging-cancel" onclick="cancelStagingStay(${stagingIndex})">✕ Annuler</button>
-      </div>
+  const mainCardHTML = `
+      <div class="staging-card-wrapper">
+        <div class="staging-card" style="border-color:${accentColor}40;background:linear-gradient(160deg,${bgTop},#0e0e08);">
+          <div class="staging-label" style="color:${accentColor};">${label}</div>
+          <div class="staging-emoji">${getCardEmoji(face.type, face.nom)}</div>
+          <div class="staging-name">${face.nom}</div>
+          <div class="staging-summary" style="color:${accentColor};">${actionSummary}</div>
+          <button class="staging-cancel" onclick="cancelStagingStay(${stagingIndex})">✕ Annuler</button>
+        </div>
+      </div>`;
+
+  // Si sacrifice, grouper les deux cartes ensemble sans espace
+  if (sacrificeHTML) {
+    return `
+    <div class="staging-linked-group">
+      ${sacrificeHTML}
+      ${mainCardHTML}
     </div>`;
+  }
+
+  return mainCardHTML;
 }
 
 // ============================================================

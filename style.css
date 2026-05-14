@@ -288,7 +288,8 @@ body.light-mode .btn-confirm { background: linear-gradient(135deg, #2a8a2a, #1a6
 .btn-confirm:hover { box-shadow: 0 0 20px rgba(68,204,68,0.5); transform: translateY(-1px); }
 .btn-confirm:active { transform: translateY(0); }
 
-.staging-cards-container { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.staging-cards-container { display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
+.staging-linked-group { display: flex; gap: 0; align-items: flex-start; }
 .staging-card-wrapper { position: relative; }
 .staging-card { width: 120px; min-height: 145px; border-radius: 8px; border: 2px solid; padding: 8px 6px 6px; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; transition: transform 0.2s; }
 .staging-card:hover { transform: translateY(-2px); }

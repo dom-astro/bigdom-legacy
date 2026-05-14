@@ -884,6 +884,14 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
     resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
   });
 
+  // Ajouter les ressources du sticker de la carte activante (la Plaine)
+  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(plainesCard.cardDef.numero) : {};
+  Object.entries(activatingStickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
+  });
+
   const plainesName = getFaceData(plainesCard).nom;
   const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
 
@@ -979,6 +987,14 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainCardNum) {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     const key = normalizeRes(types[0]);
     if (key) resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite + (stickerBonus[key] || 0);
+  });
+
+  // Ajouter les ressources du sticker de la carte activante (ex: Plaine avec sticker)
+  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(exploitantCard.cardDef.numero) : {};
+  Object.entries(activatingStickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   // Retirer l'Exploitant du jeu (le terrain reste en jeu)
@@ -1196,6 +1212,14 @@ function confirmResourceChoice() {
   const key = normalizeRes(chosen.type);
   const resourcesGained = { [key]: chosen.quantite };
 
+  // Ajouter les ressources du sticker de la carte activante
+  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
+  Object.entries(activatingStickerBonus).forEach(([k, bonus]) => {
+    if (bonus > 0 && gameState.resources[k] !== undefined) {
+      resourcesGained[k] = (resourcesGained[k] || 0) + bonus;
+    }
+  });
+
   _playRemove(playIndex);
   const resStr = `+${chosen.quantite}${RESOURCE_ICONS[key]||chosen.type}`;
 
@@ -1222,6 +1246,14 @@ function _doStageActivate(playIndex, act) {
   (act.ressources || []).forEach(r => {
     const key = normalizeRes(Array.isArray(r.type) ? r.type[0] : r.type);
     resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+  });
+
+  // Ajouter les ressources du sticker de la carte activante
+  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
+  Object.entries(activatingStickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0 && gameState.resources[key] !== undefined) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   // Promotion forcée incluse dans l'effet (ex: Forêt → Coupe Rase)
