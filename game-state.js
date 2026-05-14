@@ -10,7 +10,9 @@ let ALL_CARDS = [
   ...BEGIN_CARDS,
 ];
 
-const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', Troc:'🏺' };
+const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨',
+   Métal:'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">',
+    Epée:'⚔️', Troc:'🏺' };
 const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
 
 let cardStateMap = {};

@@ -1037,7 +1037,7 @@ function openBijouxModal() {
         padding:8px 10px;text-align:center;min-width:58px;
         opacity:${locked ? 0.4 : 1};">
         <div style="font-size:0.6rem;color:${textColor};font-family:'Cinzel',serif;">${icon} Case ${c.index}</div>
-        <div style="font-size:0.7rem;color:#fff;margin:3px 0;">${c.cout_metal}⚙️</div>
+        <div style="font-size:0.7rem;color:#fff;margin:3px 0;">${c.cout_metal}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">'</div>
         <div style="font-size:0.75rem;color:#f0c040;font-weight:bold;">★${c.gloire}</div>
       </div>`;
   });
@@ -1056,13 +1056,13 @@ function openBijouxModal() {
         border-radius:10px;padding:14px;text-align:center;margin-top:8px;">
         <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Prochain bijou</div>
         <div style="font-size:1.1rem;color:#fff;margin-bottom:4px;">
-          Coût : <strong style="color:#b0bec5;">${nextCase.cout_metal} ⚙️</strong>
+          Coût : <strong style="color:#b0bec5;">${nextCase.cout_metal} '<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">'</strong>
         </div>
         <div style="font-size:0.9rem;color:#f0c040;">
           Gain : ★ ${nextCase.gloire} gloire + 5 🏺
         </div>
         <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
-          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo}⚙️ — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal}⚙️ (vous avez ${metalDispo})`}
+          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' (vous avez ${metalDispo})`}
         </div>
       </div>
       <div style="text-align:center;margin-top:14px;">
@@ -1115,7 +1115,7 @@ function confirmBijouxCase() {
   prog.casesMarquees++;
   gameState.bijouxCaseCeTour = true;
 
-  addLog(`💎 <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal}⚙️ +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
+  addLog(`💎 <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
 
   // Mise à jour de la gloire effective de la carte
   _updateBijouxGloire();
