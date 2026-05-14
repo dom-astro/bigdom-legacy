@@ -88,7 +88,7 @@ function getCardEmoji(type, nom) {
     'Bazar':'🏪',
     'Marché':'🛍️',
     'Festival':'🎪',
-    'Jungle':'🌴',
+    'Jungle':'<img src="img/jungle.png" alt="Jungle" style="width:2em;height:2em;vertical-align:-0.15em;object-fit:contain;">',
     'Arbres Géants':'🌳',
     'Jungle Profonde':'🏕️',
     'Cabane dans les Arbres':'🛖',
@@ -125,6 +125,8 @@ function getCardEmoji(type, nom) {
     'Phare':'🗼',
     'Falaises de l\'Est': '<img src="img/falaises.png" alt="Falaises de l\'Est" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Eruption volcanique':'🌋',
+    'Cendres volcaniques':'<img src="img/destruction.png" alt="Cendres volcaniques" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Jeune forêt':'<img src="img/jeune-foret.png" alt="Jeune forêt" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
   }[nom]) || TYPE_ICONS[type] || '📄';
 }
 
