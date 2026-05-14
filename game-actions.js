@@ -89,8 +89,9 @@ function drawCards(n) {
     // Spécificité pour la carte #90 (Bijoux) : devient permanente quand elle est tirée
     if (card.cardDef.numero === 90) {
       if (!gameState.permanent.some(c => c.cardDef.numero === 90)) {
-        gameState.permanent.push(card);
-        addLog(`⚜️ <span class="log-card">${getFaceData(card).nom}</span> est tirée et devient une carte permanente !`, true);
+        // Présenter la carte avant de l'ajouter aux permanentes
+        _showBijouxPresentationModal(card);
+        addLog(`✨ <span class="log-card">${getFaceData(card).nom}</span> est tirée !`, true);
       } else {
         // Déjà permanente, mais dans la pioche (anormal). On la joue normalement.
         gameState.play.push(card);

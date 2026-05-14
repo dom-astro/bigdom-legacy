@@ -275,8 +275,98 @@ function _continueNewRoundAfterHeritage(allCards, autoStart = false) {
 }
 
 // ============================================================
-//  CARTE 25 — ARMÉE / GRANDE ARMÉE
+//  PRÉSENTATION CARTE #90 — BIJOUX
 // ============================================================
+
+// Affiche le modal de présentation de la carte Bijoux avant de l'ajouter aux permanentes
+function _showBijouxPresentationModal(cardInstance) {
+  const cardData = cardInstance.cardDef;
+  const color = '#4a8abf'; // Couleur pour Progression
+  const emoji = '<img src="img/progression.png" alt="Progression" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">';
+
+  // Description et cases
+  const face = cardData.faces[0];
+  const casesHTML = face.cases ? `
+    <div style="margin-top:16px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.65rem;color:${color};letter-spacing:2px;margin-bottom:8px;">CASES DE PROGRESSION</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-height:120px;overflow-y:auto;">
+        ${face.cases.map(c => `
+          <div style="
+            background:rgba(0,0,0,0.3);border:1px solid ${color}55;
+            border-radius:6px;padding:6px 10px;text-align:center;
+            font-family:'Cinzel',serif;font-size:0.65rem;color:#f5e6c8;">
+            <div style="font-size:1rem;margin-bottom:2px;">🔒</div>
+            Case ${c.index}<br>
+            <img src="img/lingot.png" alt="Métal" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;"> ${c.cout_metal}<br>
+            ★ ${c.gloire}
+          </div>`).join('')}
+      </div>
+      <p style="font-family:'Crimson Text',serif;font-size:0.75rem;color:#888;font-style:italic;text-align:center;margin-top:10px;">
+        Marquez les cases de gauche à droite en dépensant du Métal. Chaque case cochée rapporte 5 Marchandises et termine votre tour.
+      </p>
+    </div>` : '';
+
+  const bodyHTML = `
+    <!-- En-tête carte -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:3.5rem;margin-bottom:8px;filter:drop-shadow(0 0 10px ${color}88);">${emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.58rem;color:#666;letter-spacing:2px;margin-bottom:4px;">CARTE #${cardData.numero} — ${cardData.type.toUpperCase()}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.2rem;color:${color};margin-bottom:6px;">${cardData.nom}</div>
+      <div style="display:inline-block;background:${color}22;border:1px solid ${color}55;border-radius:20px;padding:3px 14px;font-family:'Crimson Text',serif;font-size:0.75rem;color:${color};">
+        ${cardData.type}
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid ${color}55;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-family:'Crimson Text',serif;font-size:0.9rem;color:#f5e6c8;line-height:1.5;">
+        ${face.description}
+      </div>
+    </div>
+
+    ${casesHTML}
+
+    <div style="text-align:center;margin-top:18px;font-family:'Crimson Text',serif;font-size:0.78rem;color:#aa8866;font-style:italic;">
+      Cette carte rejoindra vos <strong>Permanentes</strong> dès que vous cliquerez sur le bouton ci-dessous.
+    </div>`;
+
+  document.getElementById('heritageInspectBody').innerHTML = bodyHTML;
+
+  // Bouton
+  document.getElementById('heritageInspectBtn').textContent = `⚜ Ajouter aux permanentes`;
+  document.getElementById('heritageInspectBtn').onclick = confirmBijouxPresentation;
+
+  // Titre du modal
+  document.getElementById('heritageInspectTitle').textContent = `Carte #${cardData.numero} — ${cardData.nom}`;
+
+  // Stocker la carte pour confirmation
+  window._bijouxCardInstance = cardInstance;
+
+  new bootstrap.Modal(document.getElementById('heritageInspectModal')).show();
+}
+
+// Confirmation de la présentation Bijoux
+function confirmBijouxPresentation() {
+  if (document.activeElement) document.activeElement.blur();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('heritageInspectModal'));
+  modal?.hide();
+
+  const cardInstance = window._bijouxCardInstance;
+  window._bijouxCardInstance = null;
+
+  if (!cardInstance) return;
+
+  // Ajouter la carte aux permanentes
+  if (!gameState.permanent.some(c => c.cardDef.numero === 90)) {
+    gameState.permanent.push(cardInstance);
+    addLog(`🏛️ <span class="log-card">Bijoux</span> — ajoutée aux permanentes !`, true);
+  }
+  updateUI();
+
+  // Remettre l'onclick par défaut pour le modal
+  document.getElementById('heritageInspectBtn').onclick = confirmHeritageInspect;
+}
+
 
 // État de progression de la carte 25 (persisté dans gameState)
 // gameState.armeeProgress = { face: 1|2, casesMarquees: 0 }
