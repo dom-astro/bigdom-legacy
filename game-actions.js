@@ -85,7 +85,19 @@ function drawCards(n) {
 
   for (let i = 0; i < toDraw; i++) {
     const card = gameState.deck.shift();
-    if (!isBandit(card)) {
+
+    // Spécificité pour la carte #90 (Bijoux) : devient permanente quand elle est tirée
+    if (card.cardDef.numero === 90) {
+      if (!gameState.permanent.some(c => c.cardDef.numero === 90)) {
+        gameState.permanent.push(card);
+        addLog(`⚜️ <span class="log-card">${getFaceData(card).nom}</span> est tirée et devient une carte permanente !`, true);
+      } else {
+        // Déjà permanente, mais dans la pioche (anormal). On la joue normalement.
+        gameState.play.push(card);
+        _cardsToPlayTemp.push(card);
+        newCardNums.add(card.cardDef.numero);
+      }
+    } else if (!isBandit(card)) {
       newCardNums.add(card.cardDef.numero);
       // ── Effet Passif "Reste en jeu" : la carte va directement dans stayInPlay ──
       if (isStayInPlay(getFaceData(card))) {
@@ -725,7 +737,13 @@ function confirmCardGrant() {
 
   // Retirer la carte source du jeu et la mettre en défausse
   _playRemove(_playIdxByNum(cardInstance.cardDef.numero));
-  gameState.discard.push(cardInstance);
+
+  // Spécificité pour la Forge #18 : elle est réinitialisée à sa face 1
+  if (cardInstance.cardDef.numero === 18) {
+    _animateForgeReset(cardInstance, fd.nom);
+  } else {
+    gameState.discard.push(cardInstance);
+  }
 
   // Créer les nouvelles instances et les ajouter en défausse
   targetCards.forEach(cardDef => {
@@ -742,7 +760,9 @@ function confirmCardGrant() {
     }
   });
 
-  updateUI();
+  if (cardInstance.cardDef.numero !== 18) {
+    updateUI();
+  }
 }
 
 function cancelCardGrant() {

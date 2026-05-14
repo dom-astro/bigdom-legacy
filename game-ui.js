@@ -317,7 +317,7 @@ function buildPermanentCardHTML(cardInstance) {
                 ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> dispo</div>`
                 : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_metal || '?'} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> requis</div>`
           }
-          <div style="text-align:center;font-size:0.35rem;color:#607d8b;font-family:'Cinzel',serif;margin-top:2px;">⚜ DÉCOUVERTE</div>
+          <div style="text-align:center;font-size:0.35rem;color:#607d8b;font-family:'Cinzel',serif;margin-top:2px;">⚜ PERMANENTE</div>
         </div>
       </div>`;
   }
@@ -1638,6 +1638,92 @@ function _animatePromotion(upgradeEntry, stagingIndex, callback) {
         animContainer.remove();
         stagingArea.parentElement.style.visibility = ''; // Show staging area again
         callback();
+      }, { once: true });
+
+    }, 950); // Corresponds to flip animation duration + a small buffer
+  });
+}
+
+/**
+ * Animates the reset of the Forge card (#18) to its face 1 before discarding.
+ * @param {object} cardInstance - The card instance of the Forge.
+ * @param {string} sourceCardName - The name of the card's face being reset (for logging).
+ */
+function _animateForgeReset(cardInstance, sourceCardName) {
+  const cardElWrapper = document.querySelector(`.card-wrapper[data-card-num="${cardInstance.cardDef.numero}"]`);
+  const discardEl = document.querySelector('#discardVisual .card-front');
+
+  if (!cardElWrapper || !discardEl) {
+    // Fallback: no animation, just perform the state changes
+    cardInstance.currentFace = 1;
+    cardStateMap[18] = 1;
+    addLog(`🔥 <span class="log-card">${sourceCardName}</span> est réinitialisée.`, true);
+    gameState.discard.push(cardInstance);
+    updateUI();
+    return;
+  }
+
+  const startRect = cardElWrapper.getBoundingClientRect();
+  const discardRect = discardEl.getBoundingClientRect();
+
+  // 1. Create the animation element
+  const animContainer = document.createElement('div');
+  animContainer.className = 'forge-reset-anim-container';
+  document.body.appendChild(animContainer);
+
+  // 2. Build front and back faces
+  const frontHTML = cardElWrapper.querySelector('.card-front').outerHTML;
+  const tempInstanceFace1 = { ...cardInstance, currentFace: 1 };
+  const backHTML = buildCardFrontHTML(tempInstanceFace1, -1);
+
+  const finalW = 130, finalH = 185;
+
+  animContainer.innerHTML = `
+      <div class="forge-reset-flip-card">
+          <div class="forge-reset-flip-front">${frontHTML}</div>
+          <div class="forge-reset-flip-back">${backHTML}</div>
+      </div>
+  `;
+
+  // 3. Position the animation element
+  const startCx = startRect.left + startRect.width / 2;
+  const startCy = startRect.top + startRect.height / 2;
+  animContainer.style.position = 'fixed';
+  animContainer.style.left = `${startCx - finalW / 2}px`;
+  animContainer.style.top = `${startCy - finalH / 2}px`;
+  animContainer.style.width = `${finalW}px`;
+  animContainer.style.height = `${finalH}px`;
+  animContainer.style.zIndex = '10000';
+
+  // 4. Hide original card and start animation
+  cardElWrapper.style.visibility = 'hidden';
+
+  requestAnimationFrame(() => {
+    const flipCard = animContainer.querySelector('.forge-reset-flip-card');
+    flipCard.classList.add('is-flipped');
+
+    // 5. After flip, animate to discard pile
+    setTimeout(() => {
+      const discardCx = discardRect.left + discardRect.width / 2;
+      const discardCy = discardRect.top + discardRect.height / 2;
+      const dx = discardCx - startCx;
+      const dy = discardCy - startCy;
+      const scale = discardRect.width / finalW;
+
+      animContainer.style.transition = 'transform 0.6s ease-in, opacity 0.6s ease-in';
+      animContainer.style.transform = `translate(${dx}px, ${dy}px) scale(${scale}) rotate(15deg)`;
+      animContainer.style.opacity = '0';
+
+      animContainer.addEventListener('transitionend', () => {
+        animContainer.remove();
+        
+        // Perform state changes after animation
+        cardInstance.currentFace = 1;
+        cardStateMap[18] = 1;
+        addLog(`🔥 <span class="log-card">${sourceCardName}</span> est réinitialisée.`, true);
+        gameState.discard.push(cardInstance);
+        
+        updateUI();
       }, { once: true });
 
     }, 950); // Corresponds to flip animation duration + a small buffer

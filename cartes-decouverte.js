@@ -815,14 +815,13 @@ const CARDS_TO_DISCOVER =
   { "numero": 90,
     "nom": "Bijoux",
     "type": "Progression",
-    "description": "Une carte de parcours qui vous permet de dépenser des ressources pour gagner de la renommée. Accessible depuis la Forge (carte #18).",
-    "permanent": true,
+    "description": "Une carte de parcours qui vous permet de dépenser des ressources pour gagner de la renommée. Accessible depuis la Forge (carte #18). Lorsqu'elle est tirée de votre pioche, elle devient une carte permanente.",
     "faces": [
       {
         "face": 1,
         "nom": "Bijoux",
         "type": "Progression",
-        "description": "Terminez votre tour en dépensant du Métal pour cocher une case de gauche à droite. Vous devez les cocher dans l'ordre, une seule par tour. Chaque case cochée vous rapporte 5 Marchandises, mais met fin à votre tour.",
+        "description": "Cette carte est permanente. Terminez votre tour en dépensant du Métal pour cocher une case de gauche à droite. Vous devez les cocher dans l'ordre, une seule par tour. Chaque case cochée vous rapporte 5 Marchandises, mais met fin à votre tour.",
         "effet": {
           "type": "Fin de tour",
           "description": "Cocher une case termine votre tour."

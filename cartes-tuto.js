@@ -1810,7 +1810,7 @@ const BEGIN_CARDS =
         ],
         "effet": {
           "type": "Activable",
-          "description": "Rénitialiser pour découvrir des Bijoux",
+          "description": "Réinitialisez cette carte à sa face 1 (et défaussez-la) pour découvrir la carte #90 (Bijoux).",
           "cartes": [
             90
           ]

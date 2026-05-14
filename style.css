@@ -915,3 +915,32 @@ body.light-mode .confirm-modal-btn-ok {
   from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+/* ============================================================
+   ANIMATION FLIP — Réinitialisation Forge #18
+   ============================================================ */
+.forge-reset-anim-container {
+  perspective: 1000px;
+}
+.forge-reset-flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.forge-reset-flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.forge-reset-flip-front,
+.forge-reset-flip-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.forge-reset-flip-back {
+  transform: rotateY(180deg);
+}
