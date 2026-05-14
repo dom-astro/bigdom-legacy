@@ -821,6 +821,7 @@ const CARDS_TO_DISCOVER =
       {
         "face": 1,
         "nom": "Bijoux",
+        "type": "Progression",
         "description": "Terminez votre tour en dépensant du Métal pour cocher une case de gauche à droite. Vous devez les cocher dans l'ordre, une seule par tour. Chaque case cochée vous rapporte 5 Marchandises, mais met fin à votre tour.",
         "effet": {
           "type": "Fin de tour",

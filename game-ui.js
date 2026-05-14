@@ -314,8 +314,8 @@ function buildPermanentCardHTML(cardInstance) {
             : dejaCoche
               ? '<div style="font-size:0.35rem;color:#cc8844;text-align:center;margin-top:1px;">⏳ Déjà coché ce tour</div>'
               : canMark
-                ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_metal}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' dispo</div>`
-                : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_metal || '?'}'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' requis</div>`
+                ? `<div style="font-size:0.35rem;color:#f0c040;text-align:center;margin-top:1px;">▶ ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> dispo</div>`
+                : `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 ${nextCase?.cout_metal || '?'} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> requis</div>`
           }
           <div style="text-align:center;font-size:0.35rem;color:#607d8b;font-family:'Cinzel',serif;margin-top:2px;">⚜ DÉCOUVERTE</div>
         </div>
