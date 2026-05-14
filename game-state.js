@@ -14,7 +14,7 @@ const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨',
    Métal:'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">',
    Epée:'⚔️', 
    Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
-   Marchandise:'<img src="img/marchandise.png" alt="Marchandise" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">'
+   Marchandise:' <img src="img/marchandise.png" alt="Marchandise" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">'
 };
 const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
 

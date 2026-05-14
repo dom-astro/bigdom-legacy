@@ -815,7 +815,7 @@ function updateUI() {
     let lbl = hasUpgrade ? '✔ Confirmer & Fin de Tour' : hasActivate ? '✔ Confirmer les Actions' : '✔ Confirmer les Productions';
     if (resParts.length) lbl += `  (${resParts.join(' ')})`;
     if (totalFame > 0) lbl += `  ⭐+${totalFame}`;
-    $('#btnConfirm').text(lbl);
+    $('#btnConfirm').html(lbl);
   }
 
   const dc = gameState.discard.length;
