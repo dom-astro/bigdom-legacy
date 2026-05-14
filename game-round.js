@@ -200,15 +200,12 @@ function newRound() {
   const sipCards = gameState.stayInPlay || [];
   gameState.stayInPlay = [];
 
-  // Séparer permanentes normales / Héritage (level-1)
-  const heritagePerms = gameState.permanent.filter(ci => ci.cardDef._level1);
-  const normalPerms   = gameState.permanent.filter(ci => !ci.cardDef._level1);
-
-  const allCards = [...gameState.deck, ...gameState.discard, ...normalPerms, ...sipCards, ...retainedCards];
+  // Rassembler toutes les cartes non-permanentes pour former la nouvelle pioche.
+  const allCards = [...gameState.deck, ...gameState.discard, ...sipCards, ...retainedCards];
   if (sipCards.length > 0) {
     addLog(`🏚️ ${sipCards.map(c => `<span class="log-card">${getFaceData(c).nom}</span>`).join(', ')} — remélangée${sipCards.length > 1 ? 's' : ''} dans la pioche.`);
   }
-  gameState.permanent = [...heritagePerms];
+  // Les cartes dans gameState.permanent restent en place et ne sont pas remélangées.
   gameState.discard = []; gameState.deck = [];
   clearResources();
 
