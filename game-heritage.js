@@ -50,7 +50,7 @@ function _buildLevel1CardInstance(cardData) {
 // Affiche le modal de la Règle Héritage (carte #23)
 function _showHeritageRuleModal(allCards) {
   const rule23 = LEGACY_CARDS.find(c => c.numero === 23);
-  if (!rule23) { _continueNewRoundAfterHeritage(allCards); return; }
+  if (!rule23) { _continueNewRoundAfterHeritage(allCards, true); return; }
 
   const desc = rule23.description || '';
   const html = `
@@ -104,7 +104,7 @@ function _showNextHeritageCard() {
   if (!state || state.currentIndex >= state.queue.length) {
     // Toutes les cartes inspectées → continuer le jeu
     _heritageInspectState = null;
-    _continueNewRoundAfterHeritage(state ? state.allCards : []);
+    _continueNewRoundAfterHeritage(state ? state.allCards : [], true);
     return;
   }
 
@@ -252,7 +252,7 @@ function confirmHeritageInspect() {
 }
 
 // Reprend le fil de newRound() après le déclenchement de l'Héritage
-function _continueNewRoundAfterHeritage(allCards) {
+function _continueNewRoundAfterHeritage(allCards, autoStart = false) {
   // Injecter les cartes héritage jouables (28, 29, …) dans la pioche dès la première manche héritage
   _injectHeritageCardsIntoDeck(allCards); // défini dans game-round.js
 
@@ -260,8 +260,16 @@ function _continueNewRoundAfterHeritage(allCards) {
   if (discovered.length === 0) {
     addLog(`📦 Toutes les cartes ont été découvertes.`);
     _finalizeNewRound(allCards, []);
+    drawCards(4);
     return;
   }
+
+  if (autoStart) {
+    _finalizeNewRound(allCards, discovered);
+    drawCards(4);
+    return;
+  }
+
   _pendingNewRound = { allCards, discovered };
   _showNewCardsModal(discovered);
 }
