@@ -72,11 +72,11 @@ function stageUpgradeCard(cardNum) {
   // (les productions en staging zone ne comptent pas)
   const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
+    toCostArray(promo.cout).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {
-    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
+    const costs = allPromos.map(p => formatCost(p.cout)).join(' ou ');
     addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
     return;
   }
@@ -96,7 +96,7 @@ function showPromoChoiceModal(playIndex, promos) {
   let html = `<p style="margin-bottom:12px;">Choisissez la promotion pour <strong>${faceData.nom}</strong> :</p>`;
   promos.forEach((promo, i) => {
     const targetFace = cardInstance.cardDef.faces.find(f => f.face === promo.face);
-    const coutStr = formatCost(promo.cout || []);
+    const coutStr = formatCost(promo.cout);
     const emoji = targetFace ? getCardEmoji(targetFace.type, targetFace.nom) : '📄';
     const fame = targetFace && targetFace.victoire ? ` ⭐+${targetFace.victoire}` : '';
 
@@ -149,7 +149,7 @@ function selectPromoChoice(playIndex, promoIdx) {
 function _doStageUpgrade(playIndex, promo) {
   const cardInstance = gameState.play[playIndex];
   const faceData = getFaceData(cardInstance);
-  const cout = promo.cout || [];
+  const cout = toCostArray(promo.cout);
   const newFace = promo.face;
   const newFaceData = cardInstance.cardDef.faces.find(f => f.face === newFace);
   const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
@@ -253,11 +253,11 @@ function stageUpgradeStayCard(cardNum) {
 
   const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
+    toCostArray(promo.cout).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {
-    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
+    const costs = allPromos.map(p => formatCost(p.cout)).join(' ou ');
     addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
     return;
   }
@@ -266,7 +266,7 @@ function stageUpgradeStayCard(cardNum) {
 
   // Simuler _doStageUpgrade avec la carte issue de stayInPlay
   const promo = affordablePromos[0];
-  const cout = promo.cout || [];
+  const cout = toCostArray(promo.cout);
   const newFace = promo.face;
   const newFaceData = ci.cardDef.faces.find(f => f.face === newFace);
   const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;
@@ -357,11 +357,11 @@ function stageUpgradeRetainedCard(cardNum) {
 
   const confirmed = getConfirmedResources();
   const affordablePromos = allPromos.filter(promo =>
-    (promo.cout || []).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
+    toCostArray(promo.cout).every(c => (confirmed[normalizeRes(c.type)] || 0) >= c.quantite)
   );
 
   if (affordablePromos.length === 0) {
-    const costs = allPromos.map(p => formatCost(p.cout || [])).join(' ou ');
+    const costs = allPromos.map(p => formatCost(p.cout)).join(' ou ');
     addLog(`💰 Ressources insuffisantes pour promouvoir <span class="log-card">${faceData.nom}</span>. Coût: ${costs}`);
     return;
   }
@@ -381,7 +381,7 @@ function stageUpgradeRetainedCard(cardNum) {
 
 function _doStageUpgradeRetained(ci, promo) {
   const faceData = getFaceData(ci);
-  const cout = promo.cout || [];
+  const cout = toCostArray(promo.cout);
   const newFace = promo.face;
   const newFaceData = ci.cardDef.faces.find(f => f.face === newFace);
   const fameGained = newFaceData && newFaceData.victoire ? newFaceData.victoire : 0;

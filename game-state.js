@@ -12,7 +12,10 @@ let ALL_CARDS = [
 
 const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨',
    Métal:'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">',
-    Epée:'⚔️', Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' };
+   Epée:'⚔️', 
+   Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+   Marchandise:'<img src="img/marchandise.png" alt="Marchandise" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">'
+};
 const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
 
 let cardStateMap = {};
@@ -55,16 +58,21 @@ function normalizeRes(t) {
   const val = Array.isArray(t) ? t[0] : t;
   return { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', Troc:'Troc' }[val] || val;
 }
+function toCostArray(cout) {
+  if (!cout) return [];
+  return Array.isArray(cout) ? cout : [cout];
+}
 function formatCost(cout) {
-  if (!cout || !cout.length) return 'Gratuit';
-  return cout.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`).join(' + ');
+  const items = toCostArray(cout);
+  if (!items.length) return 'Gratuit';
+  return items.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`).join(' + ');
 }
 function formatCostHint(cout) {
-  if (!cout || !cout.length) return 'Gratuit';
-  const items = cout.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`);
-  if (items.length <= 2) return items.join(' + ');
-  const cells = items.map(it => `<span class="promo-cost-item">${it}</span>`).join('');
-  return `<span class="promo-costs-grid">${cells}</span>`;
+  const items = toCostArray(cout);
+  if (!items.length) return 'Gratuit';
+  const cells = items.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`);
+  if (cells.length <= 2) return cells.join(' + ');
+  return `<span class="promo-costs-grid">${cells.join('')}</span>`;
 }
 function getCardEmoji(type, nom) {
   return ({

@@ -1169,7 +1169,8 @@ function openCardModal(indexOrNum, zone) {
       <div style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">▲ Promotions</div>`;
     allModalPromos.forEach(promo => {
       const nfd = cardInstance.cardDef.faces.find(f => f.face === promo.face);
-      const canAfford = (promo.cout || []).every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
+      const promoCost = toCostArray(promo.cout);
+      const canAfford = promoCost.every(c => (projected[normalizeRes(c.type)] || 0) >= c.quantite);
       const nfdEmoji = nfd ? getCardEmoji(nfd.type, nfd.nom) : '📄';
       body += `<div style="display:flex;align-items:center;gap:10px;
         background:rgba(0,0,0,0.25);border:1px solid ${canAfford ? 'rgba(68,200,68,0.35)' : 'rgba(200,150,12,0.2)'};
@@ -1179,7 +1180,7 @@ function openCardModal(indexOrNum, zone) {
           <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:${canAfford ? '#88ff88' : '#f0c040'};">
             ${nfd ? nfd.nom : '?'}
           </div>
-          <div style="font-size:0.72rem;color:#a09080;">Coût : ${formatCost(promo.cout || [])}</div>
+          <div style="font-size:0.72rem;color:#a09080;">Coût : ${formatCost(promo.cout)}</div>
           ${nfd && nfd.victoire ? `<div style="font-size:0.65rem;color:#f0c040;">⭐ ${nfd.victoire} Gloire</div>` : ''}
         </div>
         ${canAfford
