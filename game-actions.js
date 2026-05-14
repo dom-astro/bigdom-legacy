@@ -740,27 +740,15 @@ function confirmCardGrant() {
 
   // Spécificité pour la Forge #18 : elle est réinitialisée à sa face 1
   if (cardInstance.cardDef.numero === 18) {
-    _animateForgeReset(cardInstance, fd.nom);
+    _animateForgeReset(cardInstance, fd.nom, targetCards);
   } else {
     gameState.discard.push(cardInstance);
-  }
-
-  // Créer les nouvelles instances et les ajouter en défausse
-  targetCards.forEach(cardDef => {
-    const newInst = createCardInstance(cardDef);
-    // Vérifier si la carte découverte est permanente (ex: Bijoux #90)
-    if (cardDef.permanent) {
-      if (!gameState.permanent.some(c => c.cardDef.numero === cardDef.numero)) {
-        gameState.permanent.push(newInst);
-        addLog(`🏛️ <span class="log-card">${getFaceData(newInst).nom}</span> (#${cardDef.numero}) rejoint les permanentes !`, true);
-      }
-    } else {
+    // Créer les nouvelles instances et les ajouter en défausse
+    targetCards.forEach(cardDef => {
+      const newInst = createCardInstance(cardDef);
       gameState.discard.push(newInst);
       addLog(`⛪ <span class="log-card">${fd.nom}</span> — <span class="log-card">${getFaceData(newInst).nom}</span> (#${cardDef.numero}) rejoint la défausse !`, true);
-    }
-  });
-
-  if (cardInstance.cardDef.numero !== 18) {
+    });
     updateUI();
   }
 }

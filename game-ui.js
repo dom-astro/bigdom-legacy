@@ -1648,8 +1648,9 @@ function _animatePromotion(upgradeEntry, stagingIndex, callback) {
  * Animates the reset of the Forge card (#18) to its face 1 before discarding.
  * @param {object} cardInstance - The card instance of the Forge.
  * @param {string} sourceCardName - The name of the card's face being reset (for logging).
+ * @param {object[]} [targetCards] - Optional array of card definitions to discover.
  */
-function _animateForgeReset(cardInstance, sourceCardName) {
+function _animateForgeReset(cardInstance, sourceCardName, targetCards) {
   const cardElWrapper = document.querySelector(`.card-wrapper[data-card-num="${cardInstance.cardDef.numero}"]`);
   const discardEl = document.querySelector('#discardVisual .card-front');
 
@@ -1659,6 +1660,16 @@ function _animateForgeReset(cardInstance, sourceCardName) {
     cardStateMap[18] = 1;
     addLog(`🔥 <span class="log-card">${sourceCardName}</span> est réinitialisée.`, true);
     gameState.discard.push(cardInstance);
+
+    // Fallback for target cards
+    if (targetCards && targetCards.length > 0) {
+      targetCards.forEach(cardDef => {
+        const newInst = createCardInstance(cardDef);
+        gameState.discard.push(newInst);
+        addLog(`✨ <span class="log-card">${getFaceData(newInst).nom}</span> est découverte et rejoint la défausse !`, true);
+      });
+    }
+
     updateUI();
     return;
   }
@@ -1714,6 +1725,44 @@ function _animateForgeReset(cardInstance, sourceCardName) {
       animContainer.style.transform = `translate(${dx}px, ${dy}px) scale(${scale}) rotate(15deg)`;
       animContainer.style.opacity = '0';
 
+      // Animer la carte découverte (#90)
+      if (targetCards && targetCards.length > 0) {
+        // Petit délai pour que l'animation de la forge commence
+        setTimeout(() => {
+          const card90Def = targetCards[0];
+          const card90Instance = createCardInstance(card90Def);
+          const card90HTML = buildCardFrontHTML(card90Instance, -1);
+
+          const discoveryEl = document.createElement('div');
+          document.body.appendChild(discoveryEl);
+          discoveryEl.innerHTML = card90HTML;
+
+          discoveryEl.style.position = 'fixed';
+          discoveryEl.style.left = `${startCx - finalW / 2}px`;
+          discoveryEl.style.top = `${startCy - finalH / 2}px`;
+          discoveryEl.style.width = `${finalW}px`;
+          discoveryEl.style.height = `${finalH}px`;
+          discoveryEl.style.zIndex = '9999';
+          discoveryEl.style.opacity = '0';
+          discoveryEl.style.transform = 'scale(0.8)';
+          discoveryEl.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+
+          // Apparition en fondu et zoom
+          requestAnimationFrame(() => {
+            discoveryEl.style.opacity = '1';
+            discoveryEl.style.transform = 'scale(1.05)';
+          });
+
+          // Après un délai, animation vers la défausse
+          setTimeout(() => {
+            discoveryEl.style.transition = 'transform 0.6s ease-in, opacity 0.6s ease-in';
+            discoveryEl.style.transform = `translate(${dx}px, ${dy}px) scale(${scale}) rotate(-10deg)`;
+            discoveryEl.style.opacity = '0';
+            discoveryEl.addEventListener('transitionend', () => discoveryEl.remove(), { once: true });
+          }, 800);
+        }, 200);
+      }
+
       animContainer.addEventListener('transitionend', () => {
         animContainer.remove();
         
@@ -1722,6 +1771,14 @@ function _animateForgeReset(cardInstance, sourceCardName) {
         cardStateMap[18] = 1;
         addLog(`🔥 <span class="log-card">${sourceCardName}</span> est réinitialisée.`, true);
         gameState.discard.push(cardInstance);
+
+        if (targetCards && targetCards.length > 0) {
+          targetCards.forEach(cardDef => {
+            const newInst = createCardInstance(cardDef);
+            gameState.discard.push(newInst);
+            addLog(`✨ <span class="log-card">${getFaceData(newInst).nom}</span> est découverte et rejoint la défausse !`, true);
+          });
+        }
         
         updateUI();
       }, { once: true });
