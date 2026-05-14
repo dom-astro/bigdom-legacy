@@ -745,6 +745,29 @@ function confirmCardGrant() {
   updateUI();
 }
 
+function cancelCardGrant() {
+  if (document.activeElement) document.activeElement.blur();
+  bootstrap.Modal.getInstance(document.getElementById('cardGrantModal'))?.hide();
+  const { playIndex, cardInstance } = window._pendingCardGrant || {};
+  window._pendingCardGrant = null;
+  if (!cardInstance) return;
+
+  // Rembourser le coût de l'activation
+  const fd = getFaceData(cardInstance);
+  const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
+  const act = effets.find(e => e.type === 'Activable');
+  if (act && act.cout) {
+    for (const c of act.cout) {
+      const key = normalizeRes(c.type);
+      gameState.resources[key] = (gameState.resources[key] || 0) + c.quantite;
+    }
+    addLog(`↩️ Action annulée, coût remboursé.`);
+  }
+
+  _restoreRetainedIfNeeded(playIndex);
+  updateUI();
+}
+
 function showSacrificeModal(playIndex, act, candidates) {
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);

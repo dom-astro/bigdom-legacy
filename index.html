@@ -1165,7 +1165,10 @@
         <h5 class="modal-title w-100 text-center" style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1rem;">✨ Une nouvelle carte apparaît</h5>
       </div>
       <div class="modal-body" id="cardGrantBody" style="padding:16px 22px 10px;"></div>
-      <div class="modal-footer border-0 justify-content-center pt-0 pb-4">
+      <div class="modal-footer border-0 justify-content-center pt-0 pb-4" style="gap: 10px;">
+        <button onclick="cancelCardGrant()" class="btn" style="font-family:'Cinzel',serif;background:rgba(60,40,20,0.6);border:1px solid rgba(139,105,20,0.4);color:var(--stone-light);padding:10px 24px;border-radius:8px;font-size:0.75rem;letter-spacing:1px;">
+          ✕ Annuler
+        </button>
         <button onclick="confirmCardGrant()" class="btn" style="font-family:'Cinzel',serif;background:linear-gradient(135deg,#8a6a20,#c9a84c);color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:0.85rem;letter-spacing:1px;">
           ⛪ Recevoir la carte
         </button>
