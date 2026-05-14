@@ -96,10 +96,14 @@ function buildCardFrontHTML(cardInstance, playIndex) {
 
   const allPromos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
   const upgradeAlreadyStaged = gameState.staging.some(e => e.action === 'upgrade');
+  const promoCostItems = p => {
+    if (!p || !p.cout) return [];
+    return Array.isArray(p.cout) ? p.cout : [p.cout];
+  };
   // Hint visuel (hint gris/vert sur la carte) : utilise les ressources projetées
-  const canUpgrade = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
+  const canUpgrade = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => promoCostItems(p).every(c => (projected[normalizeRes(c.type)]||0) >= c.quantite));
   // Disponibilité réelle (bouton actif, surbrillance) : ressources confirmées uniquement
-  const canUpgradeConfirmed = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => (p.cout||[]).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
+  const canUpgradeConfirmed = hasUpgrade && !upgradeAlreadyStaged && allPromos.some(p => promoCostItems(p).every(c => (confirmed[normalizeRes(c.type)]||0) >= c.quantite));
   const canDefeat = banditCard && (confirmed['Epée'] || 0) >= 1;
   const hasActivable = hasActivableEffect(cardInstance);
   const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
@@ -445,17 +449,17 @@ function buildPermanentCardHTML(cardInstance) {
             </div>
             <div class="card-name" style="font-size:0.5rem;color:#cc88ff;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#5a2a8a;">Progression</span>
-            <div style="font-size:1.4rem;margin:4px 0;text-align:center;">🛒</div>
+            <div style="font-size:1.4rem;margin:4px 0;text-align:center;"><img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
             </div>
-            <div style="font-size:0.38rem;color:#aa66ff;text-align:center;margin:1px 0;">${total}/${maxTotal} 🏺</div>
+            <div style="font-size:0.38rem;color:#aa66ff;text-align:center;margin:1px 0;">${total}/${maxTotal} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
             ${disponibles.length > 0
               ? `<div style="font-size:0.35rem;color:#aaffaa;text-align:center;margin-top:1px;">🎉 ${disponibles.length} effet${disponibles.length > 1 ? 's' : ''} dispo</div>`
               : marc > 0
-                ? `<div style="font-size:0.35rem;color:#cc88ff;text-align:center;margin-top:1px;">▶ ${marc} 🏺 à investir</div>`
+                ? `<div style="font-size:0.35rem;color:#cc88ff;text-align:center;margin-top:1px;">▶ ${marc} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> à investir</div>`
                 : nextSeuil
-                  ? `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 Seuil : ${nextSeuil.cout_total} 🏺</div>`
+                  ? `<div style="font-size:0.35rem;color:#888;text-align:center;margin-top:1px;">🔒 Seuil : ${nextSeuil.cout_total} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>`
                   : '<div style="font-size:0.35rem;color:#8acc44;text-align:center;margin-top:1px;">✅ Complet</div>'
             }
             <div style="text-align:center;font-size:0.35rem;color:#8844cc;font-family:'Cinzel',serif;margin-top:2px;">⚜ HÉRITAGE</div>

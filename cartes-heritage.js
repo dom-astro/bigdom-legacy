@@ -111,7 +111,7 @@
         {
           "face": 1,
           "nom": "Export",
-          "description": "Cette carte est permanente. À chaque fois que vous gagnez des Marchandises 🏺, vous pouvez les dépenser ici pour faire progresser votre commerce. Le compteur est cumulatif : dépensez autant que vous voulez, même plusieurs fois par tour. Entre deux tours, vous pouvez utiliser (et barrer ✗) les effets des seuils atteints.",
+          "description": "Cette carte est permanente. À chaque fois que vous gagnez des Marchandises <img src='img/marchandise.png' alt='Marchandise' style='width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;'>, vous pouvez les dépenser ici pour faire progresser votre commerce. Le compteur est cumulatif : dépensez autant que vous voulez, même plusieurs fois par tour. Entre deux tours, vous pouvez utiliser (et barrer ✗) les effets des seuils atteints.",
           "seuils": [
             { "index": 1,  "cout_total": 10,  "effet": "Autocollant 1, 2 ou 3 sur 1 Terrain",   "type_effet": "sticker", "stickers": [1,2,3],   "cible": "Terrain"   },
             { "index": 2,  "cout_total": 20,  "effet": "Autocollant 7 sur 1 Personne",           "type_effet": "sticker", "stickers": [7],       "cible": "Personne"  },
@@ -125,7 +125,7 @@
         {
           "face": 2,
           "nom": "Mass Export",
-          "description": "Cette carte est permanente. Continuez à dépenser des Marchandises 🏺 pour débloquer de nouveaux avantages commerciaux. Le compteur reprend là où vous vous étiez arrêté. Entre deux tours, utilisez (et barrez ✗) les effets des seuils atteints.",
+          "description": "Cette carte est permanente. Continuez à dépenser des Marchandises <img src='img/marchandise.png' alt='Marchandise' style='width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;'> pour débloquer de nouveaux avantages commerciaux. Le compteur reprend là où vous vous étiez arrêté. Entre deux tours, utilisez (et barrez ✗) les effets des seuils atteints.",
           "seuils": [
             { "index": 8,  "cout_total": 125, "effet": "Autocollant 8 sur 2 Terrains différents", "type_effet": "sticker", "stickers": [8],      "cible": "Terrain",  "quantite": 2 },
             { "index": 9,  "cout_total": 150, "effet": "Autocollant 10 sur 1 Personne",            "type_effet": "sticker", "stickers": [10],     "cible": "Personne"  },
@@ -188,10 +188,9 @@
           "nom": "L'opportuniste",
           "type": "Personne",
           "description": "L'Opportuniste peut toujours s'adapter à vos besoins",
-          "ressources": { 
-            "type": "Or",
-            "quantite": 1
-          }, 
+          "ressources": [
+            { "type": "Or", "quantite": 1 }
+          ],
           "promotions": [
             { "face": 2 } , { face: 4 }
           ]
@@ -200,10 +199,9 @@
           "nom": "Le recruteur",
           "type": "Personne",
           "description": "Le recruteur est un maître de la persuasion, capable de rallier les talents à votre cause.",
-          "ressources": { 
-            "type": "Epée",
-            "quantite": 1
-          }, 
+          "ressources": [
+            { "type": "Epée", "quantite": 1 }
+          ],
           "promotions": [
             { "face": 1 } , { face: 3 }
           ]
@@ -221,10 +219,9 @@
           "nom": "Le travailleur",
           "type": "Personne",
           "description": "Le travailleur est un individu dur et dévoué, capable de réaliser le travail nécessaire pour faire prospérer votre royaume.",
-          "ressources": { 
-            "type": "Pierre",
-            "quantite": 1
-          }, 
+          "ressources": [
+            { "type": "Pierre", "quantite": 1 }
+          ],
           "promotions": [
             { "face": 1 } , { face: 3 }
           ]

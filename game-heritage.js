@@ -817,7 +817,7 @@ function openExportModal() {
   const face1Data  = _getExportData(1);
   const face2Data  = _getExportData(2);
   const isMassExport = prog.face === 2;
-  const nomCarte   = isMassExport ? '🛒 Mass Export' : '🛒 Export';
+  const nomCarte   = isMassExport ? ' Mass Export' : ' Export';
 
   // Seuils disponibles (non encore utilisés et atteints)
   const disponibles = _getExportSeuilsDisponibles();
@@ -870,7 +870,7 @@ function openExportModal() {
         <div style="font-size:1rem;flex-shrink:0;margin-top:1px;">${icon}</div>
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
-            <span style="font-family:'Cinzel',serif;font-size:0.62rem;font-weight:700;color:${atteint ? '#f0c040' : '#666'};">${s.cout_total} 🏺</span>
+            <span style="font-family:'Cinzel',serif;font-size:0.62rem;font-weight:700;color:${atteint ? '#f0c040' : '#666'};">${s.cout_total} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></span>
             ${typeTag}
           </div>
           <div style="font-family:'Crimson Text',serif;font-size:0.82rem;color:${textColor};line-height:1.4;">${s.effet}</div>
@@ -888,7 +888,7 @@ function openExportModal() {
     <div style="margin-bottom:10px;">
       <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;
         color:${isMassExport ? '#8acc44' : '#f0c040'};margin-bottom:8px;">
-        ${isMassExport ? '✅ EXPORT — COMPLÉTÉ' : '🛒 EXPORT — Seuils 10 à 100'}
+        ${isMassExport ? '✅ EXPORT — COMPLÉTÉ' : '<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> EXPORT — Seuils 10 à 100'}
       </div>
       ${face1Seuils.map(renderSeuil).join('')}
     </div>`;
@@ -897,7 +897,7 @@ function openExportModal() {
     <div style="border-top:2px solid ${face2Unlocked ? 'rgba(136,68,204,0.4)' : 'rgba(255,255,255,0.08)'};padding-top:12px;">
       <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;
         color:${!face2Unlocked ? '#555' : '#cc88ff'};margin-bottom:8px;">
-        ${!face2Unlocked ? '🔒 MASS EXPORT — Débloquer à 100 🏺' : '🛒 MASS EXPORT — Seuils 125 à 300'}
+        ${!face2Unlocked ? '🔒 MASS EXPORT — Débloquer à 100 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' : '<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> MASS EXPORT — Seuils 125 à 300'}
       </div>
       <div style="opacity:${face2Unlocked ? 1 : 0.3};">
         ${face2Seuils.map(renderSeuil).join('')}
@@ -915,13 +915,13 @@ function openExportModal() {
         Dépenser des Marchandises
       </div>
       <div style="font-size:0.9rem;color:#e8d5a3;margin-bottom:4px;">
-        Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} 🏺</strong>
+        Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></strong>
       </div>
       <div style="font-size:0.78rem;color:${dejaCocheExport ? '#cc8844' : canInvest ? '#aaffaa' : '#ff8888'};margin-bottom:8px;">
         ${dejaCocheExport
           ? '⏳ Un investissement a déjà été effectué ce tour'
           : canInvest
-            ? `Vous avez ${marcDispo} 🏺 disponible${marcDispo > 1 ? 's' : ''}`
+            ? `Vous avez ${marcDispo} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> disponible${marcDispo > 1 ? 's' : ''}`
             : 'Aucune Marchandise disponible'}
       </div>`;
 
@@ -934,7 +934,7 @@ function openExportModal() {
         font-family:'Cinzel',serif;font-weight:700;font-size:0.72rem;letter-spacing:1px;
         background:linear-gradient(135deg,#3a1a5a,#6a2a8a);border:2px solid #aa44ff;
         color:#ddaaff;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.2s;">
-        +${n} 🏺
+        +${n} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">
       </button>`;
     });
     investHTML += `</div>`;
@@ -966,7 +966,7 @@ function openExportModal() {
         <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
           <div style="height:100%;width:${pctGlobal}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
         </div>
-        <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#cc88ff;">${prog.totalDepense}/${maxTotal} 🏺</div>
+        <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#cc88ff;">${prog.totalDepense}/${maxTotal} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
       </div>
     </div>
     ${section1}
@@ -1003,7 +1003,7 @@ function investirExport(n) {
   prog.totalDepense += aDepenser;
   gameState.exportCaseCeTour = true;
 
-  addLog(`🛒 <span class="log-card">Export</span> — ${aDepenser} 🏺 investie${aDepenser > 1 ? 's' : ''} (total : ${prog.totalDepense} 🏺).`);
+  addLog(`<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Export</span> — ${aDepenser} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> investie${aDepenser > 1 ? 's' : ''} (total : ${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">).`);
 
   // Détecter si un nouveau seuil de promotion est atteint
   const allSeuils = _getAllExportSeuils();
@@ -1032,7 +1032,7 @@ function utiliserSeuilExport(seuilIndex) {
   const seuil = _getAllExportSeuils().find(s => s.index === seuilIndex);
   if (!seuil) return;
   if (prog.totalDepense < seuil.cout_total) {
-    addLog(`❌ Export — seuil ${seuil.cout_total} 🏺 non encore atteint.`);
+    addLog(`❌ Export — seuil ${seuil.cout_total} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> non encore atteint.`);
     return;
   }
 
@@ -1159,7 +1159,7 @@ function openBijouxModal() {
           Coût : <strong style="color:#b0bec5;">${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1em;vertical-align:-0.15em;object-fit:contain;"></strong>
         </div>
         <div style="font-size:0.9rem;color:#f0c040;">
-          Gain : ★ ${nextCase.gloire} gloire + 5 🏺
+          Gain : ★ ${nextCase.gloire} gloire + 5 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">
         </div>
         <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
           ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> (vous avez ${metalDispo})`}
@@ -1215,7 +1215,7 @@ function confirmBijouxCase() {
   prog.casesMarquees++;
   gameState.bijouxCaseCeTour = true;
 
-  addLog(`<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
+  addLog(`<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${nextCase.ressources[0].quantite}<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">. Le tour se termine.`, true);
 
   // Mise à jour de la gloire effective de la carte
   _updateBijouxGloire();

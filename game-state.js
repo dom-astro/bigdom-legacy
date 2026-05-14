@@ -12,7 +12,7 @@ let ALL_CARDS = [
 
 const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨',
    Métal:'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">',
-    Epée:'⚔️', Troc:'🏺' };
+    Epée:'⚔️', Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' };
 const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
 
 let cardStateMap = {};
@@ -101,6 +101,11 @@ function getCardEmoji(type, nom) {
     'Domestique':'<img src="img/domestique.png" alt="Domestique" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Bandit':'<img src="img/bandit.png" alt="Bandit" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Travailleur':'👨‍🔧',
+    'L\'opportuniste':'<img src="img/opportuniste.png" alt="Opportuniste" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Le recruteur':'<img src="img/chevalier.png" alt="Le recruteur" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Le travailleur':'<img src="img/mineur.png" alt="Le travailleur" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Le faux noble':'<img src="img/noble.png" alt="Le faux noble" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+    'Apiculteur':'<img src="img/apiculteur.png" alt="Apiculteur" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Missionaire':'<img src="img/missionnaire.png" alt="Missionnaire" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Colline':'<img src="img/colline.png" alt="Colline" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Chapelle':'⛪',
@@ -112,7 +117,7 @@ function getCardEmoji(type, nom) {
     'Muraille':'🏯',
     'Marais':'<img src="img/marais.png" alt="Marais" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Marais Amenagés':'<img src="img/marais-amenages.png" alt="Marais Aménagés" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
-    'Jardin du Marais':'🌺',
+    'Jardin du Marais':'<img src="img/nenuphar.png" alt="Jardin du marais" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Arbres à Fruits Exotiques':'🍍',
     'Lac':'<img src="img/lac.png" alt="Lac" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Bateau de Pêche':'⛵',
