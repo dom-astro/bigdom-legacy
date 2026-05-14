@@ -107,7 +107,7 @@ function getCardEmoji(type, nom) {
     'Eglise':'⛪',
     'Cathédrale':'🕍',
     'Forge':'<img src="img/forge.png" alt="Forge" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
-    'Bijoux':'💎',
+    'Bijoux':'<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Armurerie':'<img src="img/armurie.png" alt="Armurerie" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Muraille':'🏯',
     'Marais':'<img src="img/marais.png" alt="Marais" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',

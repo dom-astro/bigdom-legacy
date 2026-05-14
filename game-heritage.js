@@ -1017,7 +1017,7 @@ function openBijouxModal() {
   const projected   = getProjectedResources();
   const metalDispo  = projected['Métal'] || 0;
 
-  const nomCarte    = '💎 Bijoux';
+  const nomCarte    = 'Bijoux';
   const glorieActuelle = (nextIndex > 0 ? cases[nextIndex - 1].gloire : 0);
   const dejaCoche   = !!gameState.bijouxCaseCeTour;
 
@@ -1076,7 +1076,7 @@ function openBijouxModal() {
           color:${(canMark && !dejaCoche) ? '#102027' : '#666'};
           padding:10px 28px;border-radius:6px;cursor:${(canMark && !dejaCoche) ? 'pointer' : 'not-allowed'};
           transition:all 0.2s;">
-          💎 Forger & Finir le tour
+          <img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> Forger & Finir le tour
         </button>
       </div>`;
   }
@@ -1117,7 +1117,7 @@ function confirmBijouxCase() {
   prog.casesMarquees++;
   gameState.bijouxCaseCeTour = true;
 
-  addLog(`💎 <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
+  addLog(`<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${nextCase.ressources[0].quantite}🏺. Le tour se termine.`, true);
 
   // Mise à jour de la gloire effective de la carte
   _updateBijouxGloire();

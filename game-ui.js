@@ -303,7 +303,7 @@ function buildPermanentCardHTML(cardInstance) {
           </div>
           <div class="card-name" style="font-size:0.5rem;color:#eceff1;">${nomAffiche}</div>
           <span class="card-type-badge" style="font-size:0.38rem;background:#455a64;">Progression</span>
-          <div style="font-size:1.4rem;margin:4px 0;">💎</div>
+          <div style="font-size:1.4rem;margin:4px 0;text-align:center;"><img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
           <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
             <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#90a4ae,#eceff1);border-radius:3px;transition:width 0.4s;"></div>
           </div>
@@ -354,7 +354,7 @@ function buildPermanentCardHTML(cardInstance) {
             </div>
             <div class="card-name" style="font-size:0.5rem;color:#ffaaaa;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a1a1a;">Progression</span>
-            <div style="font-size:1.4rem;margin:4px 0;">⚔️</div>
+            <div style="font-size:1.4rem;margin:4px 0;text-align:center;">⚔️</div>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#cc4444,#ff6666);border-radius:3px;transition:width 0.4s;"></div>
             </div>
@@ -402,7 +402,7 @@ function buildPermanentCardHTML(cardInstance) {
             </div>
             <div class="card-name" style="font-size:0.5rem;color:#f0c040;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Progression</span>
-            <div style="font-size:1.4rem;margin:4px 0;">🪙</div>
+            <div style="font-size:1.4rem;margin:4px 0;text-align:center;">🪙</div>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#c8960c,#f0c040);border-radius:3px;transition:width 0.4s;"></div>
             </div>
@@ -445,7 +445,7 @@ function buildPermanentCardHTML(cardInstance) {
             </div>
             <div class="card-name" style="font-size:0.5rem;color:#cc88ff;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#5a2a8a;">Progression</span>
-            <div style="font-size:1.4rem;margin:4px 0;">🛒</div>
+            <div style="font-size:1.4rem;margin:4px 0;text-align:center;">🛒</div>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
             </div>
@@ -488,7 +488,7 @@ function buildPermanentCardHTML(cardInstance) {
             </div>
             <div class="card-name" style="font-size:0.5rem;color:#f0c040;">Terre fertile</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#7a5a08;">Parchemin</span>
-            <div style="font-size:1.4rem;margin:4px 0;">\uD83C\uDF3E</div>
+            <div style="font-size:1.4rem;margin:4px 0;text-align:center;">\uD83C\uDF3E</div>
             <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${Math.round((utilises/Math.max(totalEffets,1))*100)}%;background:linear-gradient(90deg,#c8960c,#f0c040);border-radius:3px;transition:width 0.4s;"></div>
             </div>
