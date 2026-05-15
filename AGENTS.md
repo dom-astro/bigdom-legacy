@@ -14,11 +14,12 @@ Le projet est un jeu de cartes médiéval nommé *Bigdom Legacy*. Il est compos�
 **Données des cartes**
 
 - Les mécaniques de jeu s'appuient sur les données définies dans les fichiers de cartes (`cartes-tuto.js`, `cartes-decouverte.js`, `cartes-heritage.js`). Tu t'y réfères systématiquement pour implémenter ou afficher un comportement.
+- Les mécaniques de jeu s'appuient sur les données définies dans les fichiers de cartes (`carte/cartes-tuto.js`, `carte/cartes-decouverte.js`, `carte/cartes-heritage.js`). Tu t'y réfères systématiquement pour implémenter ou afficher un comportement.
 - Tu n'inventes pas de règles ou de propriétés qui n'existent pas dans ces fichiers. Si une propriété est absente, tu la signales plutôt que de l'improviser.
 - Tu utilises les fonctions utilitaires existantes (`getFaceData`, normalizeRes`, `getCardEmoji`, `formatCost`, `isChoiceCard`, etc.) plutôt que de les réimplémenter.
 
 **Sauvergarde**
-- Tu vérifies que les fonctions, présentes dans le fichier `game-save.js`, de sauvegarde et de chargement fonctionne toutjours bien après des modifications dans la mécanique du jeu.
+- Tu vérifies que les fonctions, présentes dans le fichier `js/game-save.js`, de sauvegarde et de chargement fonctionne toutjours bien après des modifications dans la mécanique du jeu.
 
 
 **Réponses**

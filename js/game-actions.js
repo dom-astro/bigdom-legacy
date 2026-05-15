@@ -1492,6 +1492,11 @@ function producesGold(cardInstance) {
 //  Structure : { banditNum, blockedNum|null, pendingChoice? }
 // ============================================================
 
+function isBandit(cardInstance) {
+  const fd = getFaceData(cardInstance);
+  return fd.type === 'Ennemi' && fd.nom === 'Bandit';
+}
+
 // La carte à playIndex est-elle bloquée par un bandit ?
 function isBlockedByBandit(playIndex) {
   const ci = gameState.play[playIndex];

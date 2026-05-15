@@ -119,6 +119,7 @@ function getCardEmoji(type, nom) {
     'Chapelle':'⛪',
     'Eglise':'⛪',
     'Cathédrale':'🕍',
+    'Sanctuaire':'<img src="img/sanctuaire.png" alt="Sanctuaire" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Forge':'<img src="img/forge.png" alt="Forge" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Bijoux':'<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Armurerie':'<img src="img/armurie.png" alt="Armurerie" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',

@@ -965,18 +965,20 @@
   </div>
 </div>
 
-<script src="cartes-tuto.js"></script>
-<script src="cartes-decouverte.js"></script>
-<script src="cartes-heritage.js"></script>
-<script src="game-state.js"></script>    <!-- Variables globales en premier -->
+<script src="carte/cartes-tuto.js"></script>
+<script src="carte/cartes-decouverte.js"></script>
+<script src="carte/cartes-heritage.js"></script>
+<script src="js/game-state.js"></script>    <!-- Variables globales en premier -->
 <script src="stickers.js"></script>     <!-- Dépend de game-state -->
-<script src="game-actions.js"></script>  <!-- Dépend de game-state -->
-<script src="game-ui.js"></script>       <!-- Dépend de game-state, game-actions, stickers -->
-<script src="game-staging.js"></script>  <!-- Dépend de game-state, game-actions -->
-<script src="game-heritage.js"></script> <!-- Héritage, Armée, Rétention — dépend de game-actions -->
-<script src="game-round.js"></script>    <!-- Dépend de game-actions + game-heritage -->
-<script src="game-save.js"></script>     <!-- Dépend de game-state + game-ui -->
-<script src="game-init.js"></script>
+<script src="js/game-bandit.js"></script>   <!-- Logique des bandits -->
+<script src="js/game-actions.js"></script>  <!-- Dépend de game-state et game-bandit -->
+<script src="js/game-ui.js"></script>       <!-- Dépend de game-state, game-actions, stickers -->
+<script src="js/game-staging.js"></script>  <!-- Dépend de game-state, game-actions -->
+<script src="js/game-heritage.js"></script> <!-- Héritage, Armée, Rétention — dépend de game-actions -->
+<script src="js/game-round.js"></script>    <!-- Dépend de game-actions + game-heritage -->
+<script src="js/game-save.js"></script>     <!-- Dépend de game-state + game-ui -->
+<script src="js/game-music.js"></script>    <!-- Gestion de la musique -->
+<script src="js/game-init.js"></script>
 <!-- CONFIRM END TURN MODAL -->
 <div class="modal fade" id="confirmEndTurnModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-sm modal-dialog-centered">
