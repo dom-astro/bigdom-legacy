@@ -1291,7 +1291,7 @@ function hasDestructionEffect(cardInstance) {
 // Déclenché par le bouton "💥 Sacrifier" sur la carte en jeu
 function triggerDestructionEffect(cardNum) {
   const playIndex = _playIdxByNum(cardNum);
-  if (playIndex < 0) return;
+
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
@@ -2088,6 +2088,20 @@ function confirmConversion() {
 // - eruptionCardNum : numéro de la carte 28 dans ce même tirage (ou null)
 function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
   if (!eruptionWasAlreadyActive) return; // L'éruption n'était pas active avant ce tirage
+
+  // Règle ajoutée : l'éruption ne se déclenche que si la carte #28 est toujours
+  // en jeu (sur sa face 1) au moment du tirage. Si elle a été défaussée ou
+  // retournée entre temps, l'effet est annulé.
+  const eruptionCard = gameState.play.find(c => c.cardDef.numero === 28);
+  const isEruptionStillInPlayAndActive = eruptionCard && (eruptionCard.currentFace || 1) === 1;
+
+  if (!isEruptionStillInPlayAndActive) {
+    if (gameState.eruptionActive) {
+      // Nettoyage : si la carte n'est plus là, l'état global doit être mis à jour.
+      gameState.eruptionActive = false;
+    }
+    return;
+  }
 
   // Chercher les terrains tirés dans CE lot (candidats à destruction)
   const newTerrains = gameState.play.filter(ci => {
