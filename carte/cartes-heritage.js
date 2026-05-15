@@ -325,10 +325,178 @@
         }
       ]
     },
-    { "numero": 32
+    { "numero": 32,
+      "faces": [
+        {
+          "face": 1,
+          "nom": "Scientifique",
+          "type": "Personne",
+          "description": "Un scientifique de renom qui, par sa présence, stimule la recherche et l'économie.",
+          "ressources": [
+            { "type": "Troc", "quantite": 1 }
+          ],
+          "effet": {
+            "type": "Passif",
+            "description": "Toutes les personnes en zone de jeu, y compris le scientifique, produisent 1 or.",
+            "ressources": [
+              {
+                "type": "Or",
+                "quantite": {
+                  "multiplie": 1,
+                  "par": "Personne"
+                }
+              }
+            ]
+          },
+          "promotion": {
+            "face": 4,
+            "cout": [
+              { "type": "Bois", "quantite": 1 },
+              { "type": "Métal", "quantite": 3 },
+              { "type": "Pierre", "quantite": 2 }
+            ]
+          }
+        },
+        {
+          "face": 3,
+          "nom": "Laboratoire",
+          "type": "Bâtiment",
+          "description": "Un laboratoire de pointe où les découvertes façonnent l'avenir du royaume.",
+          "victoire": 10,
+          "ressources": [
+            { "type": "Troc", "quantite": 2 },
+            { "type": "Or", "quantite": 1 }
+          ],
+          "effet": {
+            "type": "Activable",
+            "description": "Permet de découvrir la carte #96.",
+            "cartes": [96]
+          },
+          "promotion": {
+            "face": 4,
+            "cout": [
+              { "type": "Or", "quantite": 2 },
+              { "type": "Bois", "quantite": 2 },
+              { "type": "Troc", "quantite": 2 }
+            ]
+          }
+        },
+        {
+          "face": 4,
+          "nom": "Observatoire",
+          "type": "Bâtiment",
+          "description": "Un observatoire pour scruter les étoiles et percer les secrets de l'univers.",
+          "victoire": 5,
+          "ressources": [
+            { "type": "Troc", "quantite": 1 },
+            { "type": "Or", "quantite": 1 }
+          ],
+          "effet": {
+            "type": "Activable",
+            "description": "Permet de découvrir la carte #95.",
+            "cartes": [95]
+          },
+          "promotion": {
+            "face": 3,
+            "cout": [
+              { "type": "Or", "quantite": 1 },
+              { "type": "Pierre", "quantite": 2 },
+              { "type": "Métal", "quantite": 2 }
+            ]
+          }
+        }
+      ]
     },
-    { "numero": 33
+    { "numero": 33,
+      "faces": [
+        {
+          "face": 1,
+          "nom": "Ingénieur",
+          "type": "Personne",
+          "description": "Un ingénieur de génie capable de transformer des structures existantes en merveilles d'efficacité.",
+          "effet": {
+            "type": "Activable",
+            "description": "Transforme une 'Cabane de bûcheron', 'Grange', ou 'Bateau de pêche' en jeu en une nouvelle carte spécialisée (#100, #101, ou #102).",
+            "transformation": [
+              { "source_nom": "Cabane de Bûcheron", "cible_carte": 100 },
+              { "source_nom": "Grange", "cible_carte": 101 },
+              { "source_nom": "Bateau de pêche", "cible_carte": 102 }
+            ]
+          },
+          "promotion": {
+            "face": 2,
+            "cout": [
+              { "type": "Bois", "quantite": 2 },
+              { "type": "Métal", "quantite": 2 }
+            ]
+          }
+        },
+        {
+          "face": 2,
+          "nom": "Trébuchet",
+          "type": "Bâtiment",
+          "description": "Une puissante machine de siège, capable de détruire les fortifications ennemies et de découvrir de nouvelles stratégies.",
+          "victoire": 1,
+          "ressources": [
+            { "type": "Epée", "quantite": 1 }
+          ],
+          "effet": [
+            {
+              "type": "Activable",
+              "description": "Permet de découvrir la carte #96.",
+              "cartes": [96]
+            },
+            {
+              "type": "Activable",
+              "description": "Vainquez un ennemi (dans la défausse, en jeu, ou permanent). Puis, marquez une case sur la carte permanente Armée.",
+              "type_effet": "siege"
+            }
+          ]
+        }
+      ]
     },
-    { "numero": 34
+    { "numero": 34,
+      "faces": [
+        {
+          "face": 1,
+          "nom": "Inventrice",
+          "type": "Personne",
+          "description": "Une inventrice brillante, toujours à la recherche de la prochaine grande idée. Chaque invention découverte la rend plus célèbre.",
+          "victoire": {
+            "description": "Gagne 5 points de victoire pour chaque invention découverte avec la face 'Inventrice inspirée'.",
+            "valeur": {
+              "multiplie": 5,
+              "par": "InventionDecouverte"
+            }
+          },
+          "promotion": {
+            "face": 2,
+            "cout": [
+              { "type": "Or", "quantite": 2 }
+            ]
+          }
+        },
+        {
+          "face": 2,
+          "nom": "Inventrice inspirée",
+          "type": "Bâtiment",
+          "description": "L'inspiration a frappé ! L'inventrice se retire dans son atelier pour donner vie à une nouvelle création.",
+          "victoire": {
+            "description": "Gagne 5 points de victoire pour chaque invention découverte avec cette face.",
+            "valeur": {
+              "multiplie": 5,
+              "par": "InventionDecouverte"
+            }
+          },
+          "effet": {
+            "type": "Activable",
+            "description": "Découvrez une invention (#97, #98, ou #99). Vous gagnez 5 points de victoire et cette carte retourne à sa face 1.",
+            "type_effet": "invention",
+            "cartes_choix": [97, 98, 99],
+            "gain_victoire": 5,
+            "retour_face": 1
+          }
+        }
+      ]
     }
   ];
