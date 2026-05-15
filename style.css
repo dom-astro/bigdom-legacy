@@ -287,6 +287,45 @@ body.light-mode .game-title { text-shadow: 1px 1px 0 rgba(0,0,0,0.1); }
 body.light-mode .btn-confirm { background: linear-gradient(135deg, #2a8a2a, #1a6a1a); color: #fff; }
 .btn-confirm:hover { box-shadow: 0 0 20px rgba(68,204,68,0.5); transform: translateY(-1px); }
 .btn-confirm:active { transform: translateY(0); }
+.btn-confirm:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
+.round9-choice-intro { text-align:center; margin-bottom:16px; font-family:'Crimson Text',serif; color:#f5e6c8; }
+.round9-choice-intro p { margin:0 0 10px; line-height:1.5; font-size:0.95rem; }
+.round9-choice-hint { font-size:0.82rem; color:#d0c090; }
+.r9-choice-grid { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; align-items:flex-start; }
+.r9-choice-card { flex:1; min-width:180px; max-width:240px; background:linear-gradient(160deg,#1e160a,#120e06); border:2px solid var(--border-ornate); border-radius:14px; padding:18px 14px; box-shadow:0 4px 18px rgba(0,0,0,0.5); cursor:pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.2s; position:relative; overflow:hidden; display:flex; flex-direction:column; min-height:360px; }
+.r9-choice-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 6px 26px rgba(220,180,90,0.25); }
+.r9-choice-card.selected { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,214,89,0.15), 0 6px 26px rgba(220,180,90,0.25); background: linear-gradient(160deg,#2f2a14,#1b170b); }
+.r9-card-id { font-size:0.58rem; color:#777; font-family:'Cinzel',serif; letter-spacing:1px; margin-bottom:8px; }
+.r9-choice-badge { display:inline-block; margin-bottom:10px; background:rgba(180,120,0,0.25); border:1px solid rgba(200,150,12,0.5); border-radius:8px; padding:2px 8px; color:#f0c040; font-family:'Cinzel',serif; font-size:0.55rem; letter-spacing:1px; }
+.r9-choice-emoji { font-size:2.6rem; margin-bottom:8px; }
+.r9-card-name { font-family:'Cinzel',serif; font-weight:700; font-size:0.85rem; color:var(--gold-light); margin-bottom:8px; line-height:1.2; }
+.r9-card-type { display:inline-block; background:#433b3a; border-radius:4px; padding:1px 10px; font-size:0.58rem; color:#fff; letter-spacing:1px; margin-bottom:12px; }
+.r9-card-section { margin-bottom:8px; }
+.r9-choice-pill { margin-top:auto; padding:8px 10px; border-radius:10px; border:1px solid rgba(200,150,12,0.25); background:rgba(200,150,12,0.08); color:var(--gold-light); font-family:'Cinzel',serif; font-size:0.65rem; letter-spacing:1px; text-align:center; }
+.r9-inspect-btn {
+  margin-top:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(200,150,12,0.3);
+  background:rgba(255,255,255,0.08);
+  color:var(--gold-light);
+  font-family:'Cinzel',serif;
+  font-size:0.75rem;
+  letter-spacing:1px;
+  padding:10px 14px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.r9-inspect-btn:hover {
+  background:rgba(200,150,12,0.18);
+}
+.r9-inspect-btn:focus {
+  outline:none;
+  box-shadow:0 0 0 3px rgba(200,150,12,0.22);
+}
 
 .staging-cards-container { display: flex; flex-wrap: nowrap; gap: 10px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
 .staging-linked-group { display: flex; gap: 0; align-items: flex-start; }

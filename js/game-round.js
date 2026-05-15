@@ -161,6 +161,7 @@ function endTurn() {
 // Données en attente pendant l'inspection des nouvelles cartes
 // (utilisé conjointement avec _showNewCardsModal / confirmNewCards et game-heritage.js)
 let _pendingNewRound = null;
+let _pendingRound9Choice = null;
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  NOTE : Les systèmes Héritage (cartes 23-27), Armée (carte 25) et Rétention
@@ -228,6 +229,14 @@ function newRound() {
       return;
     }
 
+    // ── CHOIX MANCHE 9 : se déclenche à la fin de la manche 8 ────────────────
+    if (gameState.round === 8 && !gameState._round9ChoiceTriggered) {
+      gameState._round9ChoiceTriggered = true;
+      addLog(`📜 La manche 8 s'achève. Un choix décisif vous attend...`, true);
+      _showRound9ChoiceModal(allCards);
+      return;
+    }
+
     // ── Découverte de 2 cartes héritage par manche (à partir de la manche 8) ──
     const discovered = discoverNextCards(2);
 
@@ -260,6 +269,181 @@ function newRound() {
 
   if (cardsToAnimate.length > 0 && discardRect) { _animateCardsToDiscard(cardsToAnimate, discardRect, afterAnimation); }
   else { afterAnimation(); } // No animation, just update UI and continue
+}
+
+// ============================================================
+//  MODAL CHOIX MANCHE 9
+// ============================================================
+
+function _showRound9ChoiceModal(allCards) {
+  const choiceCardNums = [31, 32, 33, 34];
+  // Les cartes de choix sont définies dans LEGACY_CARDS et ne sont pas encore dans le royaume.
+  const choiceCardDefs = (typeof LEGACY_CARDS !== 'undefined')
+    ? choiceCardNums.map(num => LEGACY_CARDS.find(c => c.numero === num)).filter(Boolean)
+    : [];
+
+  if (choiceCardDefs.length < 4) {
+    console.error("Cartes de choix pour la manche 9 (31-34) non trouvées. Annulation du choix.");
+    addLog("⚠️ Erreur : les cartes de choix pour la manche 9 n'ont pas pu être chargées.", true);
+    _finalizeNewRound(allCards, []);
+    drawCards(4);
+    return;
+  }
+
+  const choiceCards = choiceCardDefs.map(def => createCardInstance(def));
+  _pendingRound9Choice = { allCards, choiceCards, selected: [] };
+
+  const typeColors = {
+    Personne: '#2a4a7a', Terrain: '#1e4a1a', Bâtiment: '#5a4a3a',
+    Ennemi: '#5a0a0a', Evènement: '#3a2a5a', Maritime: '#0a3a5a'
+  };
+
+  const cardsHTML = choiceCards.map(card => {
+    const face = getFaceData(card);
+    const resHTML = (face.ressources && face.ressources.length)
+      ? face.ressources.map(r => {
+          const types = Array.isArray(r.type) ? r.type : [r.type];
+          return types.map(t =>
+            `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`
+          ).join('');
+        }).join('')
+      : `<span style="color:#666;font-size:0.65rem;font-style:italic;">Aucune production</span>`;
+
+    const effets = face.effet ? (Array.isArray(face.effet) ? face.effet : [face.effet]) : [];
+    const effectHTML = effets.map(e => {
+      const ico = { Activable: '🟢', Passif: '🔵', Destruction: '🔴' }[e.type] || '⚡';
+      return `<div style="font-size:0.65rem;color:#bbeebb;margin-top:3px;">${ico} ${e.type}${e.description ? ' — ' + e.description : ''}</div>`;
+    }).join('');
+
+    const promos = face.promotions ? face.promotions : (face.promotion ? [face.promotion] : []);
+    const promoHTML = promos.length
+      ? `<div style="font-size:0.65rem;color:#f0c040;margin-top:5px;">▲ ${promos.length} promotion${promos.length > 1 ? 's' : ''}</div>`
+      : '';
+
+    const fameHTML = (face.victoire !== undefined && face.victoire !== 0)
+      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</div>`
+      : '';
+
+    const totalFaces = card.cardDef.faces.length;
+    const facesHTML = totalFaces > 1
+      ? `<div style="font-size:0.6rem;color:#888;margin-top:4px;">${totalFaces} faces au total</div>`
+      : '';
+
+    const bgType = typeColors[face.type] || '#3a3a3a';
+    const isChoiceC = isChoiceCard(card.cardDef);
+
+    return `<div class="r9-choice-card" role="button" tabindex="0" data-card-num="${card.cardDef.numero}" onclick="_handleRound9CardSelection(${card.cardDef.numero})">
+      <div class="r9-card-id">#${card.cardDef.numero}</div>
+      ${isChoiceC ? `<div class="r9-choice-badge">⚖️ Double identité</div>` : ''}
+      <div class="r9-choice-emoji">${getCardEmoji(face.type, face.nom)}</div>
+      <div class="r9-card-name">${isChoiceC ? '⚖️ Identité à choisir' : face.nom}</div>
+      <div class="r9-card-type">${face.type}</div>
+      <div class="r9-card-section">${resHTML}</div>
+      ${fameHTML}${effectHTML}${promoHTML}${facesHTML}
+      <button type="button" class="r9-inspect-btn" onclick="event.stopPropagation(); showRound9ChoiceCardDetail(${card.cardDef.numero});">Inspecter</button>
+    </div>`;
+  }).join('');
+
+  const introText = `À l'aube de la manche 9, un choix crucial s'impose. Quatre voies s'offrent à vous, mais vous ne pouvez en suivre que deux.<br><em style="font-size:0.85rem;color:#aaa;">Choisissez 2 cartes à ajouter à votre pioche. Les 2 autres seront détruites.</em>`;
+
+  document.getElementById('round9ChoiceModalBody').innerHTML = `
+    <div class="round9-choice-intro">
+      <p>${introText}</p>
+      <div class="round9-choice-hint">Sélectionnez <strong>2 cartes</strong> à ajouter à votre pioche. Les deux autres seront détruites.</div>
+    </div>
+    <div class="r9-choice-grid">${cardsHTML}</div>`;
+
+  const confirmBtn = document.getElementById('confirmRound9ChoiceBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '✔ Confirmer (0/2)';
+  }
+  new bootstrap.Modal(document.getElementById('round9ChoiceModal')).show();
+}
+
+function showRound9ChoiceCardDetail(cardNum) {
+  if (!_pendingRound9Choice) return;
+  const cardInstance = _pendingRound9Choice.choiceCards.find(c => c.cardDef.numero === cardNum);
+  if (!cardInstance) return;
+
+  const choiceModalEl = document.getElementById('round9ChoiceModal');
+  if (choiceModalEl) {
+    const choiceModalInstance = bootstrap.Modal.getInstance(choiceModalEl);
+    if (choiceModalInstance) {
+      choiceModalInstance.hide();
+      window._reopenRound9ChoiceAfterInspect = true;
+    }
+  }
+
+  const cardModalEl = document.getElementById('cardModal');
+  if (cardModalEl) {
+    const reopenHandler = () => {
+      if (window._reopenRound9ChoiceAfterInspect) {
+        window._reopenRound9ChoiceAfterInspect = false;
+        const choiceModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('round9ChoiceModal'));
+        choiceModal.show();
+      }
+      cardModalEl.removeEventListener('hidden.bs.modal', reopenHandler);
+    };
+    cardModalEl.addEventListener('hidden.bs.modal', reopenHandler);
+  }
+
+  openCardModal(cardInstance, 'preview');
+}
+
+function _handleRound9CardSelection(cardNum) {
+  if (!_pendingRound9Choice) return;
+
+  const { selected } = _pendingRound9Choice;
+  const index = selected.indexOf(cardNum);
+
+  if (index > -1) {
+    selected.splice(index, 1); // Deselect
+  } else if (selected.length < 2) {
+    selected.push(cardNum); // Select
+  }
+
+  document.querySelectorAll('.r9-choice-card').forEach(el => {
+    const num = parseInt(el.dataset.cardNum, 10);
+    const isSelected = _pendingRound9Choice.selected.includes(num);
+    el.classList.toggle('selected', isSelected);
+    el.style.borderColor = isSelected ? 'var(--gold)' : 'var(--border-ornate)';
+    el.style.boxShadow = isSelected ? '0 4px 24px rgba(200,150,12,0.4)' : '0 4px 18px rgba(0,0,0,0.5)';
+  });
+
+  const confirmBtn = document.getElementById('confirmRound9ChoiceBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = selected.length !== 2;
+    confirmBtn.textContent = `✔ Confirmer (${selected.length}/2)`;
+  }
+}
+
+function confirmRound9Choice() {
+  const modalEl = document.getElementById('round9ChoiceModal');
+  bootstrap.Modal.getInstance(modalEl)?.hide();
+  if (!_pendingRound9Choice) return;
+  const { allCards, choiceCards, selected } = _pendingRound9Choice;
+  _pendingRound9Choice = null;
+
+  const keptCards = choiceCards.filter(c => selected.includes(c.cardDef.numero));
+  const destroyedCards = choiceCards.filter(c => !selected.includes(c.cardDef.numero));
+
+  // Ajouter les définitions des cartes gardées à ALL_CARDS si elles n'y sont pas déjà.
+  // Cela garantit qu'elles seront correctement sauvegardées et restaurées.
+  keptCards.forEach(cardInstance => {
+    if (!ALL_CARDS.find(c => c.numero === cardInstance.cardDef.numero)) {
+      ALL_CARDS.push(cardInstance.cardDef);
+    }
+  });
+  if (!gameState.destroyed) gameState.destroyed = [];
+  destroyedCards.forEach(card => {
+    gameState.destroyed.push(card);
+    addLog(`🔥 <span class="log-card">${getFaceData(card).nom}</span> (#${card.cardDef.numero}) a été détruite.`, true);
+  });
+
+  addLog(`📜 Choix de la manche 9 effectué.`, true);
+  _finalizeNewRound(allCards, keptCards);
+  drawCards(4);
 }
 
 // ============================================================
@@ -454,6 +638,10 @@ function _injectHeritageCardsIntoDeck(allCards) {
     LEGACY_CARDS.forEach(cardData => {
       if (!cardData.faces || cardData.faces.length === 0) return; // carte règle sans faces
       if (alreadyKnown.has(cardData.numero)) return;             // déjà dans le royaume
+
+      // Exclure les cartes de choix de la manche 9, qui ont un mécanisme d'introduction spécial.
+      const round9ChoiceCards = [31, 32, 33, 34];
+      if (round9ChoiceCards.includes(cardData.numero)) return;
 
       // S'assurer que la carte est dans ALL_CARDS pour les résolutions ultérieures
       if (!ALL_CARDS.find(c => c.numero === cardData.numero)) {

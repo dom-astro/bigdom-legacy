@@ -897,7 +897,11 @@ let modalCardZone = 'play';
 function openCardModal(indexOrNum, zone) {
   modalCardZone = zone || 'play';
   let cardInstance;
-  if (zone === 'staging') {
+  if (typeof indexOrNum === 'object' && indexOrNum && indexOrNum.cardDef) {
+    modalCardIndex = null;
+    cardInstance = indexOrNum;
+    modalCardZone = zone || 'preview';
+  } else if (zone === 'staging') {
     modalCardIndex = indexOrNum;
     cardInstance = gameState.staging[indexOrNum].cardInstance;
   } else if (zone === 'retained') {
@@ -1371,14 +1375,15 @@ function openCardModal(indexOrNum, zone) {
   $('#modalCardBody').html(body);
 
   // ── Boutons d'action ──────────────────────────────────────
-  const inPlay = zone !== 'staging';
+  const inPlay = zone !== 'staging' && zone !== 'preview';
+  const isPreview = zone === 'preview';
   const isRetained = zone === 'retained';
   const hasModalUpgrade = !!(face.promotion || (face.promotions && face.promotions.length > 0));
   const hasModalActivable = inPlay && hasActivableEffect(cardInstance);
   const canModalActivate = hasModalActivable && canActivateEffect(cardInstance);
 
   $('#modalProduceBtn')
-    .toggle(inPlay && hasResources)
+    .toggle(!isPreview && inPlay && hasResources)
     .off('click').on('click', () => {
       if (document.activeElement) document.activeElement.blur();
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
@@ -1387,7 +1392,7 @@ function openCardModal(indexOrNum, zone) {
       modalCardIndex = null;
     });
   $('#modalUpgradeBtn')
-    .toggle(inPlay && hasModalUpgrade)
+    .toggle(!isPreview && inPlay && hasModalUpgrade)
     .off('click').on('click', () => {
       if (document.activeElement) document.activeElement.blur();
       bootstrap.Modal.getInstance(document.getElementById('cardModal')).hide();
@@ -1396,7 +1401,7 @@ function openCardModal(indexOrNum, zone) {
       modalCardIndex = null;
     });
   $('#modalActivateBtn')
-    .toggle(hasModalActivable)
+    .toggle(!isPreview && hasModalActivable)
     .prop('disabled', !canModalActivate)
     .css('opacity', canModalActivate ? 1 : 0.5)
     .attr('title', canModalActivate ? '' : 'Ressources insuffisantes ou conditions non remplies')
