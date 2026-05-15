@@ -1373,7 +1373,7 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
     }
   });
 
-  const scientistBonus = getScientistPersonneBonus(face);
+  const scientistBonus = getScientistPersonneBonusForCard(cardNum, face);
   if (scientistBonus > 0) {
     html += `<span class="resource-pip" title="Scientifique actif : +${scientistBonus} Or temporaire"` +
       ` style="${fStyle}background:rgba(102,153,255,0.18);border:1px solid rgba(102,153,255,0.35);color:#173d76;font-weight:700;">` +

@@ -254,6 +254,17 @@ function getScientistPersonneBonus(faceData) {
   return isScientistActiveInPlay() && faceData && faceData.type === 'Personne' ? 1 : 0;
 }
 
+function getScientistPersonneBonusForCard(cardNum, faceData) {
+  if (!getScientistPersonneBonus(faceData) || typeof cardNum === 'undefined' || cardNum === null) return 0;
+  const activeCards = [
+    ...(gameState.play || []),
+    ...(gameState.stayInPlay || []),
+    ...(gameState.retainedCards || []),
+    ...(gameState.permanent || [])
+  ];
+  return activeCards.some(ci => ci.cardDef.numero === cardNum) ? 1 : 0;
+}
+
 // Une carte nécessite un choix de face si :
 // - elle a exactement 2 faces
 // - aucune face n'est un Bandit (type Ennemi, nom Bandit)

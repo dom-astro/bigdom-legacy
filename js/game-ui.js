@@ -112,7 +112,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const hasActivable = hasActivableEffect(cardInstance);
   const canActivate = hasActivable && canActivateEffect(cardInstance); // déjà basé sur getConfirmedResources
 
-  let cardBg, cardBorder, nameColor, extraOverlay = '';
+  let cardBg, cardBorder, nameColor;
   let badgeWrapperStyle = '', numStyle = '', faceStyle = '';
   let pipStyle = '';
   if (banditCard) {
@@ -127,7 +127,6 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     cardBg = 'linear-gradient(160deg,#2a2010,#1a1408)';
     cardBorder = '#996600';
     nameColor = '#cc9940';
-    extraOverlay = `<div class="card-blocked-overlay">🔒 BLOQUÉE</div>`;
     badgeWrapperStyle = 'background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3); box-shadow:0 2px 4px rgba(0,0,0,0.2);';
     numStyle = 'color:#f0c040;';
     faceStyle = 'background:rgba(200,150,12,0.25); color:#ffe080; border-left:1px solid rgba(200,150,12,0.3);';
@@ -146,11 +145,6 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     } else if (canActivate) {
       cardBorder = '#44dd44'; // Vert pour l'activation
     }
-  }
-
-  const scientistBonus = getScientistPersonneBonus(face);
-  if (scientistBonus > 0 && !blocked && !banditCard) {
-    extraOverlay = `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>`;
   }
 
   const resHTML = typeof buildResourcePipsHTML === 'function' ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, blocked, pipStyle) : (hasResources ? face.ressources.map(r => {
@@ -218,7 +212,6 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
-        ${extraOverlay}
         <div class="card-resources">${resHTML}</div>
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
@@ -685,7 +678,7 @@ function buildHeldCardHTML(cardInstance, source) {
       </div>
     </div>`;
 
-  const scientistBonus = getScientistPersonneBonus(face);
+  const scientistBonus = getScientistPersonneBonusForCard(cardNum, face);
   const bonusOverlayHTML = scientistBonus > 0 ? `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>` : '';
 
   return `
