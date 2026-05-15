@@ -78,7 +78,7 @@ function getCardEmoji(type, nom) {
   return ({
     'Herbes Sauvages':'<img src="img/herbes.png" alt="Herbes sauvages" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Plaines':'<img src="img/plaine.png" alt="Plaines" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
-    'Terres cultivées':'🚜',
+    'Terres cultivées':'<img src="img/champ.png" alt="Terres cultivées" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Grange':'🏚️',
     'Montagnes Lointaines':'⛰️',
     'Zone Rocheuse':'<img src="img/zone-rocheuse.png" alt="Zone rocheuse" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
@@ -133,7 +133,7 @@ function getCardEmoji(type, nom) {
     'Chalet du Pêcheur':'<img src="img/chalet-pecheur.png" alt="Chalet du pêcheur" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Phare':'🗼',
     'Falaises de l\'Est': '<img src="img/falaises.png" alt="Falaises de l\'Est" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
-    'Eruption volcanique':'🌋',
+    'Eruption volcanique':'<img src="img/volcan.png" alt="Eruption volcanique" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Cendres volcaniques':'<img src="img/destruction.png" alt="Cendres volcaniques" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Jeune forêt':'<img src="img/jeune-foret.png" alt="Jeune forêt" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
   }[nom]) || TYPE_ICONS[type] || '📄';

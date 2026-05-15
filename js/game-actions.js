@@ -913,28 +913,47 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
 // ── EXPLOITANT : choisir un Terrain en jeu pour copier sa production ──
 function showTerrainChoiceModal(playIndex, act, terrains) {
   const cardInstance = gameState.play[playIndex];
-  const fd = getFaceData(cardInstance);
 
-  let html = `<p style="margin-bottom:12px;">Choisissez un <strong>Terrain</strong> dont vous voulez copier la production :</p>`;
+  let html = `<p style="margin-bottom:12px;">Choisissez un <strong>Terrain</strong> dont vous voulez copier la production :</p><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">`;
+
   terrains.forEach(ci => {
     const f = getFaceData(ci);
     const cardNum = ci.cardDef.numero;
     const emoji = getCardEmoji(f.type, f.nom);
+
     const resInfo = (f.ressources || []).length
       ? f.ressources.map(r => {
           const types = Array.isArray(r.type) ? r.type : [r.type];
           return `+${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
         }).join(' ')
       : '(aucune production)';
-    html += `<button onclick="confirmTerrainChoice(${playIndex}, ${cardNum})" class="sacrifice-choice-btn">
-      <span class="sacrifice-emoji">${emoji}</span>
-      <span class="sacrifice-info">
-        <strong>${f.nom}</strong>
-        <span class="sacrifice-type">${f.type}</span>
-        <span class="sacrifice-res">${resInfo}</span>
-      </span>
+
+    // Sticker resources
+    let stickerResHTML = '';
+    if (typeof getStickerResourceBonusForCard === 'function') {
+        const stickerBonus = getStickerResourceBonusForCard(cardNum);
+        const bonusEntries = Object.entries(stickerBonus).filter(([, bonus]) => bonus > 0);
+        if (bonusEntries.length > 0) {
+            const stickerResInfo = bonusEntries.map(([key, bonus]) => `+${bonus}${RESOURCE_ICONS[key] || key}`).join(' ');
+            stickerResHTML = `<div style="font-size: 0.6rem; color: #88bbff; background: rgba(74,122,170,0.2); padding: 1px 5px; border-radius: 4px; margin-top: 4px;">🏷️ ${stickerResInfo}</div>`;
+        }
+    }
+
+    html += `<button onclick="confirmTerrainChoice(${playIndex}, ${cardNum})" 
+        style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; background: rgba(80,150,40,0.15); border: 2px solid #4a9a2a; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center;"
+        onmouseover="this.style.borderColor='#88dd44'; this.style.transform='translateY(-2px)';"
+        onmouseout="this.style.borderColor='#4a9a2a'; this.style.transform='none';">
+      <div style="font-size: 1.8rem; line-height: 1;">${emoji}</div>
+      <div style="font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 700; line-height: 1.2;">${f.nom}</div>
+      <div style="font-size: 0.6rem; color: #888;">#${cardNum}</div>
+      <div style="font-size: 0.65rem; color: #ccffaa; font-weight: 600;">${resInfo}</div>
+      <div style="min-height: 20px; display: flex; align-items: center; justify-content: center;">
+        ${stickerResHTML}
+      </div>
     </button>`;
   });
+
+  html += `</div>`;
 
   html += `<button onclick="cancelTerrainChoiceModal()" class="btn btn-sm"
     style="margin-top:14px;display:block;width:100%;background:rgba(80,50,10,0.4);
@@ -982,11 +1001,21 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainCardNum) {
 
   // Copier la production réelle du terrain (pas ses effets)
   const resourcesGained = {};
-  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(terrainCard.cardDef.numero) : {};
+  // D'abord, les ressources de base de la carte copiée
   (terrainFace.ressources || []).forEach(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
-    const key = normalizeRes(types[0]);
-    if (key) resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite + (stickerBonus[key] || 0);
+    const key = normalizeRes(types[0]); // L'exploitant ne copie que le premier type en cas de choix
+    if (key) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + r.quantite;
+    }
+  });
+
+  // Ensuite, ajouter les bonus des stickers de la carte copiée
+  const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(terrainCard.cardDef.numero) : {};
+  Object.entries(stickerBonus).forEach(([key, bonus]) => {
+    if (bonus > 0) {
+      resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
+    }
   });
 
   // Ajouter les ressources du sticker de la carte activante (ex: Plaine avec sticker)
@@ -1491,11 +1520,6 @@ function producesGold(cardInstance) {
 //  BANDITS — numéros stables (cardDef.numero) au lieu d'indices play[]
 //  Structure : { banditNum, blockedNum|null, pendingChoice? }
 // ============================================================
-
-function isBandit(cardInstance) {
-  const fd = getFaceData(cardInstance);
-  return fd.type === 'Ennemi' && fd.nom === 'Bandit';
-}
 
 // La carte à playIndex est-elle bloquée par un bandit ?
 function isBlockedByBandit(playIndex) {
@@ -2218,4 +2242,4 @@ function _confirmEruptionChoice(idx) {
   window._eruptionChoiceCandidates = null;
   if (!candidates[idx]) return;
   _applyEruptionDestruction(candidates[idx]);
-}
+}     
