@@ -6,8 +6,9 @@ function stageProduceCard(cardNum) {
   const faceData = getFaceData(cardInstance);
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const scientistBonus = getScientistPersonneBonus(faceData);
 
-  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus && scientistBonus === 0) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }
@@ -37,6 +38,10 @@ function stageProduceCard(cardNum) {
       resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
     }
   });
+
+  if (scientistBonus > 0 && gameState.resources['Or'] !== undefined) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + scientistBonus;
+  }
 
   _playRemove(playIndex);
   gameState.staging.push({ cardInstance, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null });
@@ -226,6 +231,10 @@ function stageProduceStayCard(cardNum) {
     }
   });
 
+  if (scientistBonus > 0 && gameState.resources['Or'] !== undefined) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + scientistBonus;
+  }
+
   // Retirer de stayInPlay pour le staging — sera défaussée après (la carte perd son statut)
   gameState.stayInPlay = gameState.stayInPlay.filter(c => c.cardDef.numero !== cardNum);
   gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromStayInPlay: true });
@@ -331,6 +340,10 @@ function stageProduceRetainedCard(cardNum) {
       resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
     }
   });
+
+  if (scientistBonus > 0 && gameState.resources['Or'] !== undefined) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + scientistBonus;
+  }
 
   gameState.retainedCards = gameState.retainedCards.filter(c => c.cardDef.numero !== cardNum);
   gameState.staging.push({ cardInstance: ci, action: 'produce', resourcesGained, fameGained: 0, newFace: null, cout: null, fromRetainedCards: true });

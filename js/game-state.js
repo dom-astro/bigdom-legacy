@@ -13,7 +13,7 @@ let ALL_CARDS = [
 const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨',
    Métal:'<img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">',
    Epée:'⚔️', 
-   Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
+   marchandise:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
    Marchandise:' <img src="img/marchandise.png" alt="Marchandise" style="width:1em;height:1em;vertical-align:-0.15em;object-fit:contain;">'
 };
 const TYPE_ICONS = { Terrain:'🗺️', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉', Ennemi:'💀', Maritime:'⚓' };
@@ -30,7 +30,7 @@ let gameState = {
   stayInPlay: [], // cartes "Reste en jeu" — jouables à tout tour de la manche, défaussées en fin de manche
   box: [],
   nextDiscoverIndex: 0,
-  resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
+  resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 },
   fame: 0,
   round: 1,
   turn: 1,
@@ -48,6 +48,27 @@ function getFaceName(cardDef, faceNum) {
   const f = cardDef.faces.find(f => f.face === faceNum); return f ? f.nom : '?';
 }
 
+function getVictoryValue(victoire) {
+  if (victoire === undefined || victoire === null) return null;
+  if (typeof victoire === 'number') return victoire;
+  if (typeof victoire === 'object') {
+    if (typeof victoire.valeur === 'number') return victoire.valeur;
+  }
+  return null;
+}
+
+function getVictoryLabel(victoire) {
+  const value = getVictoryValue(victoire);
+  if (value !== null) return `${value > 0 ? '+' : ''}${value}`;
+  if (typeof victoire === 'object') {
+    if (victoire.description) return victoire.description;
+    if (victoire.valeur && typeof victoire.valeur === 'object' && typeof victoire.valeur.multiplie === 'number') {
+      return `${victoire.valeur.multiplie}×${victoire.valeur.par || ''}`;
+    }
+  }
+  return '';
+}
+
 // Résout l'index dans play[] à partir d'un numéro de carte (retourne -1 si absent)
 function _playIndexOf(cardNum) {
   return gameState.play.findIndex(ci => ci.cardDef.numero === cardNum);
@@ -56,7 +77,7 @@ const _playIdxByNum = _playIndexOf; // Alias court
 
 function normalizeRes(t) {
   const val = Array.isArray(t) ? t[0] : t;
-  return { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', Troc:'Troc' }[val] || val;
+  return { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', marchandise:'marchandise' }[val] || val;
 }
 function toCostArray(cout) {
   if (!cout) return [];
@@ -73,6 +94,29 @@ function formatCostHint(cout) {
   const cells = items.map(c => `${c.quantite}${RESOURCE_ICONS[normalizeRes(c.type)]||c.type}`);
   if (cells.length <= 2) return cells.join(' + ');
   return `<span class="promo-costs-grid">${cells.join('')}</span>`;
+}
+function formatResourceGain(resource) {
+  if (!resource) return '';
+  const types = Array.isArray(resource.type) ? resource.type : [resource.type];
+  const typeText = types.map(t => RESOURCE_ICONS[normalizeRes(t)] || t).join(' / ');
+  let quantityPart = '';
+  if (typeof resource.quantite === 'number') {
+    quantityPart = `${resource.quantite}×`;
+  } else if (typeof resource.quantite === 'object') {
+    if (typeof resource.quantite.multiplie === 'number') {
+      quantityPart = `${resource.quantite.multiplie}×`;
+      if (resource.quantite.par) quantityPart += ` par ${resource.quantite.par}`;
+    } else if (typeof resource.quantite.valeur === 'number') {
+      quantityPart = `${resource.quantite.valeur}×`;
+    } else if (typeof resource.quantite.description === 'string') {
+      quantityPart = resource.quantite.description;
+    } else {
+      quantityPart = JSON.stringify(resource.quantite);
+    }
+  } else {
+    quantityPart = String(resource.quantite);
+  }
+  return `${quantityPart} ${typeText}`.trim();
 }
 function getCardEmoji(type, nom) {
   return ({
@@ -194,6 +238,20 @@ function getConfirmedResources() {
     // pas encore confirmées et ne peuvent pas financer une promo ou un effet.
   });
   return confirmed;
+}
+
+function isScientistActiveInPlay() {
+  const activeCards = [
+    ...(gameState.play || []),
+    ...(gameState.stayInPlay || []),
+    ...(gameState.retainedCards || []),
+    ...(gameState.permanent || [])
+  ];
+  return activeCards.some(ci => ci.cardDef.numero === 32);
+}
+
+function getScientistPersonneBonus(faceData) {
+  return isScientistActiveInPlay() && faceData && faceData.type === 'Personne' ? 1 : 0;
 }
 
 // Une carte nécessite un choix de face si :

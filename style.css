@@ -565,6 +565,7 @@ body.light-mode .round-badge { color: #8a6200; }
 @keyframes blockedPulse { 0%,100% { filter:brightness(1); } 50% { filter:brightness(0.85); } }
 
 .card-blocked-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-15deg); font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 900; color: #ff8800; background: rgba(0,0,0,0.7); border: 2px solid #ff8800; border-radius: 4px; padding: 2px 6px; letter-spacing: 2px; pointer-events: none; z-index: 5; white-space: nowrap; }
+.card-bonus-overlay { position: absolute; top: 10px; right: 10px; font-family: 'Cinzel', serif; font-size: 0.55rem; font-weight: 800; color: #1d3c75; background: rgba(173,216,230,0.9); border: 1px solid rgba(102,153,255,0.7); border-radius: 6px; padding: 2px 6px; pointer-events: none; z-index: 5; white-space: nowrap; box-shadow: 0 0 6px rgba(102,153,255,0.3); }
 .res-blocked { background: rgba(180,60,0,0.3) !important; border-color: rgba(255,100,0,0.5) !important; text-decoration: line-through; opacity: 0.7; }
 
 .card-wrapper-bandit .card-front { box-shadow: 0 0 15px rgba(200,30,30,0.6), inset 0 0 10px rgba(100,0,0,0.4) !important; animation: banditPulse 1.5s ease-in-out infinite; }

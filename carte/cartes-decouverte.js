@@ -827,16 +827,16 @@ const CARDS_TO_DISCOVER =
           "description": "Cocher une case termine votre tour."
         },
         "cases": [
-          { "index": 1, "cout_metal": 1, "gloire": 1, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 2, "cout_metal": 2, "gloire": 2, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 3, "cout_metal": 3, "gloire": 3, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 4, "cout_metal": 4, "gloire": 5, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 5, "cout_metal": 5, "gloire": 7, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 6, "cout_metal": 6, "gloire": 10, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 7, "cout_metal": 7, "gloire": 14, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 8, "cout_metal": 8, "gloire": 20, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 9, "cout_metal": 9, "gloire": 28, "ressources": [{ "type": "Troc", "quantite": 5 }] },
-          { "index": 10, "cout_metal": 10, "gloire": 40, "ressources": [{ "type": "Troc", "quantite": 5 }] }
+          { "index": 1, "cout_metal": 1, "gloire": 1, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 2, "cout_metal": 2, "gloire": 2, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 3, "cout_metal": 3, "gloire": 3, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 4, "cout_metal": 4, "gloire": 5, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 5, "cout_metal": 5, "gloire": 7, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 6, "cout_metal": 6, "gloire": 10, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 7, "cout_metal": 7, "gloire": 14, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 8, "cout_metal": 8, "gloire": 20, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 9, "cout_metal": 9, "gloire": 28, "ressources": [{ "type": "marchandise", "quantite": 5 }] },
+          { "index": 10, "cout_metal": 10, "gloire": 40, "ressources": [{ "type": "marchandise", "quantite": 5 }] }
         ]
       }
     ]

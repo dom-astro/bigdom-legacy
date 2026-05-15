@@ -178,7 +178,7 @@ function doRestartGame() {
   gameState = {
     deck: [], play: [], staging: [], discard: [], permanent: [], destroyed: [],
     retained: [], retainedCards: [], stayInPlay: [], box: [], nextDiscoverIndex: 0,
-    resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
+    resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 },
     fame: 0, round: 1, turn: 1, turnStarted: false, gameOver: false,
     bandits: [], _heritageTriggered: false, kingdomName: '',
     exportProgress: { face:1, totalDepense:0, seuilsUtilises:[] },

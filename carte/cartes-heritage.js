@@ -333,7 +333,7 @@
           "type": "Personne",
           "description": "Un scientifique de renom qui, par sa présence, stimule la recherche et l'économie.",
           "ressources": [
-            { "type": "Troc", "quantite": 1 }
+            { "type": "marchandise", "quantite": 1 }
           ],
           "effet": {
             "type": "Passif",
@@ -364,7 +364,7 @@
           "description": "Un laboratoire de pointe où les découvertes façonnent l'avenir du royaume.",
           "victoire": 10,
           "ressources": [
-            { "type": "Troc", "quantite": 2 },
+            { "type": "marchandise", "quantite": 2 },
             { "type": "Or", "quantite": 1 }
           ],
           "effet": {
@@ -377,7 +377,7 @@
             "cout": [
               { "type": "Or", "quantite": 2 },
               { "type": "Bois", "quantite": 2 },
-              { "type": "Troc", "quantite": 2 }
+              { "type": "marchandise", "quantite": 2 }
             ]
           }
         },
@@ -388,7 +388,7 @@
           "description": "Un observatoire pour scruter les étoiles et percer les secrets de l'univers.",
           "victoire": 5,
           "ressources": [
-            { "type": "Troc", "quantite": 1 },
+            { "type": "marchandise", "quantite": 1 },
             { "type": "Or", "quantite": 1 }
           ],
           "effet": {

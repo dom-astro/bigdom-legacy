@@ -52,8 +52,8 @@
     </div>
     <div class="resource-item">
       <span class="resource-icon"><img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></span>
-      <span class="resource-name">Troc</span>
-      <span class="resource-count" id="res-troc">0</span>
+      <span class="resource-name">marchandise</span>
+      <span class="resource-count" id="res-marchandise">0</span>
     </div>
   </div>
 
@@ -275,14 +275,14 @@ const ALL_CARDS = [
 // ============================================================
 //  GAME STATE
 // ============================================================
-const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', Troc:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' };
+const RESOURCE_ICONS = { Or:'🪙', Bois:'🪵', Pierre:'🪨', Métal:'⚙️', Epée:'⚔️', marchandise:'<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' };
 const TYPE_ICONS = { Terrain:'🌿', Bâtiment:'🏰', Personne:'👤', Evènement:'🎉' };
 
 let gameState = {
   deck: [],        // array of { cardDef, currentFace }
   play: [],
   discard: [],
-  resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 },
+  resources: { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 },
   fame: 0,
   round: 1,
   turn: 1,
@@ -301,7 +301,7 @@ function initGame() {
   gameState.deck = deck;
   gameState.play = [];
   gameState.discard = [];
-  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
+  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 };
   gameState.fame = 0;
   gameState.round = 1;
   gameState.turn = 1;
@@ -335,7 +335,7 @@ function drawCards(n) {
 }
 
 function clearResources() {
-  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
+  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 };
 }
 
 function produceCard(playIndex) {
@@ -445,7 +445,7 @@ function getFaceName(cardDef, faceNum) {
 }
 
 function normalizeRes(t) {
-  const map = { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', Troc:'Troc' };
+  const map = { Or:'Or', Bois:'Bois', Pierre:'Pierre', Métal:'Métal', Metal:'Métal', Epée:'Epée', marchandise:'marchandise' };
   return map[t] || t;
 }
 

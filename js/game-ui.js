@@ -82,6 +82,10 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const blocked = isBlockedByBandit(playIndex);
   const totalFaces = cardInstance.cardDef.faces.length;
   const progressPct = ((cardInstance.currentFace - 1) / Math.max(1, totalFaces - 1)) * 100;
+  const victoryValue = getVictoryValue(face.victoire);
+  const victoryBadgeHTML = victoryValue !== null
+    ? `<div class="card-victory" style="${victoryValue<0?'background:var(--crimson)':''}">${victoryValue>0?'★':''}${victoryValue}</div>`
+    : '';
 
   const effectIcon = face.effet
     ? (Array.isArray(face.effet) ? '⚡'
@@ -144,6 +148,11 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     }
   }
 
+  const scientistBonus = getScientistPersonneBonus(face);
+  if (scientistBonus > 0 && !blocked && !banditCard) {
+    extraOverlay = `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>`;
+  }
+
   const resHTML = typeof buildResourcePipsHTML === 'function' ? buildResourcePipsHTML(cardInstance.cardDef.numero, face, blocked, pipStyle) : (hasResources ? face.ressources.map(r => {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     return types.map(t => {
@@ -204,7 +213,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}${isActionable ? ' card-wrapper-actionable' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardInstance.cardDef.numero}, 'play')"
            style="cursor:pointer;background:${cardBg};border-color:${cardBorder};">
-        ${face.victoire!==undefined ? `<div class="card-victory" style="${face.victoire<0?'background:var(--crimson)':''}">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
+        ${victoryBadgeHTML}
         ${serialHTML}
         <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
@@ -446,7 +455,7 @@ function buildPermanentCardHTML(cardInstance) {
       const isMass     = prog.face === 2;
       const nomAffiche = isMass ? 'Mass Export' : 'Export';
       const projected  = getProjectedResources();
-      const marc       = projected['Troc'] || 0;
+      const marc       = projected['marchandise'] || 0;
       const disponibles = _getExportSeuilsDisponibles();
       const nextSeuil  = allSeuils.find(s => total < s.cout_total && !prog.seuilsUtilises.includes(s.index));
 
@@ -554,10 +563,14 @@ function buildPermanentCardHTML(cardInstance) {
     const types = Array.isArray(r.type) ? r.type : [r.type];
     return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(60,40,10,0.08);border:1px solid rgba(60,40,10,0.25);color:#4a2a0a;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
   }).join('');
+  const victoryValue = getVictoryValue(face.victoire);
+  const victoryBadge = victoryValue !== null
+    ? `<div class="card-victory">★${victoryValue}</div>`
+    : (getVictoryLabel(face.victoire) ? `<div class="card-victory">★${getVictoryLabel(face.victoire)}</div>` : '');
   return `
     <div class="card-wrapper">
       <div class="card-front card-permanent" title="Carte permanente">
-        ${face.victoire ? `<div class="card-victory">★${face.victoire}</div>` : ''}
+        ${victoryBadge}
         <div class="card-header-info" style="margin-bottom:2px;">
           <div class="card-id-badge" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">
             <span class="card-id-num" style="color:white;">#${cardInstance.cardDef.numero}</span>
@@ -659,6 +672,11 @@ function buildHeldCardHTML(cardInstance, source) {
   const badgeWrapperStyle = 'background:rgba(200,150,12,0.15); border:1px solid rgba(200,150,12,0.3);';
   const numStyle = 'color:#f0c040;';
   const faceStyle = 'background:rgba(200,150,12,0.25); color:#ffe080; border-left:1px solid rgba(200,150,12,0.3);';
+  const victoryValue = getVictoryValue(face.victoire);
+  const victoryBadgeHTML = victoryValue !== null
+    ? `<div class="card-victory" style="background:${badgeBg};">${victoryValue>0?'★':''}${victoryValue}</div>`
+    : '';
+
   const serialHTML = `
     <div class="card-header-info">
       <div class="card-id-badge" style="${badgeWrapperStyle}">
@@ -667,15 +685,19 @@ function buildHeldCardHTML(cardInstance, source) {
       </div>
     </div>`;
 
+  const scientistBonus = getScientistPersonneBonus(face);
+  const bonusOverlayHTML = scientistBonus > 0 ? `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>` : '';
+
   return `
     <div class="card-wrapper${isActionable ? ' card-wrapper-actionable' : ''}" data-held-num="${cardNum}" data-held-source="${source}">
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardNum}, '${source}')"
            style="cursor:pointer;background:${bgGradient};border-color:${borderColor};">
-        ${face.victoire!==undefined ? `<div class="card-victory" style="background:${badgeBg};">${face.victoire>0?'★':''}${face.victoire}</div>` : ''}
+        ${victoryBadgeHTML}
         ${serialHTML}
         <div class="card-name" style="color:${nameColor};">${face.nom}</div>
         <span class="card-type-badge" style="background:${badgeBg};font-size:0.42rem;">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
+        ${bonusOverlayHTML}
         <div class="card-resources">${resHTML}</div>
         ${allPromos.length > 0 ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
         <div class="card-progress"><div style="width:${progressPct}%;height:100%;background:${progressColor};border-radius:0 0 0 8px;"></div></div>
@@ -747,8 +769,9 @@ function updateUI() {
     const topUpgradeHTML = topPromos.length
       ? `<div class="card-upgrade-hint" style="font-size:0.38rem;">▲ ${topPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>`
       : '';
-    const topFameHTML = (topFace.victoire !== undefined && topFace.victoire !== 0)
-      ? `<div class="card-victory" style="${topFace.victoire < 0 ? 'background:var(--crimson)' : ''}">${topFace.victoire > 0 ? '★' : ''}${topFace.victoire}</div>`
+    const topVictoryValue = getVictoryValue(topFace.victoire);
+    const topFameHTML = topVictoryValue !== null
+      ? `<div class="card-victory" style="${topVictoryValue < 0 ? 'background:var(--crimson)' : ''}">${topVictoryValue > 0 ? '★' : ''}${topVictoryValue}</div>`
       : '';
     const totalTopFaces = topCard.cardDef.faces.length;
     const badgeWrapperStyle = 'background:rgba(60,40,10,0.06); border:1px solid rgba(60,40,10,0.15);';
@@ -931,15 +954,20 @@ function openCardModal(indexOrNum, zone) {
 
   $('#modalCardSubtitle').text(`Carte #${cardInstance.cardDef.numero} · Niveau ${cardInstance.currentFace}/${totalFaces}`);
   $('#modalCardName').html(`${getCardEmoji(face.type, face.nom)}  ${face.nom}`);
+  const victoryValue = getVictoryValue(face.victoire);
+  const victoryLabel = victoryValue !== null
+    ? `${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire`
+    : getVictoryLabel(face.victoire);
+  const victoryBadge = victoryLabel
+    ? `<span style="display:inline-block;margin-left:6px;background:${victoryValue < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};` +
+      `border:1px solid ${victoryValue < 0 ? '#cc3333' : 'rgba(200,150,12,0.5)'};color:${victoryValue < 0 ? '#ffaaaa' : '#f0c040'};` +
+      `font-family:'Cinzel',serif;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;">` +
+      `${victoryValue !== null ? (victoryValue >= 0 ? '⭐' : '💀') : '✨'} ${victoryLabel}</span>`
+    : '';
   $('#modalCardTypeBadge').html(
     `<span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;` +
     `font-size:0.58rem;letter-spacing:1px;padding:2px 10px;border-radius:10px;">${face.type}</span>` +
-    (face.victoire !== undefined
-      ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};` +
-        `border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.5)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};` +
-        `font-family:'Cinzel',serif;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;">` +
-        `${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</span>`
-      : '')
+    victoryBadge
   );
 
   // ── Corps ─────────────────────────────────────────────────
@@ -1093,9 +1121,9 @@ function openCardModal(indexOrNum, zone) {
         const gainStr = e.ressources.map(x => {
           const types = Array.isArray(x.type) ? x.type : [x.type];
           if (types.length > 1) {
-            return types.map(t => `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`).join(' <em style="color:#888;">ou</em> ');
+            return types.map(t => formatResourceGain({ type: t, quantite: x.quantite })).join(' <em style="color:#888;">ou</em> ');
           }
-          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+          return formatResourceGain(x);
         }).join('  ');
         body += `<div style="margin-top:4px;font-size:0.82rem;${isUsed ? 'text-decoration:line-through;' : ''}">
           <span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span>
@@ -1836,8 +1864,12 @@ function _renderDiscoveredFaceDetail(cardDef, faceNum) {
     html += `<div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">⚒ Production</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${resPips}</div></div>`;
   }
 
-  if (face.victoire !== undefined && face.victoire !== 0) {
-    html += `<div style="margin-bottom:12px;"><span style="background:${face.victoire < 0 ? 'rgba(139,0,0,0.3)' : 'rgba(200,150,12,0.15)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:10px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</span></div>`;
+  const victoryValue = getVictoryValue(face.victoire);
+  const victoryLabel = victoryValue !== null
+    ? `${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire`
+    : getVictoryLabel(face.victoire);
+  if (victoryLabel) {
+    html += `<div style="margin-bottom:12px;"><span style="background:${victoryValue < 0 ? 'rgba(139,0,0,0.3)' : 'rgba(200,150,12,0.15)'};border:1px solid ${victoryValue < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${victoryValue < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:10px;">${victoryValue !== null ? (victoryValue >= 0 ? '⭐' : '💀') : '✨'} ${victoryLabel}</span></div>`;
   }
 
   if (face.effet) {
@@ -1863,9 +1895,9 @@ function _renderDiscoveredFaceDetail(cardDef, faceNum) {
         const gainStr = (Array.isArray(e.ressources) ? e.ressources : [e.ressources]).map(x => {
           const types = Array.isArray(x.type) ? x.type : [x.type];
           if (types.length > 1) {
-            return types.map(t => `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(t)] || t}`).join(' <em style="color:#888;">ou</em> ');
+            return types.map(t => formatResourceGain({ type: t, quantite: x.quantite })).join(' <em style="color:#888;">ou</em> ');
           }
-          return `${x.quantite}× ${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+          return formatResourceGain(x);
         }).join('  ');
         html += `<div style="font-size:0.8rem;margin-top:3px;"><span style="background:rgba(0,0,0,0.3);color:#ffd54f;font-weight:600;padding:1px 7px;border-radius:4px;">🎁 Gains</span> <span style="color:#e8d5a3;margin-left:4px;">${gainStr}</span></div>`;
       }
@@ -1924,9 +1956,12 @@ function selectDiscoveredFaceTab(cardNum, faceNum) {
       <div style="font-family:'Cinzel',serif;font-size:0.48rem;color:#888;letter-spacing:2px;margin-bottom:2px;">FACE ${faceNum}</div>
       <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--gold-light);">${face.nom}</div>
       <span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;font-size:0.46rem;padding:1px 7px;border-radius:4px;margin-top:3px;">${face.type}</span>
-      ${face.victoire !== undefined && face.victoire !== 0
-        ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire}</span>`
-        : ''}
+      ${(() => {
+        const victoryValue = getVictoryValue(face.victoire);
+        return victoryValue !== null
+          ? `<span style="display:inline-block;margin-left:6px;background:${victoryValue < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${victoryValue < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${victoryValue < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${victoryValue >= 0 ? '⭐' : '💀'} ${victoryValue > 0 ? '+' : ''}${victoryValue}</span>`
+          : '';
+      })()}
     </div>
   </div>`;
 

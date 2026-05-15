@@ -213,7 +213,7 @@ function drawCards(n) {
 }
 
 function clearResources() {
-  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, Troc:0 };
+  gameState.resources = { Or:0, Bois:0, Pierre:0, Métal:0, Epée:0, marchandise:0 };
 }
 
 // Si une carte était en retainedCards et a été temporairement déplacée dans play[]
@@ -379,9 +379,14 @@ function selectFaceChoice(playIndex, chosenFace) {
         <div style="font-family:'Cinzel',serif;font-size:0.48rem;color:#888;letter-spacing:2px;margin-bottom:2px;">FACE ${chosenFace}</div>
         <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--gold-light);">${face.nom}</div>
         <span style="display:inline-block;background:${typeBg};color:#fff;font-family:'Cinzel',serif;font-size:0.46rem;padding:1px 7px;border-radius:4px;margin-top:3px;">${face.type}</span>
-        ${face.victoire !== undefined && face.victoire !== 0
-          ? `<span style="display:inline-block;margin-left:6px;background:${face.victoire < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${face.victoire < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${face.victoire < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${face.victoire >= 0 ? '⭐' : '💀'} ${face.victoire > 0 ? '+' : ''}${face.victoire}</span>`
-          : ''}
+        ${(() => {
+          const victoryValue = getVictoryValue(face.victoire);
+          const victoryLabel = victoryValue !== null
+            ? `${victoryValue > 0 ? '+' : ''}${victoryValue}`
+            : getVictoryLabel(face.victoire);
+          if (!victoryLabel) return '';
+          return `<span style="display:inline-block;margin-left:6px;background:${victoryValue < 0 ? '#8b0000' : 'rgba(200,150,12,0.25)'};border:1px solid ${victoryValue < 0 ? '#cc3333' : 'rgba(200,150,12,0.4)'};color:${victoryValue < 0 ? '#ffaaaa' : '#f0c040'};font-family:'Cinzel',serif;font-size:0.5rem;font-weight:700;padding:1px 6px;border-radius:8px;">${victoryValue !== null ? (victoryValue >= 0 ? '⭐' : '💀') : '✨'} ${victoryLabel}</span>`;
+        })()}
       </div>
     </div>`;
 
@@ -681,7 +686,11 @@ function _showCardGrantModal(targetCards, sourceName) {
           return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)] || t} ×${r.quantite}</span>`).join('');
         }).join('')
       : '';
-    const fameHTML = face.victoire ? `<div style="font-size:0.8rem;color:#f0c040;margin-top:6px;">★ +${face.victoire} Gloire</div>` : '';
+    const victoryValue = getVictoryValue(face.victoire);
+    const victoryLabel = victoryValue !== null
+      ? `${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire`
+      : getVictoryLabel(face.victoire) ? `${getVictoryLabel(face.victoire)} Gloire` : '';
+    const fameHTML = victoryLabel ? `<div style="font-size:0.8rem;color:#f0c040;margin-top:6px;">★ ${victoryLabel}</div>` : '';
     const effetHTML = face.effet
       ? `<div style="font-size:0.72rem;color:#bbeebb;margin-top:6px;">🔵 ${face.effet.type}${face.effet.description ? ' — ' + face.effet.description : ''}</div>`
       : '';
@@ -1458,7 +1467,11 @@ function _showDiscoverByEffectModal(candidates, sourceName) {
       const types = Array.isArray(r.type) ? r.type : [r.type];
       return types.map(t => `<span class="resource-pip" style="font-size:0.48rem;background:rgba(200,150,12,0.15);border:1px solid rgba(200,150,12,0.3);color:#f0c040;padding:2px 6px;border-radius:6px;font-weight:700;">${RESOURCE_ICONS[normalizeRes(t)]||t} ×${r.quantite}</span>`).join('');
     }).join('');
-    const fameHTML = face.victoire ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire} Gloire</div>` : '';
+    const victoryValue = getVictoryValue(face.victoire);
+    const victoryLabel = victoryValue !== null
+      ? `${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire`
+      : getVictoryLabel(face.victoire) ? `${getVictoryLabel(face.victoire)} Gloire` : '';
+    const fameHTML = victoryLabel ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${victoryLabel}</div>` : '';
     const facesTotal = cardDef.faces.length;
 
     return `<button onclick="confirmDiscoverByEffect(${i})" style="

@@ -320,8 +320,9 @@ function _showRound9ChoiceModal(allCards) {
       ? `<div style="font-size:0.65rem;color:#f0c040;margin-top:5px;">▲ ${promos.length} promotion${promos.length > 1 ? 's' : ''}</div>`
       : '';
 
-    const fameHTML = (face.victoire !== undefined && face.victoire !== 0)
-      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</div>`
+    const victoryValue = getVictoryValue(face.victoire);
+    const fameHTML = victoryValue !== null
+      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire</div>`
       : '';
 
     const totalFaces = card.cardDef.faces.length;
@@ -429,11 +430,12 @@ function confirmRound9Choice() {
   const destroyedCards = choiceCards.filter(c => !selected.includes(c.cardDef.numero));
 
   // Ajouter les définitions des cartes gardées à ALL_CARDS si elles n'y sont pas déjà.
-  // Cela garantit qu'elles seront correctement sauvegardées et restaurées.
+  // Elles sont également placées en défausse pour former la nouvelle pioche.
   keptCards.forEach(cardInstance => {
     if (!ALL_CARDS.find(c => c.numero === cardInstance.cardDef.numero)) {
       ALL_CARDS.push(cardInstance.cardDef);
     }
+    gameState.discard.push(cardInstance);
   });
   if (!gameState.destroyed) gameState.destroyed = [];
   destroyedCards.forEach(card => {
@@ -442,7 +444,7 @@ function confirmRound9Choice() {
   });
 
   addLog(`📜 Choix de la manche 9 effectué.`, true);
-  _finalizeNewRound(allCards, keptCards);
+  _finalizeNewRound(allCards, []);
   drawCards(4);
 }
 
@@ -479,8 +481,12 @@ function _showNewCardsModal(discovered) {
       ? `<div style="font-size:0.65rem;color:#f0c040;margin-top:5px;">▲ ${promos.length} promotion${promos.length > 1 ? 's' : ''}</div>`
       : '';
 
-    const fameHTML = (face.victoire !== undefined && face.victoire !== 0)
-      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${face.victoire > 0 ? '+' : ''}${face.victoire} Gloire</div>`
+    const victoryValue = getVictoryValue(face.victoire);
+    const victoryLabel = victoryValue !== null
+      ? `${victoryValue > 0 ? '+' : ''}${victoryValue} Gloire`
+      : getVictoryLabel(face.victoire) ? `${getVictoryLabel(face.victoire)} Gloire` : '';
+    const fameHTML = victoryLabel
+      ? `<div style="font-size:0.7rem;color:#f0c040;margin-top:4px;">★ ${victoryLabel}</div>`
       : '';
 
     const totalFaces = card.cardDef.faces.length;
@@ -565,11 +571,13 @@ function _finalizeNewRound(allCards, discovered) {
   });
   if (!discovered.length) addLog(`📦 Toutes les cartes ont été découvertes.`);
 
-  allCards.forEach(c => { cardStateMap[c.cardDef.numero] = c.currentFace; });
-  let newDeck = allCards.map(c => createCardInstance(c.cardDef));
+  const deckSource = [...allCards, ...gameState.discard];
+  deckSource.forEach(c => { cardStateMap[c.cardDef.numero] = c.currentFace; });
+  let newDeck = deckSource.map(c => createCardInstance(c.cardDef));
   shuffleDeck(newDeck);
 
   gameState.deck = newDeck;
+  gameState.discard = [];
   gameState.turn = 1; gameState.round++; gameState.turnStarted = false;
   addLog(`🔄 Manche ${gameState.round} commence ! Pioche : ${newDeck.length} cartes.`, true);
   updateUI();

@@ -812,7 +812,7 @@ function _getExportSeuilsDisponibles() {
 function openExportModal() {
   const prog       = _getExportProgress();
   const projected  = getProjectedResources();
-  const marcDispo  = projected['Troc'] || 0; // Troc = Marchandise dans le jeu
+  const marcDispo  = projected['marchandise'] || 0; // marchandise = Marchandise dans le jeu
   const allSeuils  = _getAllExportSeuils();
   const face1Data  = _getExportData(1);
   const face2Data  = _getExportData(2);
@@ -988,7 +988,7 @@ function investirExport(n) {
   }
 
   const projected = getProjectedResources();
-  const marcDispo = projected['Troc'] || 0;
+  const marcDispo = projected['marchandise'] || 0;
   const aDepenser = Math.min(n, marcDispo);
   if (aDepenser <= 0) {
     addLog(`❌ Export — aucune Marchandise disponible.`);
@@ -999,7 +999,7 @@ function investirExport(n) {
   const ancienTotal = prog.totalDepense;
 
   // Dépenser immédiatement (pas de staging — l'investissement est instantané)
-  gameState.resources['Troc'] = Math.max(0, (gameState.resources['Troc'] || 0) - aDepenser);
+  gameState.resources['marchandise'] = Math.max(0, (gameState.resources['marchandise'] || 0) - aDepenser);
   prog.totalDepense += aDepenser;
   gameState.exportCaseCeTour = true;
 
@@ -1210,7 +1210,7 @@ function confirmBijouxCase() {
   // Dépenser le métal
   gameState.resources['Métal'] = Math.max(0, (gameState.resources['Métal'] || 0) - nextCase.cout_metal);
   // Gagner les marchandises
-  gameState.resources['Troc'] = (gameState.resources['Troc'] || 0) + (nextCase.ressources.find(r => r.type === 'Troc')?.quantite || 0);
+  gameState.resources['marchandise'] = (gameState.resources['marchandise'] || 0) + (nextCase.ressources.find(r => r.type === 'marchandise')?.quantite || 0);
 
   prog.casesMarquees++;
   gameState.bijouxCaseCeTour = true;
@@ -1372,6 +1372,14 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
         `</span>`;
     }
   });
+
+  const scientistBonus = getScientistPersonneBonus(face);
+  if (scientistBonus > 0) {
+    html += `<span class="resource-pip" title="Scientifique actif : +${scientistBonus} Or temporaire"` +
+      ` style="${fStyle}background:rgba(102,153,255,0.18);border:1px solid rgba(102,153,255,0.35);color:#173d76;font-weight:700;">` +
+      `+${scientistBonus} ${RESOURCE_ICONS['Or']||'Or'}` +
+      `</span>`;
+  }
 
   return html;
 }
