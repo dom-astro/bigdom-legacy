@@ -228,7 +228,102 @@
         },
       ]
     },
-    { "numero": 31
+    { "numero": 31,
+      "faces": [
+        {
+          "face": 1,
+          "nom": "Entrepreneur",
+          "type": "Personne",
+          "description": "Un entrepreneur ambitieux qui cherche à développer son commerce et à étendre son influence.",
+          "ressources": [
+            { "type": "Marchandise", "quantite": 1 }
+          ],
+          "effet": {
+            "type": "Activable",
+            "description": "À son arrivée, l'Entrepreneur établit de nouveaux contacts et découvre la carte #118.",
+            "carte": 118
+          },
+          "promotion": {
+            "face": 2,
+            "cout": [
+              { "type": "Or", "quantite": 1 },
+              { "type": "Bois", "quantite": 3 }
+            ]
+          }
+        },
+        {
+          "face": 2,
+          "nom": "Hôtel",
+          "type": "Bâtiment",
+          "description": "Un établissement prospère qui attire de nombreux voyageurs et personnalités.",
+          "victoire": 2,
+          "ressources": [
+            { "type": "Or", "quantite": 1 },
+            { "type": "Marchandise", "quantite": 1 }
+          ],
+          "effet": {
+            "type": "Passif",
+            "description": "Gagne 1 Or pour chaque carte Personne en jeu.",
+            "ressources": [
+              {
+                "type": "Or",
+                "quantite": {
+                  "multiplie": 1,
+                  "par": "Personne"
+                }
+              }
+            ]
+          },
+          "promotion": {
+            "face": 3,
+            "cout": [
+              { "type": "Or", "quantite": 1 },
+              { "type": "Bois", "quantite": 1 },
+              { "type": "Pierre", "quantite": 1 }
+            ]
+          }
+        },
+        {
+          "face": 3,
+          "nom": "Pub",
+          "type": "Bâtiment",
+          "description": "Un lieu de rencontre populaire où les affaires se font et les rumeurs se propagent.",
+          "victoire": 2,
+          "ressources": [
+            { "type": "Marchandise", "quantite": 2 }
+          ],
+          "effet": {
+            "type": "Activable",
+            "defausse": true,
+            "description": "Défaussez cette carte et une carte Personne pour découvrir la carte #92.",
+            "cartes": [92]
+          },
+          "promotion": {
+            "face": 4,
+            "cout": [
+              { "type": "Or", "quantite": 2 },
+              { "type": "Bois", "quantite": 2 },
+              { "type": "Marchandise", "quantite": 2 }
+            ]
+          }
+        },
+        {
+          "face": 4,
+          "nom": "Taverne",
+          "type": "Bâtiment",
+          "description": "Le cœur social du royaume, un lieu de fête et de transactions lucratives.",
+          "victoire": 4,
+          "ressources": [
+            { "type": "Marchandise", "quantite": 2 },
+            { "type": "Or", "quantite": 2 }
+          ],
+          "effet": {
+            "type": "Activable",
+            "description": "L'influence de la Taverne est telle qu'elle attire l'attention et découvre la carte #87.",
+            "carte": 87
+          }
+        }
+      ]
     },
     { "numero": 32
     },
