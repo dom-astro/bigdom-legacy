@@ -788,11 +788,38 @@ function updateUI() {
     `);
   }
 
-  const rem = gameState.box.length - gameState.nextDiscoverIndex;
-  $('#boxCount').text(`📦 ${rem} à découvrir`);
   const nx = gameState.box[gameState.nextDiscoverIndex];
   const nx2 = gameState.box[gameState.nextDiscoverIndex+1];
-  $('#nextDiscoverInfo').text(nx ? `Prochaine: #${nx.cardDef ? nx.cardDef.numero : nx.numero}${nx2?` & #${nx2.cardDef ? nx2.cardDef.numero : nx2.numero}`:''}` : 'Boîte vide');
+
+  // Calculer le nombre total de cartes à découvrir
+  const remTuto = gameState.box.length - gameState.nextDiscoverIndex;
+  let remHeritage = 0;
+  if (typeof LEGACY_CARDS !== 'undefined') {
+    const heritageCardNums = new Set();
+    LEGACY_CARDS.forEach(c => {
+      // Les cartes jouables (avec des faces) sont considérées comme "à découvrir"
+      if (c.faces && c.faces.length > 0) {
+        heritageCardNums.add(c.numero);
+      }
+    });
+
+    const possessedCardNums = new Set();
+    const allZones = [
+      ...gameState.deck, ...gameState.play, ...gameState.discard,
+      ...gameState.permanent, ...(gameState.stayInPlay || []),
+      ...(gameState.retainedCards || []), ...(gameState.staging || []).map(e => e.cardInstance),
+      ...(gameState.destroyed || []), ...gameState.box,
+    ];
+    allZones.forEach(ci => {
+      if (ci && ci.cardDef) possessedCardNums.add(ci.cardDef.numero);
+    });
+
+    remHeritage = [...heritageCardNums].filter(num => !possessedCardNums.has(num)).length;
+  }
+
+  const rem = remTuto + remHeritage;
+  $('#boxCount').text(`📦 ${rem} à découvrir`);
+  $('#nextDiscoverInfo').text(nx ? `Prochaines: #${nx.cardDef ? nx.cardDef.numero : nx.numero}${nx2 ? ` & #${nx2.cardDef ? nx2.cardDef.numero : nx2.numero}`:''}` : 'Boîte vide');
 
   const $perm = $('#permanentArea');
   if ($perm.length)
