@@ -2166,32 +2166,82 @@ function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
 
 // Applique la destruction d'un terrain par l'éruption
 function _applyEruptionDestruction(terrainCI) {
+  // Afficher un modal explicatif avant d'appliquer la destruction.
+  const fd = getFaceData(terrainCI);
+  const terrainName = fd.nom;
+  const resStr = (fd.ressources || []).map(r => {
+    const types = Array.isArray(r.type) ? r.type : [r.type];
+    return `${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
+  }).join(' ');
+
+  const html = `
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="font-size:2.2rem;line-height:1.1;">${getCardEmoji(fd.type, fd.nom)}</div>
+      <div style="flex:1;">
+        <div style="font-family:'Cinzel',serif;font-weight:700;color:#f5e6c8;font-size:0.95rem;">${fd.nom}</div>
+        <div style="font-size:0.65rem;color:#ccc;margin-bottom:6px;">#${terrainCI.cardDef.numero} · ${fd.type}</div>
+        ${fd.description ? `<div style="font-size:0.86rem;color:#e8d8b0;margin-bottom:8px;">${fd.description}</div>` : ''}
+        ${resStr ? `<div style="font-size:0.82rem;color:#c8960c;margin-bottom:6px;">Production : ${resStr}</div>` : ''}
+      </div>
+    </div>
+    <hr style="border-color:rgba(200,150,12,0.08);margin:12px 0;">
+    <p style="font-size:0.85rem;color:#dcb37a;">La lave et les cendres détruisent le terrain ; ses cendres enrichissent le sol (effet narratif).</p>
+  `;
+
+  window._pendingEruptionTerrain = terrainCI;
+  document.getElementById('eruptionExplainBody').innerHTML = html;
+  new bootstrap.Modal(document.getElementById('eruptionExplainModal')).show();
+}
+
+function confirmEruptionExplain() {
+  if (document.activeElement) document.activeElement.blur();
+  bootstrap.Modal.getInstance(document.getElementById('eruptionExplainModal'))?.hide();
+  const terrainCI = window._pendingEruptionTerrain;
+  window._pendingEruptionTerrain = null;
+  if (!terrainCI) return;
+
   const fd = getFaceData(terrainCI);
   const terrainName = fd.nom;
 
-  // Trouver la carte 28 en jeu
-  const eruption28 = gameState.play.find(ci => ci.cardDef.numero === 28);
-
-  // Retirer le terrain de play[]
-  const tIdx = _playIdxByNum(terrainCI.cardDef.numero);
-  if (tIdx >= 0) _playRemove(tIdx);
-
-  // Détruire le terrain (envoi dans destroyed)
-  if (!gameState.destroyed) gameState.destroyed = [];
-  gameState.destroyed.push(terrainCI);
-
-  addLog(`🌋 <span class="log-card">Éruption Volcanique</span> détruit <span class="log-card">${terrainName}</span> — les cendres enrichissent la terre…`, true);
-
-  // Retourner la carte 28 en face 3 ("Cendres volcaniques")
-  if (eruption28) {
-    eruption28.currentFace = 3;
-    cardStateMap[28] = 3;
-    const newFd = getFaceData(eruption28);
-    addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
-    gameState.eruptionActive = false;
+  // Trouver l'élément DOM de la carte pour l'animer
+  const cardEl = document.querySelector(`[data-card-num="${terrainCI.cardDef.numero}"]`);
+  if (cardEl) {
+    cardEl.classList.add('card-eruption-destroy');
   }
 
-  updateUI();
+  // Trouver la carte 28 en jeu et déclencher le flip
+  const eruption28 = gameState.play.find(ci => ci.cardDef.numero === 28);
+  if (eruption28) {
+    const eruption28El = document.querySelector(`[data-card-num="28"]`);
+    if (eruption28El) {
+      eruption28El.classList.add('card-eruption-flip');
+    }
+  }
+
+  // Attendre que l'animation se termine avant d'appliquer la destruction
+  const animationDuration = 1200; // 1.2s pour la destruction du terrain (avec feu)
+  setTimeout(() => {
+    // Retirer le terrain de play[]
+    const tIdx = _playIdxByNum(terrainCI.cardDef.numero);
+    if (tIdx >= 0) _playRemove(tIdx);
+
+    // Détruire le terrain (envoi dans destroyed)
+    if (!gameState.destroyed) gameState.destroyed = [];
+    gameState.destroyed.push(terrainCI);
+
+    addLog(`🌋 <span class="log-card">Éruption Volcanique</span> détruit <span class="log-card">${terrainName}</span> — les cendres enrichissent la terre…`, true);
+
+    // Retourner la carte 28 en face 3 ("Cendres volcaniques")
+    if (eruption28) {
+      eruption28.currentFace = 3;
+      cardStateMap[28] = 3;
+      const newFd = getFaceData(eruption28);
+      addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
+      gameState.eruptionActive = false;
+    }
+
+    updateUI();
+  }, animationDuration);
 }
 
 // Modal de choix quand plusieurs terrains sont tirés simultanément

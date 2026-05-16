@@ -438,19 +438,23 @@ function buildPermanentCardHTML(cardInstance) {
         </div>`;
     }
 
-    // Rendu spécial carte 27 — Export / Mass Export
+    // Rendu spécial carte 27 — Export
     if (rawCard.numero === 27) {
       const prog       = _getExportProgress();
       const allSeuils  = _getAllExportSeuils();
       const maxTotal   = allSeuils[allSeuils.length - 1]?.cout_total || 300;
       const total      = prog.totalDepense;
       const pct        = Math.min(100, Math.round((total / maxTotal) * 100));
-      const isMass     = prog.face === 2;
-      const nomAffiche = isMass ? 'Mass Export' : 'Export';
+      const nomAffiche = 'Export';
       const projected  = getProjectedResources();
       const marc       = projected['marchandise'] || 0;
       const disponibles = _getExportSeuilsDisponibles();
       const nextSeuil  = allSeuils.find(s => total < s.cout_total && !prog.seuilsUtilises.includes(s.index));
+      const markersHTML = allSeuils.map(s => {
+        const position = Math.min(100, Math.round((s.cout_total / maxTotal) * 100));
+        const reached = total >= s.cout_total;
+        return `<div style="position:absolute;left:${position}%;top:-2px;width:2px;height:9px;background:${reached ? '#cc88ff' : 'rgba(255,255,255,0.18)'};transform:translateX(-50%);"></div>`;
+      }).join('');
 
       return `
         <div class="card-wrapper" style="cursor:pointer;" onclick="openExportModal()" title="Cliquer pour investir des Marchandises">
@@ -463,9 +467,11 @@ function buildPermanentCardHTML(cardInstance) {
             <div class="card-name" style="font-size:0.5rem;color:#cc88ff;">${nomAffiche}</div>
             <span class="card-type-badge" style="font-size:0.38rem;background:#5a2a8a;">Progression</span>
             <div style="font-size:1.4rem;margin:4px 0;text-align:center;"><img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
-            <div style="width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
+            <div style="position:relative;width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:2px 0;">
               <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
+              ${markersHTML}
             </div>
+            <div style="font-size:0.28rem;color:#888;text-align:center;margin-top:2px;">Seuils: ${allSeuils.map(s => s.cout_total).join(' · ')}</div>
             <div style="font-size:0.38rem;color:#aa66ff;text-align:center;margin:1px 0;">${total}/${maxTotal} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
             ${disponibles.length > 0
               ? `<div style="font-size:0.35rem;color:#aaffaa;text-align:center;margin-top:1px;">🎉 ${disponibles.length} effet${disponibles.length > 1 ? 's' : ''} dispo</div>`

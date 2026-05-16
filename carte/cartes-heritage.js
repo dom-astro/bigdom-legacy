@@ -113,14 +113,20 @@
           "nom": "Export",
           "description": "Cette carte est permanente. À chaque fois que vous gagnez des Marchandises <img src='img/marchandise.png' alt='Marchandise' style='width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;'>, vous pouvez les dépenser ici pour faire progresser votre commerce. Le compteur est cumulatif : dépensez autant que vous voulez, même plusieurs fois par tour. Entre deux tours, vous pouvez utiliser (et barrer ✗) les effets des seuils atteints.",
           "seuils": [
-            { "index": 1,  "cout_total": 10,  "effet": "Autocollant 1, 2 ou 3 sur 1 Terrain",   "type_effet": "sticker", "stickers": [1,2,3],   "cible": "Terrain"   },
-            { "index": 2,  "cout_total": 20,  "effet": "Autocollant 7 sur 1 Personne",           "type_effet": "sticker", "stickers": [7],       "cible": "Personne"  },
-            { "index": 3,  "cout_total": 30,  "effet": "Découvrir la carte #86 (Anoblissement)", "type_effet": "decouverte", "carte": 86         },
-            { "index": 4,  "cout_total": 40,  "effet": "Autocollant 4, 5 ou 6 sur 1 Bâtiment",  "type_effet": "sticker", "stickers": [4,5,6],   "cible": "Bâtiment"  },
+            { "index": 1,  "cout_total": 10,  "effet": "Autocollant 1, 2 ou 3 sur 1 Terrain",   "type_effet": "sticker", "stickers": [1,2,3], "cible": "Terrain"   },
+            { "index": 2,  "cout_total": 20,  "effet": "Autocollant 7 sur 1 Personne",           "type_effet": "sticker", "stickers": [7], "cible": "Personne"  },
+            { "index": 3,  "cout_total": 30,  "effet": "Découvrir la carte #86 (Anoblissement)", "type_effet": "decouverte", "carte": 86 },
+            { "index": 4,  "cout_total": 40,  "effet": "Autocollant 4, 5 ou 6 sur 1 Bâtiment",  "type_effet": "sticker", "stickers": [4,5,6], "cible": "Bâtiment"  },
             { "index": 5,  "cout_total": 55,  "effet": "Autocollant 2, 3, 4 ou 5 sur 1 carte alliée", "type_effet": "sticker", "stickers": [2,3,4,5], "cible": "Alliée" },
-            { "index": 6,  "cout_total": 75,  "effet": "Autocollant 10 sur n'importe quelle carte", "type_effet": "sticker", "stickers": [10],    "cible": "Toute"     },
-            { "index": 7,  "cout_total": 100, "effet": "Promotion vers Mass Export",              "type_effet": "promotion"                       }
-          ]
+            { "index": 6,  "cout_total": 75,  "effet": "Autocollant 10 sur n'importe quelle carte", "type_effet": "sticker", "stickers": [10], "cible": "Toute"     },
+            { "index": 7,  "cout_total": 100, "effet": "25 points de victoire", "type_effet": "victoire", "victoire": 25  },
+            { "index": 8,  "cout_total": 125, "effet": "Autocollant 8 sur 2 terrains différents", "type_effet": "sticker", "stickers": [8,8], "cible": "Terrain", "victoire": 25  },
+            { "index": 9,  "cout_total": 150, "effet": "Autocollant 10 sur une personne", "type_effet": "sticker", "stickers": [10], "cible": "Personne"  },
+            { "index": 10,  "cout_total": 175, "effet": "Découvrir la carte #107 (Visite Royale)", "type_effet": "decouverte", "carte": 107 },
+            { "index": 11,  "cout_total": 200, "effet": "Autocollant 10 sur un bâtiment", "type_effet": "sticker", "stickers": [10], "cible": "Bâtiment"  },
+            { "index": 12,  "cout_total": 250, "effet": "Active une case sur une autre carte permanente", "type_effet": "Activation"  },
+            { "index": 13,  "cout_total": 300, "effet": "Active une case sur toutes les autres cartes permanente", "type_effet": "Activation"  },
+            { "index": 14,  "cout_total": 350, "effet": "Découvrir la carte #117 (Relations Commerciales)", "type_effet": "decouverte", "carte": 117 }]
         },
         {
           "face": 2,
@@ -332,9 +338,6 @@
           "nom": "Scientifique",
           "type": "Personne",
           "description": "Un scientifique de renom qui, par sa présence, stimule la recherche et l'économie.",
-          "ressources": [
-            { "type": "marchandise", "quantite": 1 }
-          ],
           "effet": {
             "type": "Passif",
             "description": "Toutes les personnes en zone de jeu, y compris le scientifique, produisent 1 or.",
@@ -611,7 +614,7 @@
           "victoire": 3,
           "effet": {
             "type": "Destruction",
-            "description": "Décrouvrez une mine",
+          "description": "Découvrez la carte #84 ou #85 (Mine Profonde) et ajoutez-la à votre défausse.",
             "cartes": [
               84,
               85

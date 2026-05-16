@@ -8,6 +8,9 @@ function _processSingleStagedAction(entry) {
 
   if (action === 'produce') {
     Object.entries(resourcesGained).forEach(([k, v]) => { gameState.resources[k] += v; });
+    if ((resourcesGained['marchandise'] || 0) > 0) {
+      _addExportGoodsToGauge(resourcesGained['marchandise']);
+    }
     gameState.discard.push(cardInstance);
     addLog(`✅ <span class="log-card">${oldName}</span> — production appliquée.`);
 

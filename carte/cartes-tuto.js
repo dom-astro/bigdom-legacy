@@ -508,7 +508,7 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
-          "description": "Décrouvrez une mine",
+          "description": "Découvrez la carte #84 ou #85 (Mine Profonde) et ajoutez-la à votre défausse.",
           "cartes": [
             84,
             85
@@ -629,7 +629,7 @@ const BEGIN_CARDS =
         "victoire": 3,
         "effet": {
           "type": "Destruction",
-          "description": "Décrouvrez une mine",
+          "description": "Découvrez la carte #84 ou #85 (Mine Profonde) et ajoutez-la à votre défausse.",
           "cartes": [
             84,
             85

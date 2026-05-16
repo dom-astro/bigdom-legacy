@@ -767,12 +767,11 @@ function _updateTresorGloire() {
 }
 
 // ============================================================
-//  CARTE 27 — EXPORT / MASS EXPORT
+//  CARTE 27 — EXPORT
 // ============================================================
 
 // Structure de gameState.exportProgress :
 // {
-//   face: 1|2,           — face active (1=Export, 2=Mass Export)
 //   totalDepense: 0,     — cumul total de Marchandises dépensées (jamais réinitialisé)
 //   seuilsUtilises: [],  — indices des seuils déjà utilisés (barrés)
 // }
@@ -790,13 +789,11 @@ function _getExportProgress() {
   return gameState.exportProgress;
 }
 
-// Renvoie tous les seuils (face 1 + face 2) triés par cout_total
+// Renvoie tous les seuils de la face 1 triés par cout_total
 function _getAllExportSeuils() {
   const f1 = _getExportData(1);
-  const f2 = _getExportData(2);
   return [
     ...(f1 ? f1.seuils : []),
-    ...(f2 ? f2.seuils : []),
   ];
 }
 
@@ -808,6 +805,23 @@ function _getExportSeuilsDisponibles() {
   );
 }
 
+function _hasExportCard() {
+  return gameState.permanent.some(ci => ci.cardDef.numero === 27);
+}
+
+function _addExportGoodsToGauge(amount) {
+  if (!amount || amount <= 0 || !_hasExportCard()) return;
+  const prog = _getExportProgress();
+  const ancienTotal = prog.totalDepense;
+  prog.totalDepense += amount;
+
+  _getAllExportSeuils().forEach(s => {
+    if (ancienTotal < s.cout_total && prog.totalDepense >= s.cout_total && !prog.seuilsUtilises.includes(s.index)) {
+      addLog(`🎉 Seuil ${s.cout_total} atteint : <strong>${s.effet}</strong> — utilisez-le entre les tours !`, true);
+    }
+  });
+}
+
 // Ouvre le modal principal de la carte Export
 function openExportModal() {
   const prog       = _getExportProgress();
@@ -815,9 +829,7 @@ function openExportModal() {
   const marcDispo  = projected['marchandise'] || 0; // marchandise = Marchandise dans le jeu
   const allSeuils  = _getAllExportSeuils();
   const face1Data  = _getExportData(1);
-  const face2Data  = _getExportData(2);
-  const isMassExport = prog.face === 2;
-  const nomCarte   = isMassExport ? ' Mass Export' : ' Export';
+  const nomCarte   = ' Export';
 
   // Seuils disponibles (non encore utilisés et atteints)
   const disponibles = _getExportSeuilsDisponibles();
@@ -879,28 +891,34 @@ function openExportModal() {
       </div>`;
   }
 
-  // ── Sections face 1 / face 2 ──────────────────────────────
+  // ── Section face 1 ───────────────────────────────────────
   const face1Seuils = face1Data?.seuils || [];
-  const face2Seuils = face2Data?.seuils || [];
-  const face2Unlocked = isMassExport;
+  const rowHeight = 88;
+  const barHeight = Math.max(200, face1Seuils.length * rowHeight);
+  const verticalMarkersHTML = face1Seuils.map(s => {
+    const position = Math.min(100, Math.round((s.cout_total / maxTotal) * 100));
+    const reached = prog.totalDepense >= s.cout_total;
+    return `<div style="position:absolute;left:50%;top:${position}%;width:14px;height:14px;margin-left:-7px;margin-top:-7px;border-radius:50%;background:${reached ? '#cc88ff' : '#888'};border:2px solid ${reached ? '#ffe8ff' : 'rgba(255,255,255,0.2)'};box-shadow:0 0 8px ${reached ? 'rgba(204,136,255,0.35)' : 'transparent'};"></div>`;
+  }).join('');
 
   const section1 = `
     <div style="margin-bottom:10px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;
-        color:${isMassExport ? '#8acc44' : '#f0c040'};margin-bottom:8px;">
-        ${isMassExport ? '✅ EXPORT — COMPLÉTÉ' : '<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> EXPORT — Seuils 10 à 100'}
+      <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;color:#f0c040;margin-bottom:10px;">
+        <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> EXPORT — Seuils 10 à 100
       </div>
-      ${face1Seuils.map(renderSeuil).join('')}
-    </div>`;
-
-  const section2 = `
-    <div style="border-top:2px solid ${face2Unlocked ? 'rgba(136,68,204,0.4)' : 'rgba(255,255,255,0.08)'};padding-top:12px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;
-        color:${!face2Unlocked ? '#555' : '#cc88ff'};margin-bottom:8px;">
-        ${!face2Unlocked ? '🔒 MASS EXPORT — Débloquer à 100 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">' : '<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> MASS EXPORT — Seuils 125 à 300'}
+      <div style="display:grid;grid-template-columns:1fr 40px;gap:14px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${face1Seuils.map(renderSeuil).join('')}
+        </div>
+        <div style="position:relative;width:100%;min-height:${barHeight}px;">
+          <div style="position:absolute;inset:0;left:50%;transform:translateX(-50%);width:12px;height:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:999px;overflow:hidden;">
+            <div style="position:absolute;left:0;bottom:0;width:100%;height:${pctGlobal}%;background:linear-gradient(to top,#cc44ff 0%,#8844cc 100%);transition:height 0.4s;"></div>
+          </div>
+          ${verticalMarkersHTML}
+        </div>
       </div>
-      <div style="opacity:${face2Unlocked ? 1 : 0.3};">
-        ${face2Seuils.map(renderSeuil).join('')}
+      <div style="font-size:0.68rem;color:#aaa;margin-top:10px;text-align:right;">
+        Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"></strong>
       </div>
     </div>`;
 
@@ -957,20 +975,10 @@ function openExportModal() {
     <div style="text-align:center;margin-bottom:12px;">
       <div style="font-size:0.6rem;font-family:'Cinzel',serif;color:#888;letter-spacing:2px;">CARTE #27 — PERMANENTE</div>
       <div style="font-family:'Crimson Text',serif;font-size:0.78rem;color:#aaa;font-style:italic;margin-top:4px;">
-        Dépensez vos Marchandises à tout moment. Utilisez les effets <em>entre les tours</em>.
-      </div>
-    </div>
-    <div style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-        <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#cc88ff;">Progression globale</div>
-        <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${pctGlobal}%;background:linear-gradient(90deg,#8844cc,#cc44ff);border-radius:3px;transition:width 0.4s;"></div>
-        </div>
-        <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:#cc88ff;">${prog.totalDepense}/${maxTotal} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"></div>
+        Les Marchandises produites sont ajoutées à cette jauge. Utilisez les effets <em>entre les tours</em>.
       </div>
     </div>
     ${section1}
-    ${section2}
     ${investHTML}
     ${alerteHTML}`;
 
@@ -1005,14 +1013,10 @@ function investirExport(n) {
 
   addLog(`<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Export</span> — ${aDepenser} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> investie${aDepenser > 1 ? 's' : ''} (total : ${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">).`);
 
-  // Détecter si un nouveau seuil de promotion est atteint
+  // Détecter si un nouveau seuil est atteint
   const allSeuils = _getAllExportSeuils();
   allSeuils.forEach(s => {
-    if (s.type_effet === 'promotion' && ancienTotal < s.cout_total && prog.totalDepense >= s.cout_total) {
-      // Promotion automatique vers Mass Export
-      prog.face = 2;
-      addLog(`🔱 <span class="log-card">Export</span> → <span class="log-card">Mass Export</span> ! Le commerce s'emballe.`, true);
-    } else if (ancienTotal < s.cout_total && prog.totalDepense >= s.cout_total) {
+    if (ancienTotal < s.cout_total && prog.totalDepense >= s.cout_total) {
       addLog(`🎉 Nouveau seuil Export atteint : <strong>${s.effet}</strong> — à utiliser entre les tours !`, true);
     }
   });
@@ -1036,16 +1040,6 @@ function utiliserSeuilExport(seuilIndex) {
     return;
   }
 
-  // Promotion : changer de face
-  if (seuil.type_effet === 'promotion') {
-    prog.face = 2;
-    prog.seuilsUtilises.push(seuilIndex);
-    addLog(`🔱 <span class="log-card">Export</span> → <span class="log-card">Mass Export</span> !`, true);
-    bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
-    setTimeout(() => openExportModal(), 200);
-    updateUI();
-    return;
-  }
 
   // Découverte d'une carte
   if (seuil.type_effet === 'decouverte' && seuil.carte) {
