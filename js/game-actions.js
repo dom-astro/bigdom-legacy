@@ -2166,31 +2166,152 @@ function _resolveEruption(newCardNums, eruptionWasAlreadyActive) {
 
 // Applique la destruction d'un terrain par l'éruption
 function _applyEruptionDestruction(terrainCI) {
-  // Afficher un modal explicatif avant d'appliquer la destruction.
   const fd = getFaceData(terrainCI);
   const terrainName = fd.nom;
-  const resStr = (fd.ressources || []).map(r => {
-    const types = Array.isArray(r.type) ? r.type : [r.type];
-    return `${r.quantite}${RESOURCE_ICONS[normalizeRes(types[0])] || types[0]}`;
-  }).join(' ');
-
-  const html = `
-    <div style="display:flex;gap:12px;align-items:flex-start;">
-      <div style="font-size:2.2rem;line-height:1.1;">${getCardEmoji(fd.type, fd.nom)}</div>
-      <div style="flex:1;">
-        <div style="font-family:'Cinzel',serif;font-weight:700;color:#f5e6c8;font-size:0.95rem;">${fd.nom}</div>
-        <div style="font-size:0.65rem;color:#ccc;margin-bottom:6px;">#${terrainCI.cardDef.numero} · ${fd.type}</div>
-        ${fd.description ? `<div style="font-size:0.86rem;color:#e8d8b0;margin-bottom:8px;">${fd.description}</div>` : ''}
-        ${resStr ? `<div style="font-size:0.82rem;color:#c8960c;margin-bottom:6px;">Production : ${resStr}</div>` : ''}
-      </div>
-    </div>
-    <hr style="border-color:rgba(200,150,12,0.08);margin:12px 0;">
-    <p style="font-size:0.85rem;color:#dcb37a;">La lave et les cendres détruisent le terrain ; ses cendres enrichissent le sol (effet narratif).</p>
-  `;
 
   window._pendingEruptionTerrain = terrainCI;
-  document.getElementById('eruptionExplainBody').innerHTML = html;
+  document.getElementById('eruptionExplainConfirm').style.display = 'none';
+  document.getElementById('eruptionExplainBody').innerHTML = `
+    <div id="eruptionModalAnimation" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <img id="eruptionStageImg" src="img/volcan-1.png" alt="Volcan en éruption" style="width:150px;height:auto;border-radius:12px;box-shadow:0 0 28px rgba(255,120,0,0.85);">
+      <div id="eruptionStageText" style="font-family:'Crimson Text',serif;color:#ffe5b0;font-size:0.95rem;text-align:center;line-height:1.4;max-width:260px;min-height:6.5em;"></div>
+      <div id="eruptionStageHint" class="eruption-stage-hint"></div>
+    </div>
+  `;
+
   new bootstrap.Modal(document.getElementById('eruptionExplainModal')).show();
+  startEruptionExplainAnimation();
+}
+
+function startEruptionExplainAnimation() {
+  const stageImg = document.getElementById('eruptionStageImg');
+  const stageText = document.getElementById('eruptionStageText');
+  const stageHint = document.getElementById('eruptionStageHint');
+  if (!stageImg || !stageText || !stageHint) return;
+
+  const stepTexts = [
+    'Le volcan gronde… des fissures chauffent la roche.',
+    'Une colonne de cendres s’élance, l’air devient suffocant.',
+    'La lave ruisselle, menaçant d’engloutir la vallée.',
+    'Des explosions secouent le cratère, des éclairs de feu déchirent la fumée.',
+    'Le sommet hurle en une gerbe de magma et cendres brûlantes.'
+  ];
+
+  let step = 0;
+  let waitingForKey = false;
+  let keyHandler = null;
+
+  function typeText(text, callback) {
+    stageText.textContent = '';
+    let idx = 0;
+
+    function nextChar() {
+      if (idx < text.length) {
+        stageText.textContent += text[idx++];
+        setTimeout(nextChar, 32);
+      } else {
+        callback?.();
+      }
+    }
+
+    nextChar();
+  }
+
+  function showHint(message) {
+    stageHint.textContent = message;
+  }
+
+  function cleanup() {
+    if (keyHandler) {
+      document.removeEventListener('keydown', keyHandler);
+      keyHandler = null;
+    }
+  }
+
+  function proceed() {
+    if (step < stepTexts.length) {
+      stageImg.src = `img/volcan-${step + 1}.png`;
+      stageImg.alt = `Volcan en éruption étape ${step + 1}`;
+      waitingForKey = false;
+      showHint('');
+      typeText(stepTexts[step], () => {
+        showHint('Appuyez sur une touche pour continuer.');
+        waitingForKey = true;
+      });
+      step += 1;
+    } else {
+      cleanup();
+      showEruptionRevealStep();
+    }
+  }
+
+  keyHandler = (event) => {
+    if (!waitingForKey) return;
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(event.key)) return;
+    event.preventDefault();
+    waitingForKey = false;
+    proceed();
+  };
+
+  document.addEventListener('keydown', keyHandler);
+  proceed();
+}
+
+function showEruptionRevealStep() {
+  const terrainCI = window._pendingEruptionTerrain;
+  if (!terrainCI) return;
+
+  const fd = getFaceData(terrainCI);
+  const terrainName = fd.nom;
+  const terrainType = fd.type;
+  const terrainEmoji = getCardEmoji(fd.type, fd.nom);
+  const cendresFace = gameState.play.find(ci => ci.cardDef.numero === 28)?.cardDef.faces.find(f => f.nom === 'Cendres volcaniques');
+  const cendresName = cendresFace ? cendresFace.nom : 'Cendres volcaniques';
+  const cendresEmoji = cendresFace ? getCardEmoji(cendresFace.type, cendresFace.nom) : '🌋';
+
+  document.getElementById('eruptionExplainBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="font-family:'Cinzel',serif;color:#ffebc0;font-size:1rem;text-align:center;max-width:300px;">
+        Le terrain détruit apparaît maintenant… puis la carte bascule tragiquement en <strong>${cendresName}</strong>.
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:center;">
+        <div style="width:140px;padding:12px;background:rgba(50,15,5,0.82);border:2px solid rgba(255,120,20,0.75);border-radius:14px;text-align:center;">
+          <div style="font-size:2.2rem;">${terrainEmoji}</div>
+          <div style="font-family:'Cinzel',serif;color:#f5e6c8;font-size:0.95rem;margin-top:8px;">${terrainName}</div>
+          <div style="font-size:0.78rem;color:#d8b070;margin-top:4px;">${terrainType}</div>
+          <div style="font-size:0.78rem;color:#ffc680;margin-top:6px;">Détruit par l’éruption</div>
+        </div>
+        <div class="eruption-modal-flip" id="eruptionModalFlip">
+          <div class="eruption-modal-flip-inner" id="eruptionModalFlipInner">
+            <div class="eruption-modal-flip-face eruption-modal-flip-front">
+              <div style="font-size:2rem;">${terrainEmoji}</div>
+              <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:#ffe5b0;margin-top:10px;">${terrainName}</div>
+              <div style="font-size:0.78rem;color:#d8b070;margin-top:6px;">${terrainType}</div>
+              <div style="font-size:0.78rem;color:#ffc680;margin-top:6px;">Terrain détruit</div>
+            </div>
+            <div class="eruption-modal-flip-face eruption-modal-flip-back">
+              <div style="font-size:2rem;">${cendresEmoji}</div>
+              <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:#ffe5b0;margin-top:10px;">${cendresName}</div>
+              <div style="font-size:0.78rem;color:#d8b070;margin-top:6px;">Cendres volcaniques</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const confirmBtn = document.getElementById('eruptionExplainConfirm');
+  if (confirmBtn) {
+    confirmBtn.style.display = 'inline-block';
+    confirmBtn.textContent = 'Terminer';
+  }
+
+  setTimeout(() => {
+    const flipInner = document.getElementById('eruptionModalFlipInner');
+    if (flipInner) {
+      flipInner.classList.add('eruption-modal-flip-active');
+    }
+  }, 150);
 }
 
 function confirmEruptionExplain() {
@@ -2203,45 +2324,24 @@ function confirmEruptionExplain() {
   const fd = getFaceData(terrainCI);
   const terrainName = fd.nom;
 
-  // Trouver l'élément DOM de la carte pour l'animer
-  const cardEl = document.querySelector(`[data-card-num="${terrainCI.cardDef.numero}"]`);
-  if (cardEl) {
-    cardEl.classList.add('card-eruption-destroy');
-  }
+  const tIdx = _playIdxByNum(terrainCI.cardDef.numero);
+  if (tIdx >= 0) _playRemove(tIdx);
 
-  // Trouver la carte 28 en jeu et déclencher le flip
+  if (!gameState.destroyed) gameState.destroyed = [];
+  gameState.destroyed.push(terrainCI);
+
+  addLog(`🌋 <span class="log-card">Éruption Volcanique</span> détruit <span class="log-card">${terrainName}</span> — les cendres enrichissent la terre…`, true);
+
   const eruption28 = gameState.play.find(ci => ci.cardDef.numero === 28);
   if (eruption28) {
-    const eruption28El = document.querySelector(`[data-card-num="28"]`);
-    if (eruption28El) {
-      eruption28El.classList.add('card-eruption-flip');
-    }
+    eruption28.currentFace = 3;
+    cardStateMap[28] = 3;
+    const newFd = getFaceData(eruption28);
+    addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
+    gameState.eruptionActive = false;
   }
 
-  // Attendre que l'animation se termine avant d'appliquer la destruction
-  const animationDuration = 1200; // 1.2s pour la destruction du terrain (avec feu)
-  setTimeout(() => {
-    // Retirer le terrain de play[]
-    const tIdx = _playIdxByNum(terrainCI.cardDef.numero);
-    if (tIdx >= 0) _playRemove(tIdx);
-
-    // Détruire le terrain (envoi dans destroyed)
-    if (!gameState.destroyed) gameState.destroyed = [];
-    gameState.destroyed.push(terrainCI);
-
-    addLog(`🌋 <span class="log-card">Éruption Volcanique</span> détruit <span class="log-card">${terrainName}</span> — les cendres enrichissent la terre…`, true);
-
-    // Retourner la carte 28 en face 3 ("Cendres volcaniques")
-    if (eruption28) {
-      eruption28.currentFace = 3;
-      cardStateMap[28] = 3;
-      const newFd = getFaceData(eruption28);
-      addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
-      gameState.eruptionActive = false;
-    }
-
-    updateUI();
-  }, animationDuration);
+  updateUI();
 }
 
 // Modal de choix quand plusieurs terrains sont tirés simultanément

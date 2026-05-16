@@ -1084,3 +1084,108 @@ body.light-mode .confirm-modal-btn-ok {
   animation: eruptionFlipAndShake 1.8s cubic-bezier(0.36, 0, 0.66, 1) forwards;
   transform-style: preserve-3d;
 }
+
+.card-front.card-volcano-preview {
+  transform: scale(1.28);
+  z-index: 1000;
+  box-shadow: 0 28px 60px rgba(255, 160, 0, 0.55), inset 0 0 28px rgba(255, 140, 20, 0.35);
+}
+
+.eruption-volcano-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: rgba(12, 8, 4, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  color: #ffd5a2;
+  font-family: 'Crimson Text', serif;
+  text-align: center;
+  pointer-events: auto;
+  z-index: 2;
+}
+.eruption-volcano-overlay img {
+  width: 104px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 0 22px rgba(255, 150, 20, 0.75);
+}
+.eruption-volcano-step-text {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #ffe5b0;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.65);
+  max-width: 110px;
+}
+.eruption-volcano-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 145, 0, 0.2), transparent 40%);
+  pointer-events: none;
+}
+.eruption-volcano-continue-button {
+  display: none;
+  margin-top: 6px;
+  padding: 6px 12px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #aa2200, #ff7a1a);
+  border: 2px solid #ffb860;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0 12px rgba(255, 140, 20, 0.5);
+}
+.eruption-volcano-continue-button:hover {
+  transform: scale(1.03);
+}
+
+.eruption-stage-hint {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: #ffd98e;
+  text-align: center;
+  min-height: 1.2em;
+  opacity: 0.96;
+}
+
+.eruption-modal-flip {
+  width: 140px;
+  height: 170px;
+  perspective: 900px;
+}
+.eruption-modal-flip-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.eruption-modal-flip-active {
+  transform: rotateY(180deg);
+}
+.eruption-modal-flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(35,14,7,0.95), rgba(70,18,10,0.98));
+  border: 2px solid rgba(255,160,50,0.45);
+  box-shadow: inset 0 0 20px rgba(255,130,0,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffe5a8;
+  padding: 14px;
+  backface-visibility: hidden;
+}
+.eruption-modal-flip-back {
+  transform: rotateY(180deg);
+}
