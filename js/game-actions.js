@@ -2170,6 +2170,10 @@ function _applyEruptionDestruction(terrainCI) {
   const terrainName = fd.nom;
 
   window._pendingEruptionTerrain = terrainCI;
+  const eruptionCardWrapper = document.querySelector('.card-wrapper[data-card-num="28"]');
+  if (eruptionCardWrapper) {
+    eruptionCardWrapper.classList.add('card-wrapper-eruption-shake');
+  }
   document.getElementById('eruptionExplainConfirm').style.display = 'none';
   document.getElementById('eruptionExplainBody').innerHTML = `
     <div id="eruptionModalAnimation" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
@@ -2190,15 +2194,16 @@ function startEruptionExplainAnimation() {
   if (!stageImg || !stageText || !stageHint) return;
 
   const stepTexts = [
-    'Le volcan gronde… des fissures chauffent la roche.',
+    'Le volcan à l\'air sagement paisible… mais une tension inquiétante se fait sentir.',
+    'Soudain un grondement se fait entendre, des fissures chauffent la roche.',
     'Une colonne de cendres s’élance, l’air devient suffocant.',
-    'La lave ruisselle, menaçant d’engloutir la vallée.',
-    'Des explosions secouent le cratère, des éclairs de feu déchirent la fumée.',
-    'Le sommet hurle en une gerbe de magma et cendres brûlantes.'
+    'La lave ruisselle, menaçant d’engloutir votre terrain.',
+    'Des explosions secouent le cratère, des éclairs de feu déchirent la fumée.'
   ];
 
   let step = 0;
   let waitingForKey = false;
+  let finalRevealAfterKey = false;
   let keyHandler = null;
 
   function typeText(text, callback) {
@@ -2233,10 +2238,18 @@ function startEruptionExplainAnimation() {
       stageImg.src = `img/volcan-${step + 1}.png`;
       stageImg.alt = `Volcan en éruption étape ${step + 1}`;
       waitingForKey = false;
+      finalRevealAfterKey = false;
       showHint('');
+      const isLastStep = step === stepTexts.length - 1;
       typeText(stepTexts[step], () => {
-        showHint('Appuyez sur une touche pour continuer.');
-        waitingForKey = true;
+        if (isLastStep) {
+          finalRevealAfterKey = true;
+          showHint('Appuyez sur une touche pour continuer.');
+          waitingForKey = true;
+        } else {
+          showHint('Appuyez sur une touche pour continuer.');
+          waitingForKey = true;
+        }
       });
       step += 1;
     } else {
@@ -2250,6 +2263,14 @@ function startEruptionExplainAnimation() {
     if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(event.key)) return;
     event.preventDefault();
     waitingForKey = false;
+
+    if (finalRevealAfterKey) {
+      finalRevealAfterKey = false;
+      cleanup();
+      showEruptionRevealStep();
+      return;
+    }
+
     proceed();
   };
 
@@ -2272,15 +2293,9 @@ function showEruptionRevealStep() {
   document.getElementById('eruptionExplainBody').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
       <div style="font-family:'Cinzel',serif;color:#ffebc0;font-size:1rem;text-align:center;max-width:300px;">
-        Le terrain détruit apparaît maintenant… puis la carte bascule tragiquement en <strong>${cendresName}</strong>.
+        Votre terrain ne semble pus qu'un lointain souvenir. Des <strong>${cendresName}</strong> le recouvrent maintenant.
       </div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:center;">
-        <div style="width:140px;padding:12px;background:rgba(50,15,5,0.82);border:2px solid rgba(255,120,20,0.75);border-radius:14px;text-align:center;">
-          <div style="font-size:2.2rem;">${terrainEmoji}</div>
-          <div style="font-family:'Cinzel',serif;color:#f5e6c8;font-size:0.95rem;margin-top:8px;">${terrainName}</div>
-          <div style="font-size:0.78rem;color:#d8b070;margin-top:4px;">${terrainType}</div>
-          <div style="font-size:0.78rem;color:#ffc680;margin-top:6px;">Détruit par l’éruption</div>
-        </div>
         <div class="eruption-modal-flip" id="eruptionModalFlip">
           <div class="eruption-modal-flip-inner" id="eruptionModalFlipInner">
             <div class="eruption-modal-flip-face eruption-modal-flip-front">
@@ -2292,7 +2307,6 @@ function showEruptionRevealStep() {
             <div class="eruption-modal-flip-face eruption-modal-flip-back">
               <div style="font-size:2rem;">${cendresEmoji}</div>
               <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:#ffe5b0;margin-top:10px;">${cendresName}</div>
-              <div style="font-size:0.78rem;color:#d8b070;margin-top:6px;">Cendres volcaniques</div>
             </div>
           </div>
         </div>
@@ -2304,6 +2318,7 @@ function showEruptionRevealStep() {
   if (confirmBtn) {
     confirmBtn.style.display = 'inline-block';
     confirmBtn.textContent = 'Terminer';
+    confirmBtn.disabled = true;
   }
 
   setTimeout(() => {
@@ -2311,7 +2326,10 @@ function showEruptionRevealStep() {
     if (flipInner) {
       flipInner.classList.add('eruption-modal-flip-active');
     }
-  }, 150);
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+    }
+  }, 2000);
 }
 
 function confirmEruptionExplain() {
@@ -2339,6 +2357,11 @@ function confirmEruptionExplain() {
     const newFd = getFaceData(eruption28);
     addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
     gameState.eruptionActive = false;
+  }
+
+  const eruptionCardWrapper = document.querySelector('.card-wrapper[data-card-num="28"]');
+  if (eruptionCardWrapper) {
+    eruptionCardWrapper.classList.remove('card-wrapper-eruption-shake');
   }
 
   updateUI();

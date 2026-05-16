@@ -588,6 +588,22 @@ body.light-mode .card-wrapper-actionable .card-front {
   0%, 100% { box-shadow: 0 0 0 2px #228822, 0 0 8px rgba(34,136,34,0.3); }
   50%       { box-shadow: 0 0 0 2px #44aa44, 0 0 16px rgba(34,136,34,0.55); }
 }
+
+@keyframes eruptionCardShake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(-2px, 1px) rotate(-0.8deg); }
+  30% { transform: translate(2px, -1px) rotate(0.7deg); }
+  45% { transform: translate(-3px, 2px) rotate(-1.1deg); }
+  60% { transform: translate(3px, -2px) rotate(1.0deg); }
+  75% { transform: translate(-2px, 1px) rotate(-0.7deg); }
+  90% { transform: translate(1px, -1px) rotate(0.4deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.card-wrapper-eruption-shake .card-front {
+  animation: eruptionCardShake 0.55s ease-in-out infinite;
+}
+
 /* Pas de double animation bandit + actionable : le bandit a priorité */
 .card-wrapper-bandit.card-wrapper-actionable .card-front {
   animation: banditPulse 1.5s ease-in-out infinite;
@@ -1166,7 +1182,7 @@ body.light-mode .confirm-modal-btn-ok {
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.85s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  transition: transform 2.8s cubic-bezier(0.45, 0.05, 0.55, 0.95);
 }
 .eruption-modal-flip-active {
   transform: rotateY(180deg);
