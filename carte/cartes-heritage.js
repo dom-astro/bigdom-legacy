@@ -153,23 +153,25 @@
           "Effet ": {
             "type": "Force",
             "description": "Tant que cette carte est en jeu, détruisez le prochain terrain que vous jouez puis retourner cette carte",
-            "face": 3
+            "promotion": {
+              "face": 2
+            }
           }
         },
-        { "face": 3,
+        { "face": 2,
           "nom": "Cendres volcaniques",
           "type": "Terrain",
           "description": "Les cendres volcaniques enrichissent le sol, rendant les récoltes plus abondantes.",
           "victoire": -2,
           "promotion": {
-            "face": 4,
+            "face": 2,
             "cout": {
               "type": "Or",
               "quantite": 2
             }
           },
         },
-        { "face": 4,
+        { "face": 3,
           "nom": "Jeune forêt",
           "type": "Terrain",
           "description": "La nature reprend ses droits sur les cendres, transformant le paysage en une jeune forêt.",

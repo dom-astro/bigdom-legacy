@@ -2286,14 +2286,15 @@ function showEruptionRevealStep() {
   const terrainName = fd.nom;
   const terrainType = fd.type;
   const terrainEmoji = getCardEmoji(fd.type, fd.nom);
-  const cendresFace = gameState.play.find(ci => ci.cardDef.numero === 28)?.cardDef.faces.find(f => f.nom === 'Cendres volcaniques');
-  const cendresName = cendresFace ? cendresFace.nom : 'Cendres volcaniques';
-  const cendresEmoji = cendresFace ? getCardEmoji(cendresFace.type, cendresFace.nom) : '🌋';
+  const eruptionCard = gameState.play.find(ci => ci.cardDef.numero === 28);
+  const resultFace = eruptionCard?.cardDef.faces.find(f => f.face === 2) || eruptionCard?.cardDef.faces.find(f => f.face === 3);
+  const resultName = resultFace ? resultFace.nom : 'Cendres volcaniques';
+  const resultEmoji = resultFace ? getCardEmoji(resultFace.type, resultFace.nom) : '🌋';
 
   document.getElementById('eruptionExplainBody').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
       <div style="font-family:'Cinzel',serif;color:#ffebc0;font-size:1rem;text-align:center;max-width:300px;">
-        Votre terrain ne semble pus qu'un lointain souvenir. Des <strong>${cendresName}</strong> le recouvrent maintenant.
+        Votre terrain ne semble plus qu'un lointain souvenir. Il se transforme en <strong>${resultName}</strong>.
       </div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:center;">
         <div class="eruption-modal-flip" id="eruptionModalFlip">
@@ -2305,8 +2306,8 @@ function showEruptionRevealStep() {
               <div style="font-size:0.78rem;color:#ffc680;margin-top:6px;">Terrain détruit</div>
             </div>
             <div class="eruption-modal-flip-face eruption-modal-flip-back">
-              <div style="font-size:2rem;">${cendresEmoji}</div>
-              <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:#ffe5b0;margin-top:10px;">${cendresName}</div>
+              <div style="font-size:2rem;">${resultEmoji}</div>
+              <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:#ffe5b0;margin-top:10px;">${resultName}</div>
             </div>
           </div>
         </div>
@@ -2326,10 +2327,12 @@ function showEruptionRevealStep() {
     if (flipInner) {
       flipInner.classList.add('eruption-modal-flip-active');
     }
-    if (confirmBtn) {
-      confirmBtn.disabled = false;
-    }
-  }, 2000);
+    setTimeout(() => {
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+      }
+    }, 1500);
+  }, 1000);
 }
 
 function confirmEruptionExplain() {
@@ -2352,8 +2355,8 @@ function confirmEruptionExplain() {
 
   const eruption28 = gameState.play.find(ci => ci.cardDef.numero === 28);
   if (eruption28) {
-    eruption28.currentFace = 3;
-    cardStateMap[28] = 3;
+    eruption28.currentFace = 2;
+    cardStateMap[28] = 2;
     const newFd = getFaceData(eruption28);
     addLog(`🌋 <span class="log-card">Éruption Volcanique</span> → <span class="log-card">${newFd.nom}</span>`, true);
     gameState.eruptionActive = false;
