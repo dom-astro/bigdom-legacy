@@ -1352,8 +1352,8 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
         delete processedStickers[resKey];
 
         if (bonus > 0) {
-          return `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
-            ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
+          return `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})" ` +
+            `style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
             `${RESOURCE_ICONS[resKey]||t} ×${totalQte}${isGoldBlocked ? ' 🚫' : ''}` +
             `</span>`;
         }
@@ -1366,8 +1366,8 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
   Object.entries(processedStickers).forEach(([resKey, bonus]) => {
     if (bonus > 0) {
       const isGoldBlocked = blocked && resKey === 'Or';
-      html += `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})"` +
-        ` style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
+      html += `<span class="resource-pip" title="🏷 Autocollant Héritage (+${bonus})" ` +
+        `style="${fStyle}background:${HERITAGE_BLUE.bg};border-color:${HERITAGE_BLUE.border};color:${HERITAGE_BLUE.text};font-weight:700;">` +
         `${RESOURCE_ICONS[resKey]||resKey} ×${bonus}${isGoldBlocked ? ' 🚫' : ''}` +
         `</span>`;
     }
@@ -1375,8 +1375,8 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
 
   const scientistBonus = getScientistPersonneBonusForCard(cardNum, face);
   if (scientistBonus > 0) {
-    html += `<span class="resource-pip" title="Scientifique actif : +${scientistBonus} Or temporaire"` +
-      ` style="${fStyle}background:rgba(102,153,255,0.18);border:1px solid rgba(102,153,255,0.35);color:#173d76;font-weight:700;">` +
+    html += `<span class="resource-pip" title="Scientifique actif : +${scientistBonus} Or temporaire" ` +
+      `style="${fStyle}background:rgba(102,153,255,0.18);border:1px solid rgba(102,153,255,0.35);color:#173d76;font-weight:700;">` +
       `+${scientistBonus} ${RESOURCE_ICONS['Or']||'Or'}` +
       `</span>`;
   }

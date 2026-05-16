@@ -498,5 +498,168 @@
           }
         }
       ]
+    },
+    { "numero": 35,
+      "faces": [
+        { "face": 1,
+          "nom": "Montagnes Lointaines",
+          "type": "Terrain",
+          "description": "Des montagnes riches en ressources, mais difficiles à exploiter.",
+          "ressources": [
+            {
+              "type": [
+                "Or"
+              ],
+              "quantite": 1
+            }
+          ],
+          "promotion": {
+            "face": 2,
+            "cout": [
+              {
+                "type": "Or",
+                "quantite": 2
+              }
+            ]
+          }
+        },
+        { "face": 2,
+          "nom": "Zone Rocheuse",
+          "type": "Terrain",
+          "description": "Une zone de terrain accidenté, riche en pierres mais difficile à exploiter.",
+          "ressources": [
+            {
+              "type": [
+                "Pierre"
+              ],
+              "quantite": 1
+            }
+          ],
+          "effet": {
+            "type": "Activable",
+            "cout": [
+              {
+                "type": "Or",
+                "quantite": 1
+              }
+            ],
+            "ressources": [
+              {
+                "type": "Pierre",
+                "quantite": 2
+              }
+            ]
+          },
+          "promotion": {
+            "face": 3,
+            "cout": [
+              {
+                "type": "Bois",
+                "quantite": 2
+              },
+              {
+                "type": "Or",
+                "quantite": 2
+              }
+            ]
+          }
+        },
+        { "face": 3,
+          "nom": "Carrière",
+          "type": "Terrain",
+          "description": "Une zone d'extraction de pierre, offrant des ressources précieuses pour la construction.",
+          "ressources": [
+            {
+              "type": [
+                "Pierre"
+              ],
+              "quantite": 2
+            }
+          ],
+          "promotion": {
+            "face": 4,
+            "cout": [
+              {
+                "type": "Bois",
+                "quantite": 2
+              },
+              {
+                "type": "Or",
+                "quantite": 2
+              }
+            ]
+          }
+        },
+        { "face": 4,
+          "nom": "Mine Peu Profonde",
+          "type": "Bâtiment",
+          "description": "Une mine à ciel ouvert pour extraire les ressources minérales.",
+          "ressources": [
+            {
+              "type": [
+                "Pierre"
+              ],
+              "quantite": 1
+            },
+            {
+              "type": [
+                "Métal"
+              ],
+              "quantite": 1
+            }
+          ],
+          "victoire": 3,
+          "effet": {
+            "type": "Destruction",
+            "description": "Décrouvrez une mine",
+            "cartes": [
+              84,
+              85
+            ]
+          }
+        }
+      ]
+    },
+    { "numero": 36,
+      "faces": [
+        { "face": 1,
+          "nom": "Mercenaire",
+          "type": "Personne",
+          "description": "Un mercenaire expérimenté, prêt à se battre pour la meilleure offre. Son expertise militaire peut être précieuse pour défendre votre royaume ou conquérir de nouveaux territoires.",
+          "promotion": {
+            "face": 2,
+            "cout": [
+              {
+                "type": "Or",
+                "quantite": 3
+              },
+              {
+                "type": "Lingot",
+                "quantite": 1
+              }
+            ]
+          }
+        },
+        { "face": 2,
+          "nom": "Sir",
+          "type": "Personne",
+          "description": "Donner à ce personnage le nom de votre choix.",
+          "effet": {
+            "type": "Temporaire",
+            "cout": [
+              {
+                "type": "Lingot",
+                "quantite": 3
+              }
+            ],
+            "ressources": [
+              {
+                "type": "Stricker",
+                "quantite": 1
+              }
+            ]
+          }
+        }
+      ]
     }
-  ];
+];
