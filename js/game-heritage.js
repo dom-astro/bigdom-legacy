@@ -1156,7 +1156,7 @@ function openBijouxModal() {
           Gain : ★ ${nextCase.gloire} gloire + 5 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">
         </div>
         <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
-          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;">' — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> (vous avez ${metalDispo})`}
+          ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> (vous avez ${metalDispo})`}
         </div>
       </div>
       <div style="text-align:center;margin-top:14px;">

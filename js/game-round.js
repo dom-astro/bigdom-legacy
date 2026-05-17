@@ -348,12 +348,11 @@ function _showRound9ChoiceModal(allCards) {
     </div>`;
   }).join('');
 
-  const introText = `À l'aube de la manche 9, un choix crucial s'impose. Quatre voies s'offrent à vous, mais vous ne pouvez en suivre que deux.<br><em style="font-size:0.85rem;color:#aaa;">Choisissez 2 cartes à ajouter à votre pioche. Les 2 autres seront détruites.</em>`;
+  const introText = `À l'aube de l'expension de votre royaume, un choix crucial s'impose. Quatre voies s'offrent à vous, mais vous ne pouvez en suivre que deux.<br>`;
 
   document.getElementById('round9ChoiceModalBody').innerHTML = `
     <div class="round9-choice-intro">
       <p>${introText}</p>
-      <div class="round9-choice-hint">Sélectionnez <strong>2 cartes</strong> à ajouter à votre pioche. Les deux autres seront détruites.</div>
     </div>
     <div class="r9-choice-grid">${cardsHTML}</div>`;
 
@@ -632,8 +631,8 @@ function _allHeritageCardsRevealed(heritageNums) {
 //  INJECTION CARTES HÉRITAGE DANS LA PIOCHE (appelé depuis game-heritage.js)
 // ============================================================
 
-// Injecte les cartes héritage jouables (28, 29, …) dans la pioche existante
-// après les avoir mélangées avec les cartes déjà présentes.
+// Injecte les cartes héritage jouables (28, 29, …) dans la réserve de découverte (box)
+// afin qu'elles soient révélées 2 par 2 lors des prochaines manches.
 // Appelé par _continueNewRoundAfterHeritage() dans game-heritage.js.
 function _injectHeritageCardsIntoDeck(allCards) {
   // Cartes héritage jouables = celles qui ont des faces dans LEGACY_CARDS
@@ -675,10 +674,9 @@ function _injectHeritageCardsIntoDeck(allCards) {
 
   if (toInject.length === 0) return;
 
-  // Mélanger les cartes à injecter avec le deck existant (allCards = futur deck)
+  // Ajouter les cartes à injecter dans la réserve (box) pour être découvertes progressivement
   toInject.forEach(ci => {
-    allCards.push(ci);
-    addLog(`📜 <span class="log-card">${getFaceData(ci).nom}</span> (#${ci.cardDef.numero}) — rejoint la pioche (Héritage) !`, true);
+    gameState.box.push(ci);
   });
-  addLog(`📜 ${toInject.length} carte${toInject.length > 1 ? 's' : ''} Héritage mélangée${toInject.length > 1 ? 's' : ''} dans la pioche.`, true);
+  addLog(`📜 ${toInject.length} carte(s) Héritage ajoutée(s) à la réserve de découverte.`, true);
 }
