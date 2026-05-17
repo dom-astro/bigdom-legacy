@@ -512,6 +512,15 @@ function getActivationFailureReason(cardInstance) {
 // Vérifie si une carte a un effet Activable et si son coût est payable
 function hasActivableEffect(cardInstance) {
   const fd = getFaceData(cardInstance);
+
+  // Cas spécial : Bonus du Scientifique (#32)
+  // Si le scientifique est en jeu, les cartes "Personne" (sauf lui-même)
+  // gagnent une capacité d'activation temporaire pour produire 1 Or.
+  const scientist = gameState.play.find(c => c.cardDef.numero === 32 && (c.currentFace || 1) === 1);
+  if (scientist && fd.type === 'Personne' && cardInstance.cardDef.numero !== 32) {
+    return true; // On la considère activable pour la rendre cliquable.
+  }
+
   if (!fd.effet) return false;
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
   return effets.some(e => e.type === 'Activable');
@@ -529,8 +538,19 @@ function stageActivateEffect(cardNum) {
   const cardInstance = gameState.play[playIndex];
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : [fd.effet];
-  const act = effets.find(e => e.type === 'Activable');
-  if (!act) return;
+  let act = effets.find(e => e.type === 'Activable');
+
+  // Cas spécial : Bonus du Scientifique (#33)
+  // Si une Personne sans effet natif est activée, on crée un effet fictif.
+  // Le gain d'Or sera géré dans les fonctions de confirmation (ex: _doStageActivate)
+  // pour s'appliquer aussi aux Personnes qui ont déjà un effet.
+  if (!act) {
+    const scientist = gameState.play.find(c => c.cardDef.numero === 33 && (c.currentFace || 1) === 1);
+    if (scientist && fd.type === 'Personne' && cardInstance.cardDef.numero !== 33) {
+      act = { type: 'Activable', cout: [] }; // Effet factice pour permettre l'activation
+    }
+  }
+  if (!act) return; // Toujours pas d'effet, on arrête.
 
   const confirmed = getConfirmedResources();
   for (const c of (act.cout || [])) {
@@ -876,7 +896,7 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
     window._pendingRetainedActivateNum = null;
   }
 
-  const plainesCard  = gameState.play[plainesPlayIndex];
+  const activatingCard  = gameState.play[plainesPlayIndex];
   const sacrificeCard = gameState.play[sacrificePlayIndex];
   const sacrificeName = getFaceData(sacrificeCard).nom;
 
@@ -894,18 +914,25 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
   });
 
   // Ajouter les ressources du sticker de la carte activante (la Plaine)
-  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(plainesCard.cardDef.numero) : {};
+  const activatingStickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(activatingCard.cardDef.numero) : {};
   Object.entries(activatingStickerBonus).forEach(([key, bonus]) => {
     if (bonus > 0 && gameState.resources[key] !== undefined) {
       resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
     }
   });
 
-  const plainesName = getFaceData(plainesCard).nom;
+  // Ajouter le bonus du Scientifique si la carte activante est une Personne
+  const activatingFaceData = getFaceData(activatingCard);
+  const scientist = gameState.play.find(c => c.cardDef.numero === 33 && (c.currentFace || 1) === 1);
+  if (scientist && activatingFaceData.type === 'Personne' && activatingCard.cardDef.numero !== 33) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + 1;
+  }
+
+  const activatingCardName = getFaceData(activatingCard).nom;
   const resStr = Object.entries(resourcesGained).map(([k,v]) => `+${v}${RESOURCE_ICONS[k]||k}`).join(' ');
 
   gameState.staging.push({
-    cardInstance: plainesCard,
+    cardInstance: activatingCard,
     action: 'activate',
     resourcesGained,
     fameGained: 0,
@@ -915,7 +942,7 @@ function confirmSacrifice(plainesPlayIndex, sacrificePlayIndex) {
     fromRetainedCards: fromRetained
   });
 
-  addLog(`🟢 <span class="log-card">${plainesName}</span> + <span class="log-card">${sacrificeName}</span> — en attente de confirmation (${resStr}).`);
+  addLog(`🟢 <span class="log-card">${activatingCardName}</span> + <span class="log-card">${sacrificeName}</span> — en attente de confirmation (${resStr}).`);
   updateUI();
 }
 
@@ -1034,6 +1061,13 @@ function confirmTerrainChoice(exploitantPlayIndex, terrainCardNum) {
       resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
     }
   });
+
+  // Ajouter le bonus du Scientifique si la carte activante est une Personne
+  const exploitantFaceData = getFaceData(exploitantCard);
+  const scientist = gameState.play.find(c => c.cardDef.numero === 33 && (c.currentFace || 1) === 1);
+  if (scientist && exploitantFaceData.type === 'Personne' && exploitantCard.cardDef.numero !== 33) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + 1;
+  }
 
   // Retirer l'Exploitant du jeu (le terrain reste en jeu)
   _playRemove(exploitantPlayIndex);
@@ -1258,6 +1292,12 @@ function confirmResourceChoice() {
     }
   });
 
+  // Ajouter le bonus du Scientifique si la carte activante est une Personne
+  const scientist = gameState.play.find(c => c.cardDef.numero === 33 && (c.currentFace || 1) === 1);
+  if (scientist && fd.type === 'Personne' && cardInstance.cardDef.numero !== 33) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + 1;
+  }
+
   _playRemove(playIndex);
   const resStr = `+${chosen.quantite}${RESOURCE_ICONS[key]||chosen.type}`;
 
@@ -1293,6 +1333,12 @@ function _doStageActivate(playIndex, act) {
       resourcesGained[key] = (resourcesGained[key] || 0) + bonus;
     }
   });
+
+  // Ajouter le bonus du Scientifique (#33) si la carte activée est une Personne
+  const scientist = gameState.play.find(c => c.cardDef.numero === 33 && (c.currentFace || 1) === 1);
+  if (scientist && fd.type === 'Personne' && cardInstance.cardDef.numero !== 33) {
+    resourcesGained['Or'] = (resourcesGained['Or'] || 0) + 1;
+  }
 
   // Promotion forcée incluse dans l'effet (ex: Forêt → Coupe Rase)
   const newFace = act.promotion ? act.promotion.face : null;

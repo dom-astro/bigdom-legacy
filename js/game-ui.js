@@ -47,7 +47,8 @@ function _handleCardDoubleClick(cardNum, zone) {
   const face = getFaceData(cardInstance);
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
-  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
+  const scientistBonus = typeof getScientistPersonneBonusForCard === 'function' ? getScientistPersonneBonusForCard(cardNum, face) : 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus || scientistBonus > 0;
 
   if (hasResources) {
     if (zone === 'play') { stageProduceCard(cardNum); }
@@ -77,7 +78,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
   const hasUpgrade = !!(face.promotion || (face.promotions && face.promotions.length > 0));
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
-  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
+  const scientistBonus = typeof getScientistPersonneBonusForCard === 'function' ? getScientistPersonneBonusForCard(cardInstance.cardDef.numero, face) : 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus || scientistBonus > 0;
   const banditCard = isBandit(cardInstance);
   const blocked = isBlockedByBandit(playIndex);
   const totalFaces = cardInstance.cardDef.faces.length;
@@ -203,6 +205,8 @@ function buildCardFrontHTML(cardInstance, playIndex) {
       </div>
     </div>`;
 
+  const bonusOverlayHTML = scientistBonus > 0 ? `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>` : '';
+
   return `
     <div class="card-wrapper${blocked ? ' card-wrapper-blocked' : ''}${banditCard ? ' card-wrapper-bandit' : ''}${isActionable ? ' card-wrapper-actionable' : ''}" data-card-num="${cardInstance.cardDef.numero}">
       <div class="card card-front" onclick="cardClickHandler.handle(event, ${cardInstance.cardDef.numero}, 'play')"
@@ -212,6 +216,7 @@ function buildCardFrontHTML(cardInstance, playIndex) {
         <div class="card-name" style="color:${nameColor}">${face.nom}</div>
         <span class="card-type-badge type-${(face.type||'').replace('â','a').replace('è','e')}">${face.type}</span>
         <div class="card-img-area">${getCardEmoji(face.type, face.nom)}</div>
+        ${bonusOverlayHTML}
         <div class="card-resources">${resHTML}</div>
         ${effectIcon ? `<div class="card-effect-indicator">${effectIcon}</div>` : ''}
         ${hasUpgrade && !banditCard ? `<div class="card-upgrade-hint${canUpgrade?' can-upgrade':''}">▲ ${allPromos.map(p => formatCostHint(p.cout||[])).join(' | ')}</div>` : ''}
@@ -598,7 +603,8 @@ function buildHeldCardHTML(cardInstance, source) {
   const isStayInPlay = source === 'stayInPlay';
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
-  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
+  const scientistBonus = typeof getScientistPersonneBonusForCard === 'function' ? getScientistPersonneBonusForCard(cardNum, face) : 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus || scientistBonus > 0;
 
   // Palette : dorée chaude pour les deux, badge texte différencié
   const borderColor    = '#c8960c';
@@ -684,7 +690,6 @@ function buildHeldCardHTML(cardInstance, source) {
       </div>
     </div>`;
 
-  const scientistBonus = getScientistPersonneBonusForCard(cardNum, face);
   const bonusOverlayHTML = scientistBonus > 0 ? `<div class="card-bonus-overlay">🔵 +${scientistBonus} Or</div>` : '';
 
   return `
@@ -1029,7 +1034,8 @@ function openCardModal(indexOrNum, zone) {
   // — Production
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardInstance.cardDef.numero) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
-  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus;
+  const scientistBonus = typeof getScientistPersonneBonusForCard === 'function' ? getScientistPersonneBonusForCard(cardInstance.cardDef.numero, face) : 0;
+  const hasResources = (face.ressources && face.ressources.length > 0) || hasStickerBonus || scientistBonus > 0;
 
   if (hasResources) {
     const baseRes = {};
@@ -1041,6 +1047,10 @@ function openCardModal(indexOrNum, zone) {
           baseRes[resKey] = (baseRes[resKey] || 0) + r.quantite;
         });
       });
+    }
+
+    if (scientistBonus > 0) {
+      baseRes['Or'] = (baseRes['Or'] || 0) + scientistBonus;
     }
 
     const allKeys = new Set([...Object.keys(baseRes), ...Object.keys(stickerBonus)]);
