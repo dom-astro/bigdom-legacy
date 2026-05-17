@@ -302,7 +302,7 @@ function _showBijouxPresentationModal(cardInstance) {
           </div>`).join('')}
       </div>
       <p style="font-family:'Crimson Text',serif;font-size:0.75rem;color:#888;font-style:italic;text-align:center;margin-top:10px;">
-        Marquez les cases de gauche à droite en dépensant du Métal. Chaque case cochée rapporte 5 Marchandises et termine votre tour.
+          Marquez les cases de gauche à droite en dépensant du Métal. Chaque case cochée ajoute 5 Marchandises dans la jauge Export.
       </p>
     </div>` : '';
 
@@ -903,8 +903,13 @@ function openExportModal() {
 
   const section1 = `
     <div style="margin-bottom:10px;">
-      <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;color:#f0c040;margin-bottom:10px;">
-        <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> EXPORT — Seuils 10 à 100
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;">
+        <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:2px;color:#f0c040;">
+          <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> EXPORT — Seuils 10 à 100
+        </div>
+        <div style="font-size:0.68rem;color:#aaa;text-align:right;">
+          Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"></strong>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 40px;gap:14px;align-items:start;">
         <div style="display:flex;flex-direction:column;gap:8px;">
@@ -912,13 +917,10 @@ function openExportModal() {
         </div>
         <div style="position:relative;width:100%;min-height:${barHeight}px;">
           <div style="position:absolute;inset:0;left:50%;transform:translateX(-50%);width:12px;height:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:999px;overflow:hidden;">
-            <div style="position:absolute;left:0;bottom:0;width:100%;height:${pctGlobal}%;background:linear-gradient(to top,#cc44ff 0%,#8844cc 100%);transition:height 0.4s;"></div>
+            <div style="position:absolute;left:0;top:0;width:100%;height:${pctGlobal}%;background:linear-gradient(to bottom,#cc44ff 0%,#8844cc 100%);transition:height 0.4s;"></div>
           </div>
           ${verticalMarkersHTML}
         </div>
-      </div>
-      <div style="font-size:0.68rem;color:#aaa;margin-top:10px;text-align:right;">
-        Total dépensé : <strong style="color:#cc88ff;">${prog.totalDepense} <img src="img/marchandise.png" alt="Marchandise" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"></strong>
       </div>
     </div>`;
 
@@ -1153,7 +1155,7 @@ function openBijouxModal() {
           Coût : <strong style="color:#b0bec5;">${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1em;vertical-align:-0.15em;object-fit:contain;"></strong>
         </div>
         <div style="font-size:0.9rem;color:#f0c040;">
-          Gain : ★ ${nextCase.gloire} gloire + 5 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">
+          Gain : ★ ${nextCase.gloire} gloire + 5 <img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> (Export)
         </div>
         <div style="font-size:0.75rem;color:${dejaCoche ? '#cc8844' : canMark ? '#aaffaa' : '#ff8888'};margin-top:6px;">
           ${dejaCoche ? '⏳ Une case a déjà été marquée ce tour' : canMark ? `✅ Vous avez ${metalDispo} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> — vous pouvez marquer` : `❌ Il vous faut ${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> (vous avez ${metalDispo})`}
@@ -1168,7 +1170,7 @@ function openBijouxModal() {
           color:${(canMark && !dejaCoche) ? '#102027' : '#666'};
           padding:10px 28px;border-radius:6px;cursor:${(canMark && !dejaCoche) ? 'pointer' : 'not-allowed'};
           transition:all 0.2s;">
-          <img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> Forger & Finir le tour
+          <img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> Forger
         </button>
       </div>`;
   }
@@ -1203,19 +1205,31 @@ function confirmBijouxCase() {
 
   // Dépenser le métal
   gameState.resources['Métal'] = Math.max(0, (gameState.resources['Métal'] || 0) - nextCase.cout_metal);
-  // Gagner les marchandises
-  gameState.resources['marchandise'] = (gameState.resources['marchandise'] || 0) + (nextCase.ressources.find(r => r.type === 'marchandise')?.quantite || 0);
+  
+  // Gagner les marchandises directement dans la jauge Export (#27)
+  const marchandisesGagnees = nextCase.ressources.find(r => r.type === 'marchandise')?.quantite || 0;
+  if (marchandisesGagnees > 0) {
+    const exportProg = _getExportProgress();
+    const ancienTotal = exportProg.totalDepense;
+    exportProg.totalDepense += marchandisesGagnees;
+    
+    _getAllExportSeuils().forEach(s => {
+      if (ancienTotal < s.cout_total && exportProg.totalDepense >= s.cout_total && !exportProg.seuilsUtilises.includes(s.index)) {
+        addLog(`🎉 Seuil ${s.cout_total} atteint : <strong>${s.effet}</strong> — utilisez-le entre les tours !`, true);
+      }
+    });
+  }
 
   prog.casesMarquees++;
   gameState.bijouxCaseCeTour = true;
 
-  addLog(`<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${nextCase.ressources[0].quantite}<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">. Le tour se termine.`, true);
+  addLog(`<img src="img/bijoux.png" alt="Bijoux" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> <span class="log-card">Bijoux</span> — case ${nextCase.index} marquée ! -${nextCase.cout_metal} <img src="img/lingot.png" alt="Métal" style="width:1.2em;height:1.2em;vertical-align:-0.15em;object-fit:contain;"> +${marchandisesGagnees}<img src="img/marchandise.png" alt="Marchandise" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;"> (Export).`, true);
 
   // Mise à jour de la gloire effective de la carte
   _updateBijouxGloire();
   
-  // Fin du tour
-  endTurn();
+  // Mettre à jour l'interface
+  updateUI();
 }
 
 // Recalcule et applique la gloire de la carte Bijoux dans gameState.fame
