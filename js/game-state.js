@@ -131,7 +131,7 @@ function getCardEmoji(type, nom) {
     'Mine':'<img src="img/mine-2.png" alt="Mine" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Forêt':'<img src="img/foret.png" alt="Forêt" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Coupe Rase':'🪓',
-    'Cabane de Bûcheron':'🏡',
+    'Cabane de Bûcheron':'<img src="img/cabane-bucheron.png" alt="Cabane de Bûcheron" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Puit Sacré':'<img src="img/puit-sacree.png" alt="Puit sacré" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Quartier Général':'<img src="img/quartier-general.svg" alt="Quartier général" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',
     'Hôtel de Ville':'<img src="img/mairie.png" alt="Hôtel de Ville" style="width:1.5em;height:1.5em;vertical-align:-0.15em;object-fit:contain;">',

@@ -206,8 +206,9 @@ function stageProduceStayCard(cardNum) {
   const faceData = getFaceData(ci);
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const scientistBonus = getScientistPersonneBonus(faceData);
 
-  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus && scientistBonus === 0) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }
@@ -316,8 +317,9 @@ function stageProduceRetainedCard(cardNum) {
   const faceData = getFaceData(ci);
   const stickerBonus = typeof getStickerResourceBonusForCard === 'function' ? getStickerResourceBonusForCard(cardNum) : {};
   const hasStickerBonus = Object.keys(stickerBonus).length > 0;
+  const scientistBonus = getScientistPersonneBonus(faceData);
 
-  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus) {
+  if ((!faceData.ressources || faceData.ressources.length === 0) && !hasStickerBonus && scientistBonus === 0) {
     addLog(`❌ <span class="log-card">${faceData.nom}</span> n'a pas de production.`);
     return;
   }

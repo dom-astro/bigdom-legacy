@@ -159,6 +159,9 @@ function endTurn() {
 
   if (cardsToAnimate.length > 0 && discardRect) { _animateCardsToDiscard(cardsToAnimate, discardRect, afterAnimation); }
   else { afterAnimation(); } // No animation, just update UI and continue
+
+  const hasCardsLeft = gameState.deck.length > 0;
+  if (!hasCardsLeft) { newRound(); return; }
 }
 
 // Données en attente pendant l'inspection des nouvelles cartes
@@ -446,8 +449,15 @@ function confirmRound9Choice() {
   });
 
   addLog(`📜 Choix de la manche 9 effectué.`, true);
-  _finalizeNewRound(allCards, []);
-  drawCards(4);
+
+  const discovered = discoverNextCards(2);
+  if (discovered.length > 0) {
+    _pendingNewRound = { allCards, discovered };
+    _showNewCardsModal(discovered);
+  } else {
+    _finalizeNewRound(allCards, []);
+    drawCards(4);
+  }
 }
 
 // ============================================================
@@ -588,7 +598,26 @@ function _finalizeNewRound(allCards, discovered) {
 
 function discoverNextCards(n) {
   const out = [];
-  for (let i = 0; i < n && gameState.nextDiscoverIndex < gameState.box.length; i++) {
+  if (gameState.nextDiscoverIndex === undefined) {
+    gameState.nextDiscoverIndex = 0;
+  }
+
+  // Auto-correction : on saute les cartes qui sont déjà connues dans le royaume
+  const alreadyKnown = new Set([
+    ...(gameState.deck || []), ...(gameState.play || []), ...(gameState.discard || []),
+    ...(gameState.stayInPlay || []), ...(gameState.retainedCards || []),
+    ...(gameState.permanent || []), ...(gameState.destroyed || []),
+    ...(gameState.staging || []).map(e => e.cardInstance)
+  ].map(ci => ci.cardDef ? ci.cardDef.numero : null).filter(num => num !== null));
+
+  while (gameState.box && gameState.nextDiscoverIndex < gameState.box.length) {
+    const item = gameState.box[gameState.nextDiscoverIndex];
+    const num = item && item.cardDef ? item.cardDef.numero : (item ? item.numero : null);
+    if (num && alreadyKnown.has(num)) gameState.nextDiscoverIndex++;
+    else break;
+  }
+
+  for (let i = 0; i < n && gameState.box && gameState.nextDiscoverIndex < gameState.box.length; i++) {
     const item = gameState.box[gameState.nextDiscoverIndex++];
     out.push(item && item.cardDef ? item : createCardInstance(item));
   }
@@ -675,6 +704,7 @@ function _injectHeritageCardsIntoDeck(allCards) {
   if (toInject.length === 0) return;
 
   // Ajouter les cartes à injecter dans la réserve (box) pour être découvertes progressivement
+  if (!gameState.box) gameState.box = [];
   toInject.forEach(ci => {
     gameState.box.push(ci);
   });
