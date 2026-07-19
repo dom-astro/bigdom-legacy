@@ -1649,10 +1649,13 @@ function _applyCardDealAnimation(cardEl, deckRect, targetRect, index) {
 }
 
 /**
- * Animates a card promotion from the staging area.
- * @param {object} upgradeEntry - The staging entry for the upgrade.
- * @param {number} stagingIndex - The index of the card in the staging area.
- * @param {Function} callback - Function to call after all animations are complete.
+ * Anime la promotion d'une carte depuis la zone de préparation (staging) vers la défausse.
+ * La fonction crée un élément d'animation temporaire, fait basculer la carte,
+ * puis la déplace vers la pile de défausse avant d'appeler le callback.
+ *
+ * @param {object} upgradeEntry - Entrée de promotion contenant la carte et sa nouvelle face.
+ * @param {number} stagingIndex - Index de la carte dans la zone de préparation.
+ * @param {Function} callback - Fonction appelée une fois l'animation terminée.
  */
 function _animatePromotion(upgradeEntry, stagingIndex, callback) {
   const stagingArea = document.getElementById('stagingArea');
@@ -1667,16 +1670,16 @@ function _animatePromotion(upgradeEntry, stagingIndex, callback) {
   const startRect = sourceEl.getBoundingClientRect();
   const discardRect = discardEl.getBoundingClientRect();
 
-  // 1. Create the animation element
+  // 1. Créer l'élément d'animation temporaire
   const animContainer = document.createElement('div');
   animContainer.className = 'promo-anim-container';
   document.body.appendChild(animContainer);
 
-  // 2. Build front and back faces
+  // 2. Construire les faces avant et arrière
   const frontHTML = sourceEl.querySelector('.staging-card').outerHTML;
 
   const tempInstance = { ...upgradeEntry.cardInstance, currentFace: upgradeEntry.newFace };
-  const backHTML = buildCardFrontHTML(tempInstance, -1); // -1 for no specific play index
+  const backHTML = buildCardFrontHTML(tempInstance, -1); // -1 pour aucune zone de jeu spécifique
 
   const finalW = 130, finalH = 185;
   const startW = startRect.width, startH = startRect.height;
@@ -1707,7 +1710,7 @@ function _animatePromotion(upgradeEntry, stagingIndex, callback) {
     const flipCard = animContainer.querySelector('.promo-flip-card');
     flipCard.classList.add('is-flipped');
 
-    // 5. After flip, animate to discard pile
+    // 5. Après le retournement, animer vers la pile de défausse
     setTimeout(() => {
       const discardCx = discardRect.left + discardRect.width / 2;
       const discardCy = discardRect.top + discardRect.height / 2;
@@ -1721,11 +1724,11 @@ function _animatePromotion(upgradeEntry, stagingIndex, callback) {
 
       animContainer.addEventListener('transitionend', () => {
         animContainer.remove();
-        stagingArea.parentElement.style.visibility = ''; // Show staging area again
+        stagingArea.parentElement.style.visibility = ''; // Réafficher la zone de préparation
         callback();
       }, { once: true });
 
-    }, 950); // Corresponds to flip animation duration + a small buffer
+    }, 950); // Correspond à la durée du flip + un petit délai
   });
 }
 
