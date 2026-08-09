@@ -27,10 +27,16 @@ function _processSingleStagedAction(entry) {
     } else {
       gameState.discard.push(cardInstance);
       if (entry.sacrificeCardInstance) {
-        if (!gameState.destroyed) gameState.destroyed = [];
-        gameState.destroyed.push(entry.sacrificeCardInstance);
-        const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
-        addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
+        if (entry.sacrificeMode === 'discard') {
+          gameState.discard.push(entry.sacrificeCardInstance);
+          const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
+          addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> défaussée — effet activé. ${resStr}`);
+        } else {
+          if (!gameState.destroyed) gameState.destroyed = [];
+          gameState.destroyed.push(entry.sacrificeCardInstance);
+          const sacrificeName = getFaceData(entry.sacrificeCardInstance).nom;
+          addLog(`✅ <span class="log-card">${oldName}</span> + <span class="log-card">${sacrificeName}</span> sacrifiée — effet activé. ${resStr}`);
+        }
       } else {
         addLog(`✅ <span class="log-card">${oldName}</span> — effet activé et défaussée. ${resStr}`);
       }
@@ -185,6 +191,7 @@ function newRound() {
     }
   });
 
+  gameState.play = []; // Clear play area before processing staging
   gameState.staging.forEach(e => gameState.play.push(e.cardInstance)); // Move staged cards back to play temporarily for animation capture
   gameState.staging = [];
   gameState.bandits = [];

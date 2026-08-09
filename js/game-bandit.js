@@ -143,6 +143,7 @@ function showBanditChoiceModal(banditNum, goldCards, rest) {
 
 // Appelé quand le joueur choisit la carte à bloquer
 function assignBanditBlock(banditNum, targetCardNum) {
+  if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('banditChoiceModal'))?.hide();
   const entry = gameState.bandits.find(b => b.banditNum === banditNum);
   if (entry) {
@@ -158,3 +159,149 @@ function assignBanditBlock(banditNum, targetCardNum) {
   window._banditChoiceRest = [];
   if (rest.length > 0) setTimeout(() => _resolveBanditQueue(rest), 400);
 }
+
+// Vaincre le bandit : coûte 1 Épée, détruit le bandit, gagne 2 ressources au choix
+function defeatBandit(cardNum) {
+  const projected = getProjectedResources();
+  if ((projected['Epée'] || 0) < 1) {
+    addLog(`❌ Pas d'épée disponible pour vaincre le Bandit.`);
+    return;
+  }
+  showBanditRewardModal(cardNum);
+}
+
+let pendingBanditDefeat = null; // stocke maintenant le numéro de carte
+
+function showBanditRewardModal(banditNum) {
+  pendingBanditDefeat = banditNum;
+  window._banditRewardChoices = [];
+  _renderBanditRewardModal();
+  new bootstrap.Modal(document.getElementById('banditRewardModal')).show();
+}
+
+function _renderBanditRewardModal() {
+  const resources = ['Or', 'Bois', 'Pierre', 'Métal'];
+  const choices = window._banditRewardChoices || [];
+
+  let html = `<p style="margin-bottom:12px;">Choisissez <strong>2 ressources</strong> à gagner en vainquant le Bandit :<br><small style="color:#aaa;">(Cliquez deux fois sur la même ressource pour la choisir en double)</small></p>`;
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">`;
+  resources.forEach(r => {
+    const count = choices.filter(c => c === r).length;
+    const isSelected = count > 0;
+    const badge = count === 2 ? ` <span style="background:#f0c040;color:#1a0a00;border-radius:50%;padding:0 5px;font-size:0.7rem;font-weight:bold;">×2</span>` : '';
+    html += `<button onclick="selectBanditReward('${r}')" class="bandit-reward-btn${isSelected ? ' selected' : ''}" id="reward-${r}">
+      ${RESOURCE_ICONS[r]} ${r}${badge}
+    </button>`;
+  });
+  html += `</div>`;
+
+  // Sélection avec boutons de désélection individuels
+  if (choices.length > 0) {
+    html += `<div style="margin-top:12px;text-align:center;">
+      <div style="font-family:'Cinzel',serif;font-size:0.75rem;color:#aaa;margin-bottom:6px;">Sélection :</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">`;
+    choices.forEach((r, i) => {
+      html += `<span style="background:rgba(240,192,64,0.15);border:1px solid #f0c040;border-radius:12px;padding:3px 10px;font-size:0.8rem;color:#f0c040;display:flex;align-items:center;gap:4px;">
+        ${RESOURCE_ICONS[r]} ${r}
+        <button onclick="removeBanditReward(${i})" style="background:none;border:none;color:#cc4444;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;" title="Retirer">✕</button>
+      </span>`;
+    });
+    html += `</div></div>`;
+  } else {
+    html += `<div style="margin-top:12px;min-height:30px;text-align:center;font-family:'Cinzel',serif;font-size:0.75rem;color:#666;">Aucune ressource sélectionnée</div>`;
+  }
+
+  html += `<button onclick="confirmBanditDefeat()" class="btn btn-success btn-sm" style="margin-top:12px;display:block;margin-left:auto;margin-right:auto;" id="btnConfirmDefeat" ${choices.length < 2 ? 'disabled' : ''}>✔ Confirmer</button>`;
+  $('#banditRewardBody').html(html);
+}
+
+function selectBanditReward(resource) {
+  if (!window._banditRewardChoices) window._banditRewardChoices = [];
+  const choices = window._banditRewardChoices;
+  if (choices.length < 2) {
+    choices.push(resource);
+  }
+  _renderBanditRewardModal();
+}
+
+function removeBanditReward(index) {
+  if (!window._banditRewardChoices) return;
+  window._banditRewardChoices.splice(index, 1);
+  _renderBanditRewardModal();
+}
+
+function confirmBanditDefeat() {
+  // Blur the currently focused element to prevent it from retaining focus
+  // while its ancestor (the modal) is being hidden.
+  if (document.activeElement) {
+    document.activeElement.blur();
+  }
+  
+  bootstrap.Modal.getInstance(document.getElementById('banditRewardModal'))?.hide();
+  const choices = window._banditRewardChoices || [];
+  if (choices.length < 2 || pendingBanditDefeat === null) return;
+
+  const banditNum = pendingBanditDefeat;
+  pendingBanditDefeat = null;
+
+  // 1. Trouver la carte et son élément DOM
+  const banditPlayIndex = _playIdxByNum(banditNum);
+  let banditCard = null;
+  let banditCardEl = null;
+  let sourceZone = '';
+
+  if (banditPlayIndex >= 0) {
+    banditCard = gameState.play[banditPlayIndex];
+    banditCardEl = document.querySelector(`.card-wrapper[data-card-num="${banditNum}"]`);
+    sourceZone = 'play';
+  } else {
+    const retIdx = (gameState.retainedCards || []).findIndex(c => c.cardDef.numero === banditNum);
+    if (retIdx >= 0) {
+      banditCard = gameState.retainedCards[retIdx];
+      banditCardEl = document.querySelector(`.card-wrapper[data-held-num="${banditNum}"]`);
+      sourceZone = 'retained';
+    }
+  }
+
+  if (!banditCard) return; // introuvable
+
+  // 2. Définir la logique à exécuter après l'animation
+  const afterAnimation = () => {
+    // Dépenser 1 Épée et créditer les ressources choisies
+    gameState.resources['Epée'] = Math.max(0, (gameState.resources['Epée'] || 0) - 1);
+    choices.forEach(r => { gameState.resources[r] = (gameState.resources[r] || 0) + 1; });
+
+    // Placer le bandit dans les cartes détruites/sacrifiées
+    if (!gameState.destroyed) gameState.destroyed = [];
+    gameState.destroyed.push(banditCard);
+
+    const resParts = choices.map(r => `${RESOURCE_ICONS[r]} ${r}`).join(' + ');
+    addLog(`⚔️ <span class="log-card">Bandit</span> vaincu ! -1⚔️ +${resParts}`, true);
+    updateUI();
+  };
+
+  // 3. Retirer la carte du gameState AVANT l'animation
+  if (sourceZone === 'play') {
+    _playRemove(banditPlayIndex);
+  } else if (sourceZone === 'retained') {
+    const retIdx = (gameState.retainedCards || []).findIndex(c => c.cardDef.numero === banditNum);
+    if (retIdx >= 0) gameState.retainedCards.splice(retIdx, 1);
+    // Nettoyer manuellement bandits[] et retained[]
+    updateBanditIndices(banditNum);
+    if (gameState.retained) {
+      const rIdx = gameState.retained.indexOf(banditNum);
+      if (rIdx >= 0) gameState.retained.splice(rIdx, 1);
+    }
+  }
+
+  // 4. Lancer l'animation vers la pile des sacrifiées
+  const sacrificedRect = document.querySelector('#sacrificedVisual .card-front')?.getBoundingClientRect();
+  if (banditCardEl && sacrificedRect) {
+    // Ne pas appeler updateUI() ici, car ça retirerait l'élément du DOM avant l'animation.
+    // L'animation se chargera de retirer l'élément.
+    _animateCardsToDiscard([banditCardEl], sacrificedRect, afterAnimation);
+  } else {
+    // Pas d'animation possible, exécuter directement
+    afterAnimation();
+  }
+}   

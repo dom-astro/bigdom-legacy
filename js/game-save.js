@@ -27,7 +27,8 @@ function _buildSaveObject() {
         nom: face?.nom || `Carte #${e.cardInstance.cardDef.numero}`, type: face?.type || '—',
         action: e.action, ressources_attendues: res || '—', fame_attendu: e.fameGained || 0,
         promotion_vers_face: e.newFace || null,
-        sacrifice: (e.sacrificeCardInstance && e.sacrificeCardInstance.cardDef) ? readableCard(e.sacrificeCardInstance) : null };
+        sacrifice: (e.sacrificeCardInstance && e.sacrificeCardInstance.cardDef) ? readableCard(e.sacrificeCardInstance) : null,
+        sacrifice_mode: e.sacrificeMode || null };
     });
 
   const now = new Date();
@@ -85,6 +86,7 @@ function _buildSaveObject() {
         newFace: e.newFace, cout: e.cout,
         sacN: e.sacrificeCardInstance?.cardDef?.numero ?? null,
         sacF: e.sacrificeCardInstance?.currentFace    ?? null,
+        sacrificeMode: e.sacrificeMode || null,
         fromRetained: e.fromRetained || false,
       })),
       bandits: (gameState.bandits || []).map(b => ({ bN: b.banditNum, blN: b.blockedNum ?? null })),
@@ -307,6 +309,7 @@ function _applyImport(raw) {
     if (!ci) return null;
     const entry = { cardInstance: ci, action: e.action, resourcesGained: e.resourcesGained || {},
       fameGained: e.fameGained || 0, newFace: e.newFace || null, cout: e.cout || [],
+      sacrificeMode: e.sacrificeMode || null,
       fromRetained: e.fromRetained || false };
     if (e.sacN) { const sc = _resolveCard({ n: e.sacN, f: e.sacF || 1 }); if (sc) entry.sacrificeCardInstance = sc; }
     return entry;

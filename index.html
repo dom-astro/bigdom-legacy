@@ -176,7 +176,7 @@
       <div class="zone-title">🗑 Défausse</div>
       <div class="card-stack-area" id="discardZone">
         <div id="discardVisual" style="display:none;">
-          <div class="card-front" id="topDiscardCard" style="cursor:pointer;" onclick="showDiscardPile()"></div>
+          <div class="card-front" id="topDiscardCard" style="cursor:pointer; width: 100%" onclick="showDiscardPile()"></div>
         </div>
         <div id="discardEmpty" style="text-align:center;color:rgba(200,150,12,0.2);">
           <div style="font-size:2rem;margin-bottom:6px;">📄</div>
@@ -189,8 +189,8 @@
       <div class="zone-title" style="margin-top:12px;">🔥 Sacrifiées</div>
       <div class="card-stack-area" id="sacrificedZone">
           <div id="sacrificedVisual" style="display:none;">
-              <div class="card-back" style="background-color: #4a0a0a; border-color: #8b0000;"></div>
-              <div id="topSacrificedCard" class="card-front" onclick="showSacrificedPile()" style="cursor:pointer;"></div>
+              <!-- div class="card-back" style="background-color: #4a0a0a; border-color: #8b0000;"></div -->
+              <div id="topSacrificedCard" class="card-back" onclick="showSacrificedPile()" style="cursor:pointer; padding-left: 34px; background-color: #4a0a0a; border-color: #8b0000;"></div>
           </div>
           <div id="sacrificedEmpty" style="text-align:center;color:rgba(200,150,12,0.2);">
               <div style="font-size:2rem;margin-bottom:6px;">🔥</div>
@@ -865,10 +865,24 @@
     <div class="modal-content" style="background:linear-gradient(160deg,#1a1008,#0e0a04);border:3px solid #cc9900;">
       <div class="modal-header border-0" style="padding-bottom:4px;">
         <h5 class="modal-title" id="sacrificeChoiceTitle" style="font-family:'Cinzel',serif;color:#f0c040;font-size:0.88rem;letter-spacing:2px;">
-          🤝 Choisir une carte à défausser
+          🤝 Choisir une carte à sacrifier
         </h5>
       </div>
       <div class="modal-body" id="sacrificeChoiceBody" style="font-family:'Crimson Text',serif;color:#f5e6c8;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEFAUSSE CHOICE MODAL (utilisé pour Plaine, etc.) -->
+<div class="modal fade" id="defausseChoiceModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:linear-gradient(160deg,#1a1008,#0e0a04);border:3px solid #cc9900;">
+      <div class="modal-header border-0" style="padding-bottom:4px;">
+        <h5 class="modal-title" id="defausseChoiceTitle" style="font-family:'Cinzel',serif;color:#f0c040;font-size:0.88rem;letter-spacing:2px;">
+          🤝 Choisir une carte à défausser
+        </h5>
+      </div>
+      <div class="modal-body" id="defausseChoiceBody" style="font-family:'Crimson Text',serif;color:#f5e6c8;"></div>
     </div>
   </div>
 </div>

@@ -376,7 +376,7 @@ body.light-mode .zone-title { color: #8a6200; }
 .card-back::after  { content: '⚜'; font-size: 2.5rem; color: rgba(200,150,12,0.5); }
 
 .card-front {
-  width: 130px; height: 185px; border-radius: 10px;
+  width: 130px; min-width: 130px; height: 185px; border-radius: 10px;
   border: 2px solid var(--border-ornate);
   background: linear-gradient(160deg, var(--parchment), var(--parchment-dark));
   padding: 6px; display: flex; flex-direction: column;
