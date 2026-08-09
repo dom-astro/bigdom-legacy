@@ -230,6 +230,22 @@ function newRound() {
     updateUI(); // Update UI after animation
 
     // ── HÉRITAGE : se déclenche à la fin de la manche 7 ─────────────────────
+    // La transition vers le système d'Héritage est AUTOMATIQUE à la fin manche 6.
+    // Quand le joueur clique "Fin de Manche" à la fin du tour 5+ de la manche 6:
+    //   1. Fin de manche 6 est appliquée (défausse, mélange, etc.)
+    //   2. gameState.round passe de 6 → 7
+    //   3. Vérification: round === 7 && !_heritageTriggered
+    //   4. Set _heritageTriggered = true (ne se déclenche qu'une fois)
+    //   5. Affiche modal #23 (Règle de l'Héritage)
+    //   6. Puis modales #24-27 une par une (inspection des cartes)
+    //   7. Chaque carte est ajoutée aux permanentes
+    // 
+    // À partir de la manche 8+: les cartes d'héritage restent en permanentes
+    // et ne sont jamais défaussées. Elles offrent des bonus permanents.
+    //
+    // Les CARDS_TO_DISCOVER (cartes 28+) se débloquent progressivement via
+    // des actions spéciales, pas automatiquement à manche 7.
+    //
     if (gameState.round === 7 && !gameState._heritageTriggered) {
       gameState._heritageTriggered = true;
 
@@ -243,6 +259,10 @@ function newRound() {
     }
 
     // ── CHOIX MANCHE 9 : se déclenche à la fin de la manche 8 ────────────────
+    // À la fin de la manche 8, le joueur doit faire un choix stratégique:
+    // Continuer la voie des Manches (tirer plus de cartes héritages?)
+    // Ou choisir un chemin alternatif?
+    //
     if (gameState.round === 8 && !gameState._round9ChoiceTriggered) {
       gameState._round9ChoiceTriggered = true;
       addLog(`📜 La manche 8 s'achève. Un choix décisif vous attend...`, true);
@@ -251,6 +271,9 @@ function newRound() {
     }
 
     // ── Découverte de 2 cartes héritage par manche (à partir de la manche 8) ──
+    // À chaque nouvelle manche (7+), 2 nouvelles cartes du deck héritage sont
+    // révélées au joueur. Il pourra les ajouter à sa défausse (pas auto en jeu).
+    //
     const discovered = discoverNextCards(2);
 
     // Fin de partie : toutes les cartes héritage (28+) ont été révélées
