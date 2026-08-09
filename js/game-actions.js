@@ -686,8 +686,9 @@ function _doActivateWithCards(playIndex, act) {
     const key = normalizeRes(c.type);
     gameState.resources[key] = (gameState.resources[key] || 0) - c.quantite;
   }
-    // Afficher un modal de présentation puis défausser
-  window._pendingCardGrant = { playIndex, cardInstance, targetCards };
+  const newFace = act.promotion ? act.promotion.face : null;
+  // Afficher un modal de présentation puis défausser
+  window._pendingCardGrant = { playIndex, cardInstance, targetCards, newFace, selectedCardIdx: targetCards.length === 1 ? 0 : null };
   _showCardGrantModal(targetCards, fd.nom);
 }
 
@@ -697,7 +698,7 @@ function _showCardGrantModal(targetCards, sourceName) {
     Ennemi: '#5a0a0a', Evènement: '#3a2a5a', Maritime: '#0a3a5a'
   };
 
-  const cardsHTML = targetCards.map(cardDef => {
+  const cardsHTML = targetCards.map((cardDef, idx) => {
     const face = cardDef.faces[0];
     const bgType = typeColors[face.type] || '#3a3a3a';
     const resHTML = (face.ressources || []).length
@@ -715,37 +716,68 @@ function _showCardGrantModal(targetCards, sourceName) {
       ? `<div style="font-size:0.72rem;color:#bbeebb;margin-top:6px;">🔵 ${face.effet.type}${face.effet.description ? ' — ' + face.effet.description : ''}</div>`
       : '';
 
-    return `<div style="
-        background:linear-gradient(160deg,#1e160a,#120e06);
-        border:2px solid var(--border-ornate);border-radius:10px;
-        padding:20px 18px;text-align:center;
-        box-shadow:0 4px 24px rgba(0,0,0,0.6);max-width:280px;margin:0 auto;">
-      <div style="font-size:0.6rem;color:#777;font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:6px;">#${cardDef.numero}</div>
-      <div style="font-size:3rem;margin-bottom:10px;">${getCardEmoji(face.type, face.nom)}</div>
-      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
-      <div style="display:inline-block;background:${bgType};border-radius:4px;padding:2px 12px;font-size:0.62rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:12px;">${face.type}</div>
-      <div style="font-size:0.8rem;color:#c8b89a;line-height:1.5;margin-bottom:10px;font-style:italic;">${face.description || ''}</div>
-      <div>${resHTML}</div>
-      ${fameHTML}${effetHTML}
-    </div>`;
+    return `<button type="button" onclick="selectCardGrant(${idx})" id="cardGrantChoiceBtn_${idx}" class="card-grant-choice-btn" style="
+        width:100%;background:linear-gradient(160deg,#1e160a,#120e06);border:2px solid ${bgType};border-radius:12px;padding:16px;margin-bottom:12px;text-align:left;
+        cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;
+      ">
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="min-width:48px;text-align:center;font-size:2.4rem;">${getCardEmoji(face.type, face.nom)}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1rem;color:var(--gold-light);margin-bottom:6px;">${face.nom}</div>
+          <div style="display:inline-block;background:${bgType};border-radius:4px;padding:2px 8px;font-size:0.62rem;font-family:'Cinzel',serif;color:#fff;letter-spacing:1px;margin-bottom:8px;">${face.type}</div>
+          <div style="font-size:0.8rem;color:#c8b89a;line-height:1.4;margin-bottom:8px;">${face.description || ''}</div>
+          <div>${resHTML}</div>
+          ${fameHTML}${effetHTML}
+        </div>
+      </div>
+    </button>`;
   }).join('');
 
   document.getElementById('cardGrantBody').innerHTML = `
     <p style="text-align:center;font-family:'Crimson Text',serif;font-size:0.95rem;color:#f5e6c8;margin-bottom:18px;line-height:1.5;">
-      La <strong>${sourceName}</strong> attire la grâce divine.<br>
-      <em style="font-size:0.85rem;color:#aaa;">Cette carte rejoint votre défausse.</em>
+      La <strong>${sourceName}</strong> vous offre un choix parmi les cartes suivantes.<br>
+      <em style="font-size:0.85rem;color:#aaa;">Sélectionnez une carte pour l'ajouter à votre défausse.</em>
     </p>
     ${cardsHTML}`;
 
+  window._pendingCardGrant.selectedCardIdx = targetCards.length === 1 ? 0 : null;
   new bootstrap.Modal(document.getElementById('cardGrantModal')).show();
+}
+
+function selectCardGrant(idx) {
+  const pending = window._pendingCardGrant || {};
+  if (!pending || !Array.isArray(pending.targetCards)) return;
+  pending.selectedCardIdx = idx;
+  (pending.targetCards || []).forEach((_, i) => {
+    const btn = document.getElementById(`cardGrantChoiceBtn_${i}`);
+    if (btn) {
+      if (i === idx) {
+        btn.style.borderColor = '#f0c040';
+        btn.style.boxShadow = '0 0 18px rgba(240,208,64,0.26)';
+      } else {
+        btn.style.borderColor = '';
+        btn.style.boxShadow = '';
+      }
+    }
+  });
 }
 
 function confirmCardGrant() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('cardGrantModal'))?.hide();
-  const { playIndex, cardInstance, targetCards } = window._pendingCardGrant || {};
+  const pending = window._pendingCardGrant || {};
+  const { playIndex, cardInstance, targetCards, selectedCardIdx, newFace } = pending;
+  if (!cardInstance) {
+    window._pendingCardGrant = null;
+    return;
+  }
+  if (targetCards && targetCards.length > 1 && (selectedCardIdx == null || !targetCards[selectedCardIdx])) {
+    addLog(`❌ Veuillez choisir une carte avant de confirmer.`, true);
+    _showCardGrantModal(targetCards, getFaceData(cardInstance).nom);
+    return;
+  }
+
   window._pendingCardGrant = null;
-  if (!cardInstance) return;
 
   // Clean up the pending retained flag, since the action is now confirmed.
   if (window._pendingRetainedActivateNum) {
@@ -774,11 +806,22 @@ function confirmCardGrant() {
   } else {
     gameState.discard.push(cardInstance);
     // Créer les nouvelles instances et les ajouter en défausse
-    targetCards.forEach(cardDef => {
+    const chosenTargets = selectedCardIdx != null && targetCards && targetCards[selectedCardIdx]
+      ? [targetCards[selectedCardIdx]]
+      : targetCards;
+
+    chosenTargets.forEach(cardDef => {
       const newInst = createCardInstance(cardDef);
       gameState.discard.push(newInst);
       addLog(`⛪ <span class="log-card">${fd.nom}</span> — <span class="log-card">${getFaceData(newInst).nom}</span> (#${cardDef.numero}) rejoint la défausse !`, true);
     });
+
+    if (newFace) {
+      cardInstance.currentFace = newFace;
+      cardStateMap[cardInstance.cardDef.numero] = newFace;
+      addLog(`🔼 <span class="log-card">${fd.nom}</span> — promotion vers face ${newFace} activée.`, true);
+    }
+
     updateUI();
   }
 }
