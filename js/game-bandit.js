@@ -3,6 +3,11 @@
 // ============================================================
 
 // Une carte produit-elle de l'Or ?
+/**
+ * Function producesGold.
+ * @param {any} cardInstance
+ * @returns {boolean}
+ */
 function producesGold(cardInstance) {
   const fd = getFaceData(cardInstance);
   if (!fd.ressources) return false;
@@ -17,12 +22,22 @@ function producesGold(cardInstance) {
 //  Structure : { banditNum, blockedNum|null, pendingChoice? }
 // ============================================================
 
+/**
+ * Function isBandit.
+ * @param {any} cardInstance
+ * @returns {boolean}
+ */
 function isBandit(cardInstance) {
   const fd = getFaceData(cardInstance);
   return fd.type === 'Ennemi' && fd.nom === 'Bandit';
 }
 
 // La carte à playIndex est-elle bloquée par un bandit ?
+/**
+ * Function isBlockedByBandit.
+ * @param {any} playIndex
+ * @returns {boolean}
+ */
 function isBlockedByBandit(playIndex) {
   const ci = gameState.play[playIndex];
   if (!ci) return false;
@@ -32,6 +47,10 @@ function isBlockedByBandit(playIndex) {
 // Après le tirage (animations terminées), résout les bandits un par un
 // Résout une file de bandits séquentiellement après les animations.
 // Chaque entrée : { banditNum, goldCards[] } pré-calculés au moment du tirage.
+/**
+ * Function _resolveBanditQueue.
+ * @param {any} queue
+ */
 function _resolveBanditQueue(queue) {
   if (!queue || queue.length === 0) return;
   const { banditNum, goldCards, autoBlock } = queue[0];
@@ -71,6 +90,9 @@ function _resolveBanditQueue(queue) {
 }
 
 // Fallback : utilisé après résolution d'un pendingFaceChoice (sans file pré-calculée)
+/**
+ * Function processPendingBandits.
+ */
 function processPendingBandits() {
   const unregistered = gameState.play.filter(ci =>
     isBandit(ci) && !gameState.bandits.some(b => b.banditNum === ci.cardDef.numero)
@@ -93,6 +115,10 @@ function processPendingBandits() {
 
 // Retire le bandit (et son blocage) quand une carte quitte play[].
 // Appeler avec le numéro de carte AVANT le splice.
+/**
+ * Function updateBanditIndices.
+ * @param {any} cardNum
+ */
 function updateBanditIndices(cardNum) {
   if (cardNum == null) return;
   gameState.bandits = gameState.bandits.filter(b => b.banditNum !== cardNum);
@@ -100,18 +126,32 @@ function updateBanditIndices(cardNum) {
 }
 
 // Helper : retire play[idx] et nettoie les bandits en une seule opération
+/**
+ * Function _playRemove.
+ * @param {any} idx
+ */
 function _playRemove(idx) {
   const num = gameState.play[idx]?.cardDef.numero;
   updateBanditIndices(num);
   gameState.play.splice(idx, 1);
 }
 
+/**
+ * Function showBanditBlockedNotice.
+ * @param {any} targetName
+ */
 function showBanditBlockedNotice(targetName) {
   addLog(`🔒 <span class="log-card">${targetName}</span> est bloquée — production d'Or impossible.`);
 }
 
 // Modal de choix : goldCards est un tableau de cardInstances
 // rest = file des bandits suivants à résoudre après ce choix
+/**
+ * Function showBanditChoiceModal.
+ * @param {any} banditNum
+ * @param {any} goldCards
+ * @param {any} rest
+ */
 function showBanditChoiceModal(banditNum, goldCards, rest) {
   window._banditChoiceRest = rest || [];
   let html = `
@@ -142,6 +182,11 @@ function showBanditChoiceModal(banditNum, goldCards, rest) {
 }
 
 // Appelé quand le joueur choisit la carte à bloquer
+/**
+ * Function assignBanditBlock.
+ * @param {any} banditNum
+ * @param {any} targetCardNum
+ */
 function assignBanditBlock(banditNum, targetCardNum) {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('banditChoiceModal'))?.hide();
@@ -161,6 +206,10 @@ function assignBanditBlock(banditNum, targetCardNum) {
 }
 
 // Vaincre le bandit : coûte 1 Épée, détruit le bandit, gagne 2 ressources au choix
+/**
+ * Function defeatBandit.
+ * @param {any} cardNum
+ */
 function defeatBandit(cardNum) {
   const projected = getProjectedResources();
   if ((projected['Epée'] || 0) < 1) {
@@ -172,6 +221,10 @@ function defeatBandit(cardNum) {
 
 let pendingBanditDefeat = null; // stocke maintenant le numéro de carte
 
+/**
+ * Function showBanditRewardModal.
+ * @param {any} banditNum
+ */
 function showBanditRewardModal(banditNum) {
   pendingBanditDefeat = banditNum;
   window._banditRewardChoices = [];
@@ -179,6 +232,9 @@ function showBanditRewardModal(banditNum) {
   new bootstrap.Modal(document.getElementById('banditRewardModal')).show();
 }
 
+/**
+ * Function _renderBanditRewardModal.
+ */
 function _renderBanditRewardModal() {
   const resources = ['Or', 'Bois', 'Pierre', 'Métal'];
   const choices = window._banditRewardChoices || [];
@@ -215,6 +271,10 @@ function _renderBanditRewardModal() {
   $('#banditRewardBody').html(html);
 }
 
+/**
+ * Function selectBanditReward.
+ * @param {any} resource
+ */
 function selectBanditReward(resource) {
   if (!window._banditRewardChoices) window._banditRewardChoices = [];
   const choices = window._banditRewardChoices;
@@ -224,12 +284,19 @@ function selectBanditReward(resource) {
   _renderBanditRewardModal();
 }
 
+/**
+ * Function removeBanditReward.
+ * @param {any} index
+ */
 function removeBanditReward(index) {
   if (!window._banditRewardChoices) return;
   window._banditRewardChoices.splice(index, 1);
   _renderBanditRewardModal();
 }
 
+/**
+ * Function confirmBanditDefeat.
+ */
 function confirmBanditDefeat() {
   // Blur the currently focused element to prevent it from retaining focus
   // while its ancestor (the modal) is being hidden.

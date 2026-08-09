@@ -7,6 +7,10 @@
 //  HELPERS — Construction des cardInstances level-1 (cartes 23-27)
 // ============================================================
 
+/**
+ * Function _buildLevel1CardInstance.
+ * @param {any} cardData
+ */
 function _buildLevel1CardInstance(cardData) {
   // Créer un cardDef compatible avec getFaceData (faces obligatoires)
   let faces;
@@ -48,6 +52,10 @@ function _buildLevel1CardInstance(cardData) {
 // ============================================================
 
 // Affiche le modal de la Règle Héritage (carte #23)
+/**
+ * Function _showHeritageRuleModal.
+ * @param {any} allCards
+ */
 function _showHeritageRuleModal(allCards) {
   const rule23 = LEGACY_CARDS.find(c => c.numero === 23);
   if (!rule23) { _continueNewRoundAfterHeritage(allCards, true); return; }
@@ -84,6 +92,9 @@ let _heritageInspectState = null;
 
 // Appelé quand le joueur clique "J'ai lu la règle" dans le modal #23
 // Lance l'inspection une par une des cartes 24-27
+/**
+ * Function confirmHeritageRule.
+ */
 function confirmHeritageRule() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('heritageRuleModal'))?.hide();
@@ -99,6 +110,9 @@ function confirmHeritageRule() {
 }
 
 // Affiche la carte courante de la file d'inspection
+/**
+ * Function _showNextHeritageCard.
+ */
 function _showNextHeritageCard() {
   const state = _heritageInspectState;
   if (!state || state.currentIndex >= state.queue.length) {
@@ -225,6 +239,9 @@ function _showNextHeritageCard() {
 }
 
 // Le joueur confirme l'inspection de la carte courante
+/**
+ * Function confirmHeritageInspect.
+ */
 function confirmHeritageInspect() {
   if (document.activeElement) document.activeElement.blur();
   const modal = bootstrap.Modal.getInstance(document.getElementById('heritageInspectModal'));
@@ -252,6 +269,11 @@ function confirmHeritageInspect() {
 }
 
 // Reprend le fil de newRound() après le déclenchement de l'Héritage
+/**
+ * Function _continueNewRoundAfterHeritage.
+ * @param {any} allCards
+ * @param {any} autoStart
+ */
 function _continueNewRoundAfterHeritage(allCards, autoStart = false) {
   // Injecter les cartes héritage jouables (28, 29, …) dans la pioche dès la première manche héritage
   _injectHeritageCardsIntoDeck(allCards); // défini dans game-round.js
@@ -279,6 +301,10 @@ function _continueNewRoundAfterHeritage(allCards, autoStart = false) {
 // ============================================================
 
 // Affiche le modal de présentation de la carte Bijoux avant de l'ajouter aux permanentes
+/**
+ * Function _showBijouxPresentationModal.
+ * @param {any} cardInstance
+ */
 function _showBijouxPresentationModal(cardInstance) {
   const cardData = cardInstance.cardDef;
   const color = '#4a8abf'; // Couleur pour Progression
@@ -346,6 +372,9 @@ function _showBijouxPresentationModal(cardInstance) {
 }
 
 // Confirmation de la présentation Bijoux
+/**
+ * Function confirmBijouxPresentation.
+ */
 function confirmBijouxPresentation() {
   if (document.activeElement) document.activeElement.blur();
   const modal = bootstrap.Modal.getInstance(document.getElementById('heritageInspectModal'));
@@ -371,22 +400,35 @@ function confirmBijouxPresentation() {
 // État de progression de la carte 25 (persisté dans gameState)
 // gameState.armeeProgress = { face: 1|2, casesMarquees: 0 }
 
+/**
+ * Function _getArmeeCard.
+ */
 function _getArmeeCard() {
   return gameState.permanent.find(ci => ci.cardDef.numero === 25) || null;
 }
 
+/**
+ * Function _getArmeeData.
+ * @param {any} face
+ */
 function _getArmeeData(face) {
   const raw = LEGACY_CARDS.find(c => c.numero === 25);
   if (!raw || !raw.faces) return null;
   return raw.faces.find(f => f.face === face) || null;
 }
 
+/**
+ * Function _getArmeeProgress.
+ */
 function _getArmeeProgress() {
   if (!gameState.armeeProgress) gameState.armeeProgress = { face: 1, casesMarquees: 0 };
   return gameState.armeeProgress;
 }
 
 // Ouvre le modal d'investissement pour la carte Armée
+/**
+ * Function openArmeeModal.
+ */
 function openArmeeModal() {
   const prog = _getArmeeProgress();
   const faceData = _getArmeeData(prog.face);
@@ -484,6 +526,9 @@ function openArmeeModal() {
 }
 
 // Confirme le marquage de la prochaine case
+/**
+ * Function confirmArmeeCase.
+ */
 function confirmArmeeCase() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('armeeModal'))?.hide();
@@ -532,6 +577,9 @@ function confirmArmeeCase() {
 
 // Recalcule et applique la gloire de la carte Armée dans gameState.fame
 // La gloire Armée remplace l'ancienne valeur Armée (on la traque séparément)
+/**
+ * Function _updateArmeeGloire.
+ */
 function _updateArmeeGloire() {
   const prog     = _getArmeeProgress();
   const faceData = _getArmeeData(prog.face);
@@ -560,12 +608,19 @@ function _updateArmeeGloire() {
 // État de progression de la carte 26 (persisté dans gameState)
 // gameState.tresorProgress = { face: 1|2, casesMarquees: 0 }
 
+/**
+ * Function _getTresorData.
+ * @param {any} face
+ */
 function _getTresorData(face) {
   const raw = LEGACY_CARDS.find(c => c.numero === 26);
   if (!raw || !raw.faces) return null;
   return raw.faces.find(f => f.face === face) || null;
 }
 
+/**
+ * Function _getTresorProgress.
+ */
 function _getTresorProgress() {
   if (!gameState.tresorProgress) gameState.tresorProgress = { face: 1, casesMarquees: 0 };
   return gameState.tresorProgress;
@@ -573,6 +628,9 @@ function _getTresorProgress() {
 
 // Ouvre le modal d'investissement pour la carte Trésor
 // Même structure qu'openArmeeModal : face active uniquement, section "face suivante" verrouillée
+/**
+ * Function openTresorModal.
+ */
 function openTresorModal() {
   const prog     = _getTresorProgress();
   const faceData = _getTresorData(prog.face);
@@ -705,6 +763,9 @@ function openTresorModal() {
 }
 
 // Confirme le marquage de la prochaine case du Trésor
+/**
+ * Function confirmTresorCase.
+ */
 function confirmTresorCase() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('tresorModal'))?.hide();
@@ -744,6 +805,9 @@ function confirmTresorCase() {
 }
 
 // Recalcule et applique la gloire du Trésor dans gameState.fame
+/**
+ * Function _updateTresorGloire.
+ */
 function _updateTresorGloire() {
   const prog     = _getTresorProgress();
   const faceData = _getTresorData(prog.face);
@@ -776,12 +840,19 @@ function _updateTresorGloire() {
 //   seuilsUtilises: [],  — indices des seuils déjà utilisés (barrés)
 // }
 
+/**
+ * Function _getExportData.
+ * @param {any} face
+ */
 function _getExportData(face) {
   const raw = LEGACY_CARDS.find(c => c.numero === 27);
   if (!raw || !raw.faces) return null;
   return raw.faces.find(f => f.face === face) || null;
 }
 
+/**
+ * Function _getExportProgress.
+ */
 function _getExportProgress() {
   if (!gameState.exportProgress) {
     gameState.exportProgress = { face: 1, totalDepense: 0, seuilsUtilises: [] };
@@ -790,6 +861,9 @@ function _getExportProgress() {
 }
 
 // Renvoie tous les seuils de la face 1 triés par cout_total
+/**
+ * Function _getAllExportSeuils.
+ */
 function _getAllExportSeuils() {
   const f1 = _getExportData(1);
   return [
@@ -798,6 +872,9 @@ function _getAllExportSeuils() {
 }
 
 // Renvoie les seuils atteints mais pas encore utilisés (disponibles entre les tours)
+/**
+ * Function _getExportSeuilsDisponibles.
+ */
 function _getExportSeuilsDisponibles() {
   const prog = _getExportProgress();
   return _getAllExportSeuils().filter(s =>
@@ -805,10 +882,17 @@ function _getExportSeuilsDisponibles() {
   );
 }
 
+/**
+ * Function _hasExportCard.
+ */
 function _hasExportCard() {
   return gameState.permanent.some(ci => ci.cardDef.numero === 27);
 }
 
+/**
+ * Function _addExportGoodsToGauge.
+ * @param {any} amount
+ */
 function _addExportGoodsToGauge(amount) {
   if (!amount || amount <= 0 || !_hasExportCard()) return;
   const prog = _getExportProgress();
@@ -823,6 +907,9 @@ function _addExportGoodsToGauge(amount) {
 }
 
 // Ouvre le modal principal de la carte Export
+/**
+ * Function openExportModal.
+ */
 function openExportModal() {
   const prog       = _getExportProgress();
   const projected  = getProjectedResources();
@@ -990,6 +1077,10 @@ function openExportModal() {
 }
 
 // Investit N Marchandises dans l'Export (sans fermer le modal)
+/**
+ * Function investirExport.
+ * @param {any} n
+ */
 function investirExport(n) {
   if (document.activeElement) document.activeElement.blur();
   if (gameState.exportCaseCeTour) {
@@ -1030,6 +1121,10 @@ function investirExport(n) {
 }
 
 // Marque un seuil comme utilisé (barré)
+/**
+ * Function utiliserSeuilExport.
+ * @param {any} seuilIndex
+ */
 function utiliserSeuilExport(seuilIndex) {
   if (document.activeElement) document.activeElement.blur();
   const prog = _getExportProgress();
@@ -1088,18 +1183,27 @@ function utiliserSeuilExport(seuilIndex) {
 // État de progression de la carte 90 (persisté dans gameState)
 // gameState.bijouxProgress = { casesMarquees: 0 }
 
+/**
+ * Function _getBijouxData.
+ */
 function _getBijouxData() {
   const raw = (typeof CARDS_TO_DISCOVER !== 'undefined' ? CARDS_TO_DISCOVER : []).find(c => c.numero === 90);
   if (!raw || !raw.faces) return null;
   return raw.faces.find(f => f.face === 1) || null;
 }
 
+/**
+ * Function _getBijouxProgress.
+ */
 function _getBijouxProgress() {
   if (!gameState.bijouxProgress) gameState.bijouxProgress = { casesMarquees: 0 };
   return gameState.bijouxProgress;
 }
 
 // Ouvre le modal d'investissement pour la carte Bijoux
+/**
+ * Function openBijouxModal.
+ */
 function openBijouxModal() {
   const prog = _getBijouxProgress();
   const faceData = _getBijouxData();
@@ -1192,6 +1296,9 @@ function openBijouxModal() {
 }
 
 // Confirme le marquage de la prochaine case
+/**
+ * Function confirmBijouxCase.
+ */
 function confirmBijouxCase() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('bijouxModal'))?.hide();
@@ -1233,6 +1340,9 @@ function confirmBijouxCase() {
 }
 
 // Recalcule et applique la gloire de la carte Bijoux dans gameState.fame
+/**
+ * Function _updateBijouxGloire.
+ */
 function _updateBijouxGloire() {
   const prog     = _getBijouxProgress();
   const faceData = _getBijouxData();
@@ -1269,16 +1379,27 @@ function _updateBijouxGloire() {
 
 // --- helpers -------------------------------------------------
 
+/**
+ * Function _getStickerApplications.
+ */
 function _getStickerApplications() {
   if (!gameState.stickerApplications) gameState.stickerApplications = [];
   return gameState.stickerApplications;
 }
 
+/**
+ * Function _getStickerById.
+ * @param {any} id
+ */
 function _getStickerById(id) {
   if (typeof STICKERS === 'undefined') return null;
   return STICKERS.find(s => s.id === id) || null;
 }
 
+/**
+ * Function _stickerLabel.
+ * @param {any} s
+ */
 function _stickerLabel(s) {
   if (!s) return '?';
   // s.quantite = stock d'autocollants disponibles (≠ bonus accordé)
@@ -1292,12 +1413,22 @@ function _stickerLabel(s) {
 // Renvoie le HTML des stickers apposés sur une carte (pour buildCardFrontHTML)
 // NOTE : Cette fonction retourne désormais une chaîne vide — les stickers sont
 // fusionnés visuellement dans les chips de ressource via buildResourcePipsHTML().
+/**
+ * Function getStickerBonusForCard.
+ * @param {any} cardNum
+ * @returns {any}
+ */
 function getStickerBonusForCard(cardNum) {
   return '';
 }
 
 // Renvoie les bonus de ressources dus aux stickers sur une carte (pour getProjectedResources)
 // Seuls les stickers posés sur la face actuellement active sont pris en compte.
+/**
+ * Function getStickerResourceBonusForCard.
+ * @param {any} cardNum
+ * @returns {any}
+ */
 function getStickerResourceBonusForCard(cardNum) {
   // Déterminer la face active de la carte
   const allCards = [
@@ -1337,6 +1468,14 @@ function getStickerResourceBonusForCard(cardNum) {
  * @param {object}  face     - données de face (getFaceData)
  * @param {boolean} blocked  - la carte est-elle bloquée par un bandit ?
  * @param {string}  fontSize - taille de police optionnelle (ex: '0.48rem')
+ */
+/**
+ * Function buildResourcePipsHTML.
+ * @param {any} cardNum
+ * @param {any} face
+ * @param {any} blocked
+ * @param {any} fontSize
+ * @returns {Object}
  */
 function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
   const ressources = face.ressources || [];
@@ -1394,6 +1533,10 @@ function buildResourcePipsHTML(cardNum, face, blocked, fontSize) {
 
 // --- modal generique de pose d'autocollant -------------------
 
+/**
+ * Function ouvrirModalSticker.
+ * @param {any} options
+ */
 function ouvrirModalSticker(options) {
   window._pendingStickerOptions = options;
   window._stickerSelections     = [];
@@ -1414,6 +1557,9 @@ function ouvrirModalSticker(options) {
   new bootstrap.Modal(document.getElementById('stickerModal')).show();
 }
 
+/**
+ * Function _candidatesForSticker.
+ */
 function _candidatesForSticker() {
   const opts  = window._pendingStickerOptions || {};
   const cible = opts.cible || 'Toute';
@@ -1438,6 +1584,9 @@ function _candidatesForSticker() {
   });
 }
 
+/**
+ * Function _renderModalStickerContenu.
+ */
 function _renderModalStickerContenu() {
   const opts      = window._pendingStickerOptions || {};
   const quantite  = opts.quantite || 1;
@@ -1560,11 +1709,19 @@ function _renderModalStickerContenu() {
   document.getElementById('stickerModalBody').innerHTML = body;
 }
 
+/**
+ * Function _choisirSticker.
+ * @param {any} id
+ */
 function _choisirSticker(id) {
   window._stickerChoisi = id;
   _renderModalStickerContenu();
 }
 
+/**
+ * Function _selectionnerCibleSticker.
+ * @param {any} cardNum
+ */
 function _selectionnerCibleSticker(cardNum) {
   const opts     = window._pendingStickerOptions || {};
   const quantite = opts.quantite || 1;
@@ -1589,6 +1746,9 @@ function _selectionnerCibleSticker(cardNum) {
   _renderModalStickerContenu();
 }
 
+/**
+ * Function _annulerModalSticker.
+ */
 function _annulerModalSticker() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('stickerModal'))?.hide();
@@ -1597,6 +1757,9 @@ function _annulerModalSticker() {
   window._stickerChoisi         = null;
 }
 
+/**
+ * Function _confirmerPoseSticker.
+ */
 function _confirmerPoseSticker() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('stickerModal'))?.hide();
@@ -1637,6 +1800,12 @@ function _confirmerPoseSticker() {
   updateUI();
 }
 
+/**
+ * Function _finaliserSticker.
+ * @param {any} sel
+ * @param {any} opts
+ * @param {any} originalOpts
+ */
 function _finaliserSticker(sel, opts, originalOpts) {
   if (!originalOpts) return;
   if (originalOpts.source === 'carte24') {
@@ -1651,6 +1820,10 @@ function _finaliserSticker(sel, opts, originalOpts) {
 
 // --- Carte 24 — Terre fertile --------------------------------
 
+/**
+ * Function applyStickerFromCarte24.
+ * @param {any} effetIndex
+ */
 function applyStickerFromCarte24(effetIndex) {
   const carte24 = LEGACY_CARDS.find(c => c.numero === 24);
   if (!carte24 || !carte24.effet) return;
@@ -1671,6 +1844,10 @@ function applyStickerFromCarte24(effetIndex) {
   });
 }
 
+/**
+ * Function _applyStickerFromCarte24WithHide.
+ * @param {any} effetIndex
+ */
 function _applyStickerFromCarte24WithHide(effetIndex) {
     if (document.activeElement) document.activeElement.blur();
     bootstrap.Modal.getInstance(document.getElementById('carte24Modal'))?.hide();
@@ -1678,6 +1855,9 @@ function _applyStickerFromCarte24WithHide(effetIndex) {
 }
 
 // Ouvre un modal récapitulatif de la carte 24 avec boutons d'action (accessible depuis la zone permanente)
+/**
+ * Function ouvrirCarte24Modal.
+ */
 function ouvrirCarte24Modal() {
   const carte24 = LEGACY_CARDS.find(c => c.numero === 24);
   if (!carte24 || !carte24.effet) return;
@@ -1728,6 +1908,10 @@ function ouvrirCarte24Modal() {
 
 // --- Carte 27 — Export (sticker depuis seuil) ----------------
 
+/**
+ * Function applyStickerFromExport.
+ * @param {any} seuil
+ */
 function applyStickerFromExport(seuil) {
   ouvrirModalSticker({
     stickers:   seuil.stickers || [],
@@ -1742,12 +1926,20 @@ function applyStickerFromExport(seuil) {
 //  RETENTION (cartes 82 & 83 -- Autel / Sanctuaire / Oratoire / Temple)
 // ============================================================
 
+/**
+ * Function _hasRetentionEffect.
+ * @param {any} cardInstance
+ */
 function _hasRetentionEffect(cardInstance) {
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
   return effets.some(e => e.type === 'Retention');
 }
 
+/**
+ * Function _getRetentionCount.
+ * @param {any} cardInstance
+ */
 function _getRetentionCount(cardInstance) {
   const fd = getFaceData(cardInstance);
   const effets = Array.isArray(fd.effet) ? fd.effet : (fd.effet ? [fd.effet] : []);
@@ -1756,6 +1948,10 @@ function _getRetentionCount(cardInstance) {
 }
 
 // Déclenché par le bouton 🕊️ sur la carte
+/**
+ * Function triggerRetentionEffect.
+ * @param {any} cardNum
+ */
 function triggerRetentionEffect(cardNum) {
   const playIndex = _playIdxByNum(cardNum);
   if (playIndex < 0) return;
@@ -1774,6 +1970,10 @@ function triggerRetentionEffect(cardNum) {
   updateUI();
 }
 
+/**
+ * Function _showRetentionModal.
+ * @param {any} count
+ */
 function _showRetentionModal(count) {
   const eligible = gameState.play.filter(ci => {
     const retained = gameState.retained || [];
@@ -1847,6 +2047,11 @@ function _showRetentionModal(count) {
   new bootstrap.Modal(document.getElementById('retentionModal')).show();
 }
 
+/**
+ * Function toggleRetentionCard.
+ * @param {any} idx
+ * @param {any} max
+ */
 function toggleRetentionCard(idx, max) {
   const btn = document.getElementById(`retBtn_${idx}`);
   const check = document.getElementById(`retCheck_${idx}`);
@@ -1880,6 +2085,9 @@ function toggleRetentionCard(idx, max) {
   confirmBtn.textContent = `✓ Confirmer (${sel.length} / ${max})`;
 }
 
+/**
+ * Function closeRetentionModal.
+ */
 function closeRetentionModal() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
@@ -1892,6 +2100,9 @@ function closeRetentionModal() {
   }
 }
 
+/**
+ * Function confirmRetentionSelection.
+ */
 function confirmRetentionSelection() {
   if (document.activeElement) document.activeElement.blur();
   bootstrap.Modal.getInstance(document.getElementById('retentionModal'))?.hide();
